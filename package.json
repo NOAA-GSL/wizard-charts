@@ -1,0 +1,20 @@
+{
+	"private": true,
+	"name": "desi-charts-workspace",
+	"version": "1.0.0",
+	"description": "",
+	"license": "ISC",
+	"author": "",
+	"type": "commonjs",
+	"main": "index.js",
+	"scripts": {
+		"dev": "npm run dev --workspace=demo",
+		"build": "npm run build --workspace=library",
+		"build:dev": "npm run build:dev --workspace=library",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"workspaces": [
+		"library",
+		"demo"
+	]
+}

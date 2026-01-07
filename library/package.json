@@ -1,0 +1,50 @@
+{
+    "name": "desi-charts",
+    "version": "1.0.0",
+    "description": "An extension of deck.gl for producing weather graphics",
+    "type": "module",
+    "license": "MIT",
+    "main": "./dist/desi-charts.umd.cjs",
+    "module": "./dist/desi-charts.es.js",
+    "exports": {
+        ".": {
+            "import": "./dist/desi-charts.es.js",
+            "require": "./dist/desi-charts.umd.cjs"
+        },
+        "./desi-charts.css": "./dist/desi-charts.css"
+    },
+    "files": [
+        "dist"
+    ],
+    "homepage": "https://vlab.noaa.gov/gitlab-community/OAR/GSL/DESI/desi-charts",
+    "scripts": {
+        "dev": "vite",
+        "build:dev": "vite build --config vite.config.dev.js",
+        "postbuild:dev": "yalc push",
+        "build": "vite build --config vite.config.prod.js",
+        "lint": "eslint .",
+        "preview": "vite preview",
+        "size": "npx vite-bundle-visualizer"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "@types/react": "^19.2.0",
+        "@types/react-dom": "^19.2.0",
+        "@vitejs/plugin-react": "^5.1.2",
+        "eslint": "^9.38.0",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-import-resolver-node": "^0.3.9",
+        "eslint-plugin-jsx-a11y": "^6.10.2",
+        "eslint-plugin-prettier": "^5.5.4",
+        "eslint-plugin-react": "^7.37.5",
+        "eslint-plugin-react-hooks": "^7.0.1",
+        "eslint-plugin-react-refresh": "^0.4.24",
+        "vite": "^7.2.6"
+    },
+    "peerDependencies": {
+        "d3": "~7.9.0",
+        "lodash": "~4.17.21",
+        "react": ">=18.0.0",
+        "react-dom": ">=18.0.0"
+    }
+}
