@@ -1,20 +1,30 @@
 {
-	"private": true,
-	"name": "desi-charts-workspace",
-	"version": "1.0.0",
-	"description": "",
-	"license": "ISC",
-	"author": "",
-	"type": "commonjs",
-	"main": "index.js",
-	"scripts": {
-		"dev": "npm run dev --workspace=demo",
-		"build": "npm run build --workspace=library",
-		"build:dev": "npm run build:dev --workspace=library",
-		"test": "echo \"Error: no test specified\" && exit 1"
-	},
-	"workspaces": [
-		"library",
-		"demo"
-	]
+    "private": true,
+    "name": "desi-charts-workspace",
+    "version": "1.0.0",
+    "description": "",
+    "license": "ISC",
+    "author": "",
+    "type": "module",
+    "main": "index.js",
+    "scripts": {
+        "dev": "npm run dev --workspace=demo",
+        "build": "npm run build --workspace=library",
+        "build:dev": "npm run build:dev --workspace=library",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "workspaces": [
+        "library",
+        "demo"
+    ],
+    "devDependencies": {
+        "eslint": "^9.38.0",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-import-resolver-node": "^0.3.9",
+        "eslint-plugin-jsx-a11y": "^6.10.2",
+        "eslint-plugin-prettier": "^5.5.4",
+        "eslint-plugin-react": "^7.37.5",
+        "eslint-plugin-react-hooks": "^7.0.1",
+        "eslint-plugin-react-refresh": "^0.4.24"
+    }
 }
