@@ -5,7 +5,7 @@ function XAxis({
     ticks,
     isAngledTicks = false,
     className = null,
-    tickOffset = 5,
+    tickOffset = 10,
 }) {
     const xDomain = xScale.domain();
     const yDomain = yScale.domain();
