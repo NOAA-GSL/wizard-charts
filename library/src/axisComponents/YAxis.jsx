@@ -22,7 +22,7 @@ function YAxis({
     const xDomainPosition = isLeftLocation ? 0 : 1;
 
     return (
-        <g className={`x1d-axis ${className}`}>
+        <g className={`gsl-chart-axis ${className}`}>
             {/* vertical line for y-axis, `location` will set the x values */}
             <line
                 x1={xScale(xDomain[xDomainPosition])}
@@ -32,7 +32,7 @@ function YAxis({
             />
             {/* legend */}
             <text
-                className="x1d-axis-label"
+                className="gsl-chart-axis-label"
                 alignmentBaseline={`${isLeftLocation ? 'before-edge' : 'after-edge'}`}
                 textAnchor="middle"
                 transform={`translate(${xScale(xDomain[xDomainPosition]) - legendTickOffset}, ${yMiddle}) rotate(-90)`}

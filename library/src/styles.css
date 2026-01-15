@@ -1,3 +1,10 @@
-.x1d-axis {
+.gsl-chart-axis {
     stroke: #efefef;
+    stroke-width: 1px;
+}
+
+.gsl-chart-line {
+    stroke: #0085ca;
+    stroke-width: 2px;
+    fill: none;
 }
