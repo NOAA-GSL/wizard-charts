@@ -1,5 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useState, useCallback, useMemo, useEffect } from 'react';
+import {
+  createContext,
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+} from 'react';
 
 export const ChartContext = createContext();
 
@@ -9,14 +15,25 @@ function typeCheckChartValues(values) {
     ...values,
     height: Number(values.height) || 0,
     width: Number(values.width) || 0,
-    innerHeight: Number(values.innerHeight) || 0,
-    innerWidth: Number(values.innerWidth) || 0,
     margin: {
       top: Number(values.margin?.top) || 0,
       right: Number(values.margin?.right) || 0,
       bottom: Number(values.margin?.bottom) || 0,
       left: Number(values.margin?.left) || 0,
     },
+    // inner dimensions are always derived from height/width and margins
+    innerHeight: Math.max(
+      0,
+      Number(values.height) -
+        Number(values.margin?.top || 0) -
+        Number(values.margin?.bottom || 0),
+    ),
+    innerWidth: Math.max(
+      0,
+      Number(values.width) -
+        Number(values.margin?.left || 0) -
+        Number(values.margin?.right || 0),
+    ),
   };
 }
 
@@ -25,7 +42,7 @@ function typeCheckChartValues(values) {
  *
  * const { chartValues, updateChartValues } = useContext(ChartContext);
  *
- * Read values: chartValues.innerWidth, chartValues.xScale, etc.
+ * Read values: chartValues.innerWidth, chartValues.xScaleType, etc.
  * Update values: updateChartValues({ innerWidth: newWidth });
  */
 export function ChartProvider({ children, initialValues = {} }) {
@@ -33,12 +50,8 @@ export function ChartProvider({ children, initialValues = {} }) {
     typeCheckChartValues({
       height: 0,
       width: 0,
-      innerHeight: 0,
-      innerWidth: 0,
-      xValue: null,
-      xScale: null,
-      yValue: null,
-      yScale: null,
+      xScaleType: null,
+      yScaleType: null,
       margin: { top: 0, right: 0, bottom: 0, left: 0 },
       data: [],
       ...initialValues,
@@ -64,8 +77,14 @@ export function ChartProvider({ children, initialValues = {} }) {
     // I can assume that this setState call is safe because initialValues is a
     // a stable object created with useMemo in ChartContainer.jsx
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setChartValues((prev) => typeCheckChartValues({ ...prev, ...initialValues }));
+    setChartValues((prev) =>
+      typeCheckChartValues({ ...prev, ...initialValues }),
+    );
   }, [initialValues]);
 
-  return <ChartContext.Provider value={contextValue}>{children}</ChartContext.Provider>;
+  return (
+    <ChartContext.Provider value={contextValue}>
+      {children}
+    </ChartContext.Provider>
+  );
 }

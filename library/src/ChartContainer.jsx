@@ -8,12 +8,14 @@ function ChartContainer({
   data = [],
   children,
   className = '',
+  xScaleType = 'linear',
+  yScaleType = 'linear',
   sx = {},
 }) {
   // useMemo to avoid unnecessary re-renders in the useEffect hook of ChartProvider
   const initialValues = useMemo(
-    () => ({ height, width, margin, data }),
-    [height, width, margin, data],
+    () => ({ height, width, margin, data, xScaleType, yScaleType }),
+    [height, width, margin, data, xScaleType, yScaleType],
   );
   return (
     <ChartProvider initialValues={initialValues}>

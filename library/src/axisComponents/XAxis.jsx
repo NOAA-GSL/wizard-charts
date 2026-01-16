@@ -1,20 +1,22 @@
-import { useContext } from 'react';
-import { ChartContext } from '../context/ChartProvider';
+import { useChartHelpers } from '../hooks/useChartHelpers';
 
 function XAxis({
-  xScale,
-  yScale,
-  innerHeight,
-  ticks,
   isAngledTicks = false,
   className = null,
+  tickLength = 5,
   tickOffset = 10,
 }) {
+  const { getChartValues, getXScale, getYScale } = useChartHelpers();
+
+  const chartValues = getChartValues();
+  const xScale = getXScale();
+  const yScale = getYScale();
   const xDomain = xScale.domain();
   const yDomain = yScale.domain();
 
-  const { chartValues } = useContext(ChartContext);
-  console.log('chartValues in XAxis:', chartValues);
+  const ticks = xScale
+    .ticks()
+    .map((value) => ({ value, label: value.toString() }));
 
   const textStyle = {
     alignmentBaseline: 'middle',
@@ -29,7 +31,7 @@ function XAxis({
     // have to remove the y value, then translate the text to the bottom
     // of the chart before rotating
     textY = null;
-    textTransform = `translate(0, ${innerHeight + tickOffset}) rotate(-45)`;
+    textTransform = `translate(0, ${chartValues.innerHeight + tickOffset}) rotate(-45)`;
   } else {
     textStyle.alignmentBaseline = 'hanging'; // or middle for tilted?
     textStyle.textAnchor = 'middle';
@@ -47,7 +49,7 @@ function XAxis({
       />
       {ticks.map((tick) => (
         <g key={tick.value} transform={`translate(${xScale(tick.value)},0)`}>
-          <line y2={yScale(yDomain[0])} y1={yScale(yDomain[0]) + 5} />
+          <line y2={yScale(yDomain[0])} y1={yScale(yDomain[0]) + tickLength} />
 
           <text style={textStyle} y={textY} transform={textTransform}>
             {tick.label}

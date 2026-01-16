@@ -1,4 +1,5 @@
 {
-    "eslint.useFlatConfig": true,
-    "eslint.nodePath": "node_modules"
+  "eslint.useFlatConfig": true,
+  "eslint.nodePath": "node_modules",
+  "editor.tabSize": 2
 }
