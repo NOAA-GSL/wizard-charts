@@ -34,6 +34,7 @@ function typeCheckChartValues(values) {
         Number(values.margin?.left || 0) -
         Number(values.margin?.right || 0),
     ),
+    animationDuration: Number(values.animationDuration) || 0,
   };
 }
 
@@ -54,6 +55,7 @@ export function ChartProvider({ children, initialValues = {} }) {
       yScaleType: null,
       margin: { top: 0, right: 0, bottom: 0, left: 0 },
       data: [],
+      animationDuration: 1000,
       ...initialValues,
     }),
   );

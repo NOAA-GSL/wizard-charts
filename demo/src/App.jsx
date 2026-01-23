@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { ChartContainer, XAxis, YAxis, Line } from 'desi-charts';
 import InputSlider from './InputSlider';
 import { generateRandomData } from './helperFunctions';
-import { scaleLinear, extent } from 'd3';
 
 import 'desi-charts/desi-charts.css';
 
@@ -50,6 +49,7 @@ function App() {
         data={data}
         xScaleType="linear"
         yScaleType="linear"
+        animationDuration={1000}
         sx={{ border: '1px solid white' }}
       >
         <XAxis />

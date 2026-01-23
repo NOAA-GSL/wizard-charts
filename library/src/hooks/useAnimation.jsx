@@ -1,0 +1,45 @@
+import { useEffect } from 'react';
+import { useChartHelpers } from './useChartHelpers';
+
+function useAnimation({ type, ref, trigger, duration }) {
+  const { getChartValues } = useChartHelpers();
+  const chartValues = getChartValues();
+  const animationDuration = duration || chartValues.animationDuration;
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    switch (type) {
+      case 'fadeIn':
+        element.style.animation = 'none';
+        element.getBoundingClientRect();
+        element.style.animation = `fadeIn ${animationDuration}ms forwards`;
+        break;
+      case 'drawLine': {
+        const length = element.getTotalLength();
+        element.style.strokeDasharray = length;
+        element.style.strokeDashoffset = length;
+
+        // the following two lines are required to restart the animation
+        // when the data changes
+        element.style.animation = 'none';
+        element.getBoundingClientRect();
+        element.style.animation = `drawLine ${animationDuration}ms forwards`;
+
+        // clean up after animation so resizing doesn't cause glitches in line length
+        const handleAnimationEnd = () => {
+          element.style.strokeDasharray = '';
+          element.style.strokeDashoffset = '';
+          element.removeEventListener('animationend', handleAnimationEnd);
+        };
+        element.addEventListener('animationend', handleAnimationEnd);
+        break;
+      }
+      default:
+        break;
+    }
+  }, [animationDuration, ref, trigger, type]);
+}
+
+export default useAnimation;

@@ -1,5 +1,7 @@
+import { useRef } from 'react';
 import { line } from 'd3';
 import { useChartHelpers } from '../hooks/useChartHelpers';
+import useAnimation from '../hooks/useAnimation';
 
 function Line({ className = '' }) {
   const { getChartValues, getXScale, getYScale, getAccessors } =
@@ -10,8 +12,17 @@ function Line({ className = '' }) {
   const yScale = getYScale();
   const accessors = getAccessors();
 
+  const pathRef = useRef(null);
+
+  useAnimation({
+    type: 'drawLine',
+    ref: pathRef,
+    trigger: chartValues.data,
+  });
+
   return (
     <path
+      ref={pathRef}
       className={`gsl-chart-line ${className}`}
       d={line()
         .x((d) => xScale(accessors.x(d)))

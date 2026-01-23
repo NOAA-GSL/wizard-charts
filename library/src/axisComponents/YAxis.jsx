@@ -1,4 +1,6 @@
+import { useRef } from 'react';
 import { useChartHelpers } from '../hooks/useChartHelpers';
+import useAnimation from '../hooks/useAnimation';
 
 function YAxis({
   isLeftLocation = true,
@@ -6,9 +8,12 @@ function YAxis({
   tickLength = 5,
   tickOffset = 10,
 }) {
+  const ticksGroupRef = useRef(null);
+
   const { getChartValues, getXScale, getYScale } = useChartHelpers();
 
-  const { data, margin } = getChartValues();
+  const chartValues = getChartValues();
+  const { data, margin } = chartValues;
   const xScale = getXScale();
   const yScale = getYScale();
   const xDomain = xScale.domain();
@@ -29,6 +34,12 @@ function YAxis({
   // this determines whether the x value is the left or right side of the chart
   const xDomainPosition = isLeftLocation ? 0 : 1;
 
+  useAnimation({
+    type: 'fadeIn',
+    ref: ticksGroupRef,
+    trigger: chartValues.data,
+  });
+
   return (
     <g className={`gsl-chart-axis ${className}`}>
       {/* vertical line for y-axis, `location` will set the x values */}
@@ -47,24 +58,32 @@ function YAxis({
       >
         {data.ylegend}
       </text>
-      {ticks.map((tick) => (
-        <g key={tick.value} transform={`translate(0, ${yScale(tick.value)})`}>
-          <line
-            x2={xScale(xDomain[xDomainPosition])}
-            // todo: well, this isn't using the tickLength prop...
-            x1={xScale(xDomain[xDomainPosition]) - locationTickOffset / 2}
-          />
-          <text
-            style={{
-              alignmentBaseline: 'central', // central looks better than middle
-              textAnchor: `${isLeftLocation ? 'end' : 'start'}`,
-            }}
-            x={xScale(xDomain[xDomainPosition]) - locationTickOffset}
+      <g ref={ticksGroupRef}>
+        {ticks.map((tick) => (
+          <g
+            key={tick.value}
+            transform={`translate(0, ${yScale(tick.value)})`}
+            className="gsl-chart-tick"
           >
-            {tick.label === '' ? tick.value : tick.label}
-          </text>
-        </g>
-      ))}
+            <line
+              x2={xScale(xDomain[xDomainPosition])}
+              // todo: well, this isn't using the tickLength prop...
+              x1={xScale(xDomain[xDomainPosition]) - locationTickOffset / 2}
+              className="gsl-chart-tick-line"
+            />
+            <text
+              style={{
+                alignmentBaseline: 'central', // central looks better than middle
+                textAnchor: `${isLeftLocation ? 'end' : 'start'}`,
+              }}
+              className="gsl-chart-tick-label"
+              x={xScale(xDomain[xDomainPosition]) - locationTickOffset}
+            >
+              {tick.label === '' ? tick.value : tick.label}
+            </text>
+          </g>
+        ))}
+      </g>
     </g>
   );
 }

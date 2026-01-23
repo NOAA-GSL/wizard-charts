@@ -1,4 +1,6 @@
+import { useRef } from 'react';
 import { useChartHelpers } from '../hooks/useChartHelpers';
+import useAnimation from '../hooks/useAnimation';
 
 function XAxis({
   isAngledTicks = false,
@@ -6,6 +8,8 @@ function XAxis({
   tickLength = 5,
   tickOffset = 10,
 }) {
+  const ticksGroupRef = useRef(null);
+
   const { getChartValues, getXScale, getYScale } = useChartHelpers();
 
   const chartValues = getChartValues();
@@ -38,6 +42,12 @@ function XAxis({
     textY = yScale(yDomain[0]) + tickOffset;
   }
 
+  useAnimation({
+    type: 'fadeIn',
+    ref: ticksGroupRef,
+    trigger: chartValues.data,
+  });
+
   return (
     <g className={`gsl-chart-axis ${className}`}>
       {/* horizontal line above the text for the x axis */}
@@ -47,15 +57,29 @@ function XAxis({
         y1={yScale(yDomain[0])}
         y2={yScale(yDomain[0])}
       />
-      {ticks.map((tick) => (
-        <g key={tick.value} transform={`translate(${xScale(tick.value)},0)`}>
-          <line y2={yScale(yDomain[0])} y1={yScale(yDomain[0]) + tickLength} />
-
-          <text style={textStyle} y={textY} transform={textTransform}>
-            {tick.label}
-          </text>
-        </g>
-      ))}
+      <g ref={ticksGroupRef}>
+        {ticks.map((tick) => (
+          <g
+            key={tick.value}
+            transform={`translate(${xScale(tick.value)},0)`}
+            className="gsl-chart-tick"
+          >
+            <line
+              className="gsl-chart-tick-line"
+              y2={yScale(yDomain[0])}
+              y1={yScale(yDomain[0]) + tickLength}
+            />
+            <text
+              className="gsl-chart-tick-label"
+              style={textStyle}
+              y={textY}
+              transform={textTransform}
+            >
+              {tick.label}
+            </text>
+          </g>
+        ))}
+      </g>
     </g>
   );
 }
