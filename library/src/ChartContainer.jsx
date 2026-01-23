@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { ChartProvider } from './context/ChartProvider';
+import ErrorBoundary from './ErrorBoundary';
 
 function ChartContainer({
   height = 600,
@@ -19,9 +20,11 @@ function ChartContainer({
   );
   return (
     <ChartProvider initialValues={initialValues}>
-      <svg height={height} width={width} className={className} style={sx}>
-        {children}
-      </svg>
+      <ErrorBoundary>
+        <svg height={height} width={width} className={className} style={sx}>
+          {children}
+        </svg>
+      </ErrorBoundary>
     </ChartProvider>
   );
 }

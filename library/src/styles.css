@@ -1,3 +1,7 @@
+:root {
+  --tropical-indigo: #7e84fa;
+}
+
 .gsl-chart-axis {
   line {
     stroke: #efefef;
@@ -10,9 +14,13 @@
 }
 
 .gsl-chart-line {
-  stroke: #0085ca;
+  stroke: var(--tropical-indigo);
   stroke-width: 2px;
   fill: none;
+}
+
+.gsl-chart-bar {
+  fill: var(--tropical-indigo);
 }
 
 @keyframes drawLine {
@@ -26,5 +34,14 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes growBar {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
   }
 }

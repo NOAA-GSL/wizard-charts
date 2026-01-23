@@ -36,6 +36,25 @@ function useAnimation({ type, ref, trigger, duration }) {
         element.addEventListener('animationend', handleAnimationEnd);
         break;
       }
+      case 'growBar': {
+        const rects = element.querySelectorAll('rect');
+        rects.forEach((rect) => {
+          rect.style.animation = 'none';
+          rect.style.transform = 'scaleY(0)';
+          rect.style.transformOrigin =
+            rect.style.transformOrigin || 'center bottom';
+        });
+        // Force reflow
+        element.getBoundingClientRect();
+        // Trigger animation in the next frame
+        requestAnimationFrame(() => {
+          rects.forEach((rect) => {
+            rect.style.animation = `growBar ${animationDuration}ms forwards`;
+            rect.style.transform = 'scaleY(1)';
+          });
+        });
+        break;
+      }
       default:
         break;
     }
