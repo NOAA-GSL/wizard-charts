@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { ChartContainer, XAxis, YAxis, Line, Bar } from 'desi-charts';
 import InputSlider from './InputSlider';
-import { generateRandomData } from './helperFunctions';
-
+import { generateRandomData, dataVizColors } from './helperFunctions';
 import 'desi-charts/desi-charts.css';
+import InputColor from './InputColor';
 
 const margin = { top: 25, right: 50, bottom: 50, left: 50 };
 
 function App() {
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [chartType, setChartType] = useState('line');
+  const [chartColor, setChartColor] = useState(
+    dataVizColors['tropical-indigo'],
+  );
+  console.log('chartColor:', chartColor);
   const [data, setData] = useState(
     generateRandomData({ numPoints: 50, variance: 5 }),
   );
@@ -54,6 +58,11 @@ function App() {
           <option value="line">Line</option>
           <option value="bar">Bar</option>
         </select>
+        <InputColor
+          color={chartColor}
+          onChange={setChartColor}
+          id="chart-color"
+        />
       </div>
       <ChartContainer
         height={dimensions.height}
@@ -71,9 +80,9 @@ function App() {
         }}
       >
         <XAxis />
-        <YAxis />
-        {chartType === 'line' && <Line />}
-        {chartType === 'bar' && <Bar />}
+        <YAxis hasGridLines />
+        {chartType === 'line' && <Line color={chartColor} />}
+        {chartType === 'bar' && <Bar color={chartColor} />}
       </ChartContainer>
     </div>
   );

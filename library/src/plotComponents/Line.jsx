@@ -2,8 +2,9 @@ import { useRef } from 'react';
 import { line } from 'd3';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
+import { dataVizColors } from '../../../demo/src/helperFunctions';
 
-function Line({ className = '' }) {
+function Line({ className = '', color = dataVizColors['tropical-indigo'] }) {
   const { getChartValues, getXScale, getYScale, getAccessors } =
     useChartHelpers();
 
@@ -27,6 +28,8 @@ function Line({ className = '' }) {
       d={line()
         .x((d) => xScale(accessors.x(d)))
         .y((d) => yScale(accessors.y(d)))(chartValues.data)}
+      stroke={color}
+      fill="none"
     />
   );
 }

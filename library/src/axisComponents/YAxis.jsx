@@ -7,6 +7,8 @@ function YAxis({
   className = null,
   tickLength = 5,
   tickOffset = 10,
+  hasAxisLine = false,
+  hasGridLines = false,
 }) {
   const ticksGroupRef = useRef(null);
 
@@ -43,12 +45,14 @@ function YAxis({
   return (
     <g className={`gsl-chart-axis ${className}`}>
       {/* vertical line for y-axis, `location` will set the x values */}
-      <line
-        x1={xScale(xDomain[xDomainPosition])}
-        x2={xScale(xDomain[xDomainPosition])}
-        y1={yScale(yDomain[0])}
-        y2={yScale(yDomain[1])}
-      />
+      {hasAxisLine && (
+        <line
+          x1={xScale(xDomain[xDomainPosition])}
+          x2={xScale(xDomain[xDomainPosition])}
+          y1={yScale(yDomain[0])}
+          y2={yScale(yDomain[1])}
+        />
+      )}
       {/* legend */}
       <text
         className="gsl-chart-axis-label"
@@ -65,12 +69,20 @@ function YAxis({
             transform={`translate(0, ${yScale(tick.value)})`}
             className="gsl-chart-tick"
           >
-            <line
-              x2={xScale(xDomain[xDomainPosition])}
-              // todo: well, this isn't using the tickLength prop...
-              x1={xScale(xDomain[xDomainPosition]) - locationTickOffset / 2}
-              className="gsl-chart-tick-line"
-            />
+            {/* Horizontal grid line */}
+            {hasGridLines && (
+              <line x1={xScale(xDomain[0])} x2={xScale(xDomain[1])} />
+            )}
+            {/* Tick Mark */}
+            {hasAxisLine && (
+              <line
+                // todo: well, this isn't using the tickLength prop...
+                x1={xScale(xDomain[xDomainPosition]) - locationTickOffset / 2}
+                x2={xScale(xDomain[xDomainPosition])}
+                className="gsl-chart-tick-line"
+              />
+            )}
+            {/* Tick Label */}
             <text
               style={{
                 alignmentBaseline: 'central', // central looks better than middle

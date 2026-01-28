@@ -4,7 +4,11 @@ import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
 import { getRange } from '../utilities/dataUtilities';
 
-function Bar({ cornerRadius = 2, className = '' }) {
+function Bar({
+  cornerRadius = 2,
+  color = 'var(--gsl-charts-color-1)',
+  className = '',
+}) {
   const { getChartValues, getXScale, getYScale, getAccessors } =
     useChartHelpers();
 
@@ -31,7 +35,7 @@ function Bar({ cornerRadius = 2, className = '' }) {
   });
 
   return (
-    <g className={`gsl-chart-bar ${className}`} ref={rectGroupRef}>
+    <g className={`gsl-chart-bar ${className}`} fill={color} ref={rectGroupRef}>
       {chartValues.data.map((dataPoint) => {
         const x = xScale(accessors.x(dataPoint));
         const y = yScale(accessors.y(dataPoint)); // top of the bar

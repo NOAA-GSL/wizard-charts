@@ -7,6 +7,8 @@ function XAxis({
   className = null,
   tickLength = 5,
   tickOffset = 10,
+  hasAxisLine = false,
+  hasGridLines = false,
 }) {
   const ticksGroupRef = useRef(null);
 
@@ -51,12 +53,14 @@ function XAxis({
   return (
     <g className={`gsl-chart-axis ${className}`}>
       {/* horizontal line above the text for the x axis */}
-      <line
-        x1={xScale(xDomain[0])}
-        x2={xScale(xDomain[1])}
-        y1={yScale(yDomain[0])}
-        y2={yScale(yDomain[0])}
-      />
+      {hasAxisLine && (
+        <line
+          x1={xScale(xDomain[0])}
+          x2={xScale(xDomain[1])}
+          y1={yScale(yDomain[0])}
+          y2={yScale(yDomain[0])}
+        />
+      )}
       <g ref={ticksGroupRef}>
         {ticks.map((tick) => (
           <g
@@ -64,11 +68,19 @@ function XAxis({
             transform={`translate(${xScale(tick.value)},0)`}
             className="gsl-chart-tick"
           >
-            <line
-              className="gsl-chart-tick-line"
-              y2={yScale(yDomain[0])}
-              y1={yScale(yDomain[0]) + tickLength}
-            />
+            {/* Vertical grid line */}
+            {hasGridLines && (
+              <line y1={yScale(yDomain[0])} y2={yScale(yDomain[1])} />
+            )}
+            {/* Tick Mark */}
+            {hasAxisLine && (
+              <line
+                className="gsl-chart-tick-line"
+                y2={yScale(yDomain[0])}
+                y1={yScale(yDomain[0]) + tickLength}
+              />
+            )}
+            {/* Tick Label */}
             <text
               className="gsl-chart-tick-label"
               style={textStyle}

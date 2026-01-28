@@ -1,26 +1,20 @@
 :root {
-  --tropical-indigo: #7e84fa;
+  --gsl-charts-color-1: #7e84fa;
 }
 
 .gsl-chart-axis {
   line {
-    stroke: #efefef;
+    stroke: #404040;
     stroke-width: 1px;
   }
   text {
     stroke: none;
-    fill: #efefef;
+    fill: #d4d4d4;
   }
 }
 
 .gsl-chart-line {
-  stroke: var(--tropical-indigo);
   stroke-width: 2px;
-  fill: none;
-}
-
-.gsl-chart-bar {
-  fill: var(--tropical-indigo);
 }
 
 @keyframes drawLine {
