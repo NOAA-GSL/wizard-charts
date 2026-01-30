@@ -5,10 +5,15 @@ import useAnimation from '../hooks/useAnimation';
 function YAxis({
   isLeftLocation = true,
   className = null,
-  tickLength = 5,
-  tickOffset = 10,
   hasAxisLine = false,
   hasGridLines = false,
+  // tick props
+  tickLength = 5,
+  tickOffset = 10,
+  tickFontFamily = 'inherit',
+  tickFontSize = 12,
+  tickFontWeight = 400,
+  tickFontColor = 'currentColor',
 }) {
   const ticksGroupRef = useRef(null);
 
@@ -35,6 +40,16 @@ function YAxis({
 
   // this determines whether the x value is the left or right side of the chart
   const xDomainPosition = isLeftLocation ? 0 : 1;
+
+  const textStyle = {
+    alignmentBaseline: 'central', // central looks better than middle
+    textAnchor: `${isLeftLocation ? 'end' : 'start'}`,
+    fill: tickFontColor,
+    fontFamily: tickFontFamily,
+    fontSize: `${tickFontSize}px`,
+    fontWeight: tickFontWeight,
+    color: tickFontColor,
+  };
 
   useAnimation({
     type: 'fadeIn',
@@ -84,10 +99,7 @@ function YAxis({
             )}
             {/* Tick Label */}
             <text
-              style={{
-                alignmentBaseline: 'central', // central looks better than middle
-                textAnchor: `${isLeftLocation ? 'end' : 'start'}`,
-              }}
+              style={textStyle}
               className="gsl-chart-tick-label"
               x={xScale(xDomain[xDomainPosition]) - locationTickOffset}
             >

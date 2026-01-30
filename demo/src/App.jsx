@@ -71,15 +71,17 @@ function App() {
         data={data}
         xScaleType="linear"
         yScaleType="linear"
+        yNice
         animationDuration={1000}
         sx={{
           border: '1px solid #737373',
           borderRadius: '8px',
-          background:
-            'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
+          background: '#222',
+          // background:
+          //   'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
         }}
       >
-        <XAxis />
+        <XAxis hasAxisLine />
         <YAxis hasGridLines />
         {chartType === 'line' && <Line color={chartColor} />}
         {chartType === 'bar' && <Bar color={chartColor} />}

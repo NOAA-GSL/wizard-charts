@@ -5,10 +5,15 @@ import useAnimation from '../hooks/useAnimation';
 function XAxis({
   isAngledTicks = false,
   className = null,
-  tickLength = 5,
-  tickOffset = 10,
   hasAxisLine = false,
   hasGridLines = false,
+  // tick props
+  tickLength = 5,
+  tickOffset = 10,
+  tickFontFamily = 'inherit',
+  tickFontSize = 12,
+  tickFontWeight = 400,
+  tickFontColor = 'currentColor',
 }) {
   const ticksGroupRef = useRef(null);
 
@@ -27,6 +32,11 @@ function XAxis({
   const textStyle = {
     alignmentBaseline: 'middle',
     textAnchor: 'end',
+    fill: tickFontColor,
+    fontFamily: tickFontFamily,
+    fontSize: `${tickFontSize}px`,
+    fontWeight: tickFontWeight,
+    color: tickFontColor,
   };
 
   let textTransform;

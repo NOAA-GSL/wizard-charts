@@ -24,18 +24,26 @@ export function getRange(axis, chartValues) {
   }
 }
 
-// todo: should I add a way to set nice() on the scales?
-export function getScale(type, domain, range) {
+export function getScale(type, domain, range, isNice = false) {
+  let scale;
   switch (type) {
     case 'linear':
-      return scaleLinear().domain(domain).range(range);
+      scale = scaleLinear().domain(domain).range(range);
+      break;
     case 'band':
-      return scaleBand().domain(domain).range(range);
+      scale = scaleBand().domain(domain).range(range);
+      break;
     case 'time':
-      return scaleTime().domain(domain).range(range);
+      scale = scaleTime().domain(domain).range(range);
+      break;
     case 'threshold':
-      return scaleThreshold().domain(domain).range(range);
+      scale = scaleThreshold().domain(domain).range(range);
+      break;
     default:
       throw new Error(`Unknown scale type: ${type}`);
   }
+  if (isNice && typeof scale.nice === 'function') {
+    scale.nice();
+  }
+  return scale;
 }

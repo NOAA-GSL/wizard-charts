@@ -11,12 +11,23 @@ function ChartContainer({
   className = '',
   xScaleType = 'linear',
   yScaleType = 'linear',
+  xNice = false,
+  yNice = false,
   sx = {},
 }) {
   // useMemo to avoid unnecessary re-renders in the useEffect hook of ChartProvider
   const initialValues = useMemo(
-    () => ({ height, width, margin, data, xScaleType, yScaleType }),
-    [height, width, margin, data, xScaleType, yScaleType],
+    () => ({
+      height,
+      width,
+      margin,
+      data,
+      xScaleType,
+      yScaleType,
+      xNice,
+      yNice,
+    }),
+    [height, width, margin, data, xScaleType, yScaleType, xNice, yNice],
   );
   return (
     <ChartProvider initialValues={initialValues}>
