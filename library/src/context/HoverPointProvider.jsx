@@ -12,17 +12,17 @@ export const HoverPointContext = createContext();
 export const HoverUpdateContext = createContext();
 
 export function HoverPointProvider({ children }) {
-    const [hoverPoint, setHoverPoint] = useState([0, 0]);
+  const [hoverPoint, setHoverPoint] = useState([0, 0]);
 
-    const updateHoverPoint = useCallback((point) => {
-        setHoverPoint(point);
-    }, []);
+  const updateHoverPoint = useCallback((point) => {
+    setHoverPoint(point);
+  }, []);
 
-    return (
-        <HoverPointContext.Provider value={hoverPoint}>
-            <HoverUpdateContext.Provider value={updateHoverPoint}>
-                {children}
-            </HoverUpdateContext.Provider>
-        </HoverPointContext.Provider>
-    );
+  return (
+    <HoverPointContext.Provider value={hoverPoint}>
+      <HoverUpdateContext.Provider value={updateHoverPoint}>
+        {children}
+      </HoverUpdateContext.Provider>
+    </HoverPointContext.Provider>
+  );
 }

@@ -1,6 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useContext, useRef } from 'react';
 import { ChartProvider } from './context/ChartProvider';
+import {
+  HoverPointContext,
+  HoverUpdateContext,
+} from './context/HoverPointProvider';
 import ErrorBoundary from './ErrorBoundary';
+import { pointer } from 'd3';
 
 function ChartContainer({
   height = 600,
@@ -15,6 +20,11 @@ function ChartContainer({
   yNice = false,
   sx = {},
 }) {
+  const updateHoverPoint = useContext(HoverUpdateContext);
+  const hoverPoint = useContext(HoverPointContext);
+  console.log('hoverPoint:', hoverPoint);
+  const svgReadoutRef = useRef(null);
+
   // useMemo to avoid unnecessary re-renders in the useEffect hook of ChartProvider
   const initialValues = useMemo(
     () => ({
@@ -32,7 +42,15 @@ function ChartContainer({
   return (
     <ChartProvider initialValues={initialValues}>
       <ErrorBoundary>
-        <svg height={height} width={width} className={className} style={sx}>
+        <svg
+          height={height}
+          width={width}
+          className={className}
+          style={sx}
+          onMouseMove={(e) =>
+            updateHoverPoint(pointer(e, svgReadoutRef.current))
+          }
+        >
           {children}
         </svg>
       </ErrorBoundary>

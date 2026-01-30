@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { ChartContainer, XAxis, YAxis, Line, Bar } from 'desi-charts';
+import {
+  ChartContainer,
+  XAxis,
+  YAxis,
+  Line,
+  Bar,
+  HoverPointProvider,
+} from 'desi-charts';
 import InputSlider from './InputSlider';
 import { generateRandomData, dataVizColors } from './helperFunctions';
 import 'desi-charts/desi-charts.css';
@@ -64,28 +71,29 @@ function App() {
           id="chart-color"
         />
       </div>
-      <ChartContainer
-        height={dimensions.height}
-        width={dimensions.width}
-        margin={margin}
-        data={data}
-        xScaleType="linear"
-        yScaleType="linear"
-        yNice
-        animationDuration={1000}
-        sx={{
-          border: '1px solid #737373',
-          borderRadius: '8px',
-          background: '#222',
-          // background:
-          //   'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
-        }}
-      >
-        <XAxis hasAxisLine />
-        <YAxis hasGridLines />
-        {chartType === 'line' && <Line color={chartColor} />}
-        {chartType === 'bar' && <Bar color={chartColor} />}
-      </ChartContainer>
+      <HoverPointProvider>
+        <ChartContainer
+          height={dimensions.height}
+          width={dimensions.width}
+          margin={margin}
+          data={data}
+          xScaleType="linear"
+          yScaleType="linear"
+          yNice
+          animationDuration={1000}
+          sx={{
+            border: '1px solid #737373',
+            borderRadius: '8px',
+            background:
+              'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
+          }}
+        >
+          <XAxis hasAxisLine />
+          <YAxis hasGridLines />
+          {chartType === 'line' && <Line color={chartColor} />}
+          {chartType === 'bar' && <Bar color={chartColor} />}
+        </ChartContainer>
+      </HoverPointProvider>
     </div>
   );
 }

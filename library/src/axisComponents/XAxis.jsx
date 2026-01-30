@@ -8,8 +8,8 @@ function XAxis({
   hasAxisLine = false,
   hasGridLines = false,
   // tick props
-  tickLength = 5,
-  tickOffset = 10,
+  tickLength = 0,
+  tickPadding = 0,
   tickFontFamily = 'inherit',
   tickFontSize = 12,
   tickFontWeight = 400,
@@ -41,18 +41,22 @@ function XAxis({
 
   let textTransform;
   let textY;
+  // if there is no axis line, then there should be no tick length
+  let finalTickLength = hasAxisLine ? tickLength : 0;
 
   if (isAngledTicks) {
     textStyle.textAnchor = 'end';
     // have to remove the y value, then translate the text to the bottom
     // of the chart before rotating
     textY = null;
-    textTransform = `translate(0, ${chartValues.innerHeight + tickOffset}) rotate(-45)`;
+    textTransform = `translate(0, ${chartValues.innerHeight + finalTickLength + tickPadding}) rotate(-45)`;
   } else {
     textStyle.alignmentBaseline = 'hanging'; // or middle for tilted?
     textStyle.textAnchor = 'middle';
-    textY = yScale(yDomain[0]) + tickOffset;
+    textY = yScale(yDomain[0]) + finalTickLength + tickPadding;
   }
+  console.log('textY:', textY);
+  console.log('yScale(yDomain[0]):', yScale(yDomain[0]));
 
   useAnimation({
     type: 'fadeIn',
@@ -87,7 +91,7 @@ function XAxis({
               <line
                 className="gsl-chart-tick-line"
                 y2={yScale(yDomain[0])}
-                y1={yScale(yDomain[0]) + tickLength}
+                y1={yScale(yDomain[0]) + finalTickLength}
               />
             )}
             {/* Tick Label */}

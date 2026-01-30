@@ -3,7 +3,8 @@ import XAxis from './axisComponents/XAxis';
 import YAxis from './axisComponents/YAxis';
 import Line from './plotComponents/Line';
 import Bar from './plotComponents/Bar';
+import { HoverPointProvider } from './context/HoverPointProvider';
 
 import './styles.css';
 
-export { ChartContainer, XAxis, YAxis, Line, Bar };
+export { ChartContainer, XAxis, YAxis, Line, Bar, HoverPointProvider };

@@ -24,8 +24,10 @@ export function getTextDimensions(text, font, rotate = 0) {
   const height = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
   // now we need to calculate the rotated width and height
   const radians = (rotate * Math.PI) / 180;
-  const rotatedWidth = Math.abs(width * Math.cos(radians)) + Math.abs(height * Math.sin(radians));
-  const rotatedHeight = Math.abs(width * Math.sin(radians)) + Math.abs(height * Math.cos(radians));
+  const rotatedWidth =
+    Math.abs(width * Math.cos(radians)) + Math.abs(height * Math.sin(radians));
+  const rotatedHeight =
+    Math.abs(width * Math.sin(radians)) + Math.abs(height * Math.cos(radians));
   context.restore();
   return { width: rotatedWidth, height: rotatedHeight };
 }
@@ -38,7 +40,11 @@ export function getMaxTextDimensions(textArray, font, rotate = 0) {
 
   // Iterate over all the labels to find the maximum width
   textArray.forEach((item) => {
-    const { width: labelWidth, height: labelHeight } = getTextDimensions(item, font, rotate);
+    const { width: labelWidth, height: labelHeight } = getTextDimensions(
+      item,
+      font,
+      rotate,
+    );
     if (labelWidth > maxLabelWidth) {
       maxLabelWidth = Math.ceil(labelWidth);
     }
@@ -50,7 +56,12 @@ export function getMaxTextDimensions(textArray, font, rotate = 0) {
   return { width: maxLabelWidth, height: maxLabelHeight };
 }
 
-export function getTransformProps(isHorizontal, anchorPoint, tickLength, tickAngle = 0) {
+export function getTransformProps(
+  isHorizontal,
+  anchorPoint,
+  tickLength,
+  tickAngle = 0,
+) {
   // guard against string input
   const tickAngleNumber = Number(tickAngle);
   const isNegativeTick = tickLength < 0;
@@ -95,7 +106,12 @@ export function getTransformProps(isHorizontal, anchorPoint, tickLength, tickAng
   return { transform, textAnchor, dominantBaseline };
 }
 
-export function getTitleProps({ isHorizontal, titleJustify, titleDimensions, barLength }) {
+export function getTitleProps({
+  isHorizontal,
+  titleJustify,
+  titleDimensions,
+  barLength,
+}) {
   let transform = '';
   let textAnchor = '';
   let dominantBaseline = '';
