@@ -8,8 +8,8 @@ function XAxis({
   hasAxisLine = false,
   hasGridLines = false,
   // tick props
-  tickLength = 0,
-  tickPadding = 0,
+  tickLength = 5,
+  tickLabelPadding = 5,
   tickFontFamily = 'inherit',
   tickFontSize = 12,
   tickFontWeight = 400,
@@ -42,18 +42,18 @@ function XAxis({
   let textTransform;
   let textY;
   // if there is no axis line, then there should be no tick length
-  let finalTickLength = hasAxisLine ? tickLength : 0;
+  const finalTickLength = hasAxisLine ? tickLength : 0;
 
   if (isAngledTicks) {
     textStyle.textAnchor = 'end';
     // have to remove the y value, then translate the text to the bottom
     // of the chart before rotating
     textY = null;
-    textTransform = `translate(0, ${chartValues.innerHeight + finalTickLength + tickPadding}) rotate(-45)`;
+    textTransform = `translate(0, ${chartValues.innerHeight + finalTickLength + tickLabelPadding}) rotate(-45)`;
   } else {
     textStyle.alignmentBaseline = 'hanging'; // or middle for tilted?
     textStyle.textAnchor = 'middle';
-    textY = yScale(yDomain[0]) + finalTickLength + tickPadding;
+    textY = yScale(yDomain[0]) + finalTickLength + tickLabelPadding;
   }
   console.log('textY:', textY);
   console.log('yScale(yDomain[0]):', yScale(yDomain[0]));

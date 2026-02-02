@@ -9,7 +9,7 @@ function YAxis({
   hasGridLines = false,
   // tick props
   tickLength = 5,
-  tickOffset = 10,
+  tickLabelPadding = 5,
   tickFontFamily = 'inherit',
   tickFontSize = 12,
   tickFontWeight = 400,
@@ -33,8 +33,13 @@ function YAxis({
   const yMiddle =
     yScale(yDomain[0]) + (yScale(yDomain[1]) - yScale(yDomain[0])) / 2;
 
+  // if there is no axis line, then there should be no tick length
+  const finalTickLength = hasAxisLine ? tickLength : 0;
+
   // tick marks, labels and legend are offset in different directions based on location
-  const locationTickOffset = isLeftLocation ? tickOffset : -tickOffset;
+  const locationTickOffset = isLeftLocation
+    ? finalTickLength + tickLabelPadding
+    : -finalTickLength - tickLabelPadding;
   // not enough padding on right side, so add 2 to the right side
   const legendTickOffset = isLeftLocation ? margin.left : -margin.right + 2;
 

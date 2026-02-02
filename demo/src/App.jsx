@@ -89,7 +89,7 @@ function App() {
           }}
         >
           <XAxis hasAxisLine />
-          <YAxis hasGridLines />
+          <YAxis hasGridLines tickLabelPadding={10} />
           {chartType === 'line' && <Line color={chartColor} />}
           {chartType === 'bar' && <Bar color={chartColor} />}
         </ChartContainer>
