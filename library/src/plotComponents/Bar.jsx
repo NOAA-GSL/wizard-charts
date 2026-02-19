@@ -91,39 +91,45 @@ function Bar({
 
   return (
     <g className={`gsl-chart-bar ${className}`} fill={color} ref={rectGroupRef}>
-      {chartValues.data.map((dataPoint) => {
-        const cx = xScale(accessors.x(dataPoint));
-        const x = cx - barWidth / 2; // center the bar on the x value
-        const y = yScale(accessors.y(dataPoint)); // top of the bar
-        const baseline = yScale(domains.y[0]); // bottom of the bar
-        const height = baseline - y; // height from top to baseline
+      <g
+        style={{
+          visibility: chartValues.animationsLocked ? 'hidden' : undefined,
+        }}
+      >
+        {chartValues.data.map((dataPoint) => {
+          const cx = xScale(accessors.x(dataPoint));
+          const x = cx - barWidth / 2; // center the bar on the x value
+          const y = yScale(accessors.y(dataPoint)); // top of the bar
+          const baseline = yScale(domains.y[0]); // bottom of the bar
+          const height = baseline - y; // height from top to baseline
 
-        /**
-         * // Could also stack multiple bars with this example
-         * const groupBand = scaleBand().domain(seriesKeys).range([ -step/2, step/2 ]).paddingInner(0.1);
-         * const barW = groupBand.bandwidth();
-         * const cx = xScale(xValue);
-         * const x = cx + groupBand(seriesKey); // already offset from center
-         */
+          /**
+           * // Could also stack multiple bars with this example
+           * const groupBand = scaleBand().domain(seriesKeys).range([ -step/2, step/2 ]).paddingInner(0.1);
+           * const barW = groupBand.bandwidth();
+           * const cx = xScale(xValue);
+           * const x = cx + groupBand(seriesKey); // already offset from center
+           */
 
-        return (
-          <rect
-            key={accessors.x(dataPoint)}
-            x={x}
-            y={y}
-            width={barWidth}
-            height={height}
-            rx={cornerRadius}
-            ry={cornerRadius}
-            shapeRendering="crispEdges"
-            style={{
-              transform: 'scaleY(0)',
-              transformOrigin: `center ${baseline}px`,
-              // animation: 'growBar 1s forwards',
-            }}
-          />
-        );
-      })}
+          return (
+            <rect
+              key={accessors.x(dataPoint)}
+              x={x}
+              y={y}
+              width={barWidth}
+              height={height}
+              rx={cornerRadius}
+              ry={cornerRadius}
+              shapeRendering="crispEdges"
+              style={{
+                transform: 'scaleY(0)',
+                transformOrigin: `center ${baseline}px`,
+                // animation: 'growBar 1s forwards',
+              }}
+            />
+          );
+        })}
+      </g>
     </g>
   );
 }

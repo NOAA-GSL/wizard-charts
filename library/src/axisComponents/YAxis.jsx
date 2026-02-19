@@ -17,7 +17,7 @@ function YAxis({
 }) {
   const ticksGroupRef = useRef(null);
 
-  const { chartValues, xScale, yScale } = useChartHelpers();
+  const { chartValues, xScale, yScale, domains } = useChartHelpers();
 
   useAnimation({
     type: 'fadeIn',
@@ -30,15 +30,12 @@ function YAxis({
   // early return if we don't have scales yet
   if (!xScale || !yScale) return null;
 
-  const xDomain = xScale.domain();
-  const yDomain = yScale.domain();
-
   const ticks = yScale
     .ticks()
     .map((value) => ({ value, label: value.toString() }));
 
   const yMiddle =
-    yScale(yDomain[0]) + (yScale(yDomain[1]) - yScale(yDomain[0])) / 2;
+    yScale(domains.y[0]) + (yScale(domains.y[1]) - yScale(domains.y[0])) / 2;
 
   // if there is no axis line, then there should be no tick length
   const finalTickLength = hasAxisLine ? tickLength : 0;
@@ -64,14 +61,19 @@ function YAxis({
   };
 
   return (
-    <g className={`gsl-chart-axis ${className}`}>
+    <g
+      className={`gsl-chart-axis ${className}`}
+      style={{
+        visibility: chartValues.animationsLocked ? 'hidden' : undefined,
+      }}
+    >
       {/* vertical line for y-axis, `location` will set the x values */}
       {hasAxisLine && (
         <line
-          x1={xScale(xDomain[xDomainPosition])}
-          x2={xScale(xDomain[xDomainPosition])}
-          y1={yScale(yDomain[0])}
-          y2={yScale(yDomain[1])}
+          x1={xScale(domains.x[xDomainPosition])}
+          x2={xScale(domains.x[xDomainPosition])}
+          y1={yScale(domains.y[0])}
+          y2={yScale(domains.y[1])}
         />
       )}
       {/* legend */}
@@ -79,7 +81,7 @@ function YAxis({
         className="gsl-chart-axis-label"
         alignmentBaseline={`${isLeftLocation ? 'before-edge' : 'after-edge'}`}
         textAnchor="middle"
-        transform={`translate(${xScale(xDomain[xDomainPosition]) - legendTickOffset}, ${yMiddle}) rotate(-90)`}
+        transform={`translate(${xScale(domains.x[xDomainPosition]) - legendTickOffset}, ${yMiddle}) rotate(-90)`}
       >
         {data.ylegend}
       </text>
@@ -92,14 +94,14 @@ function YAxis({
           >
             {/* Horizontal grid line */}
             {hasGridLines && (
-              <line x1={xScale(xDomain[0])} x2={xScale(xDomain[1])} />
+              <line x1={xScale(domains.x[0])} x2={xScale(domains.x[1])} />
             )}
             {/* Tick Mark */}
             {hasAxisLine && (
               <line
                 // todo: well, this isn't using the tickLength prop...
-                x1={xScale(xDomain[xDomainPosition]) - locationTickOffset / 2}
-                x2={xScale(xDomain[xDomainPosition])}
+                x1={xScale(domains.x[xDomainPosition]) - locationTickOffset / 2}
+                x2={xScale(domains.x[xDomainPosition])}
                 className="gsl-chart-tick-line"
               />
             )}
@@ -107,7 +109,7 @@ function YAxis({
             <text
               style={textStyle}
               className="gsl-chart-tick-label"
-              x={xScale(xDomain[xDomainPosition]) - locationTickOffset}
+              x={xScale(domains.x[xDomainPosition]) - locationTickOffset}
             >
               {tick.label === '' ? tick.value : tick.label}
             </text>

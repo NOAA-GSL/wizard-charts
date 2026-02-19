@@ -41,6 +41,9 @@ function Line({ className = '', color = dataVizColors['tropical-indigo'] }) {
     <path
       ref={pathRef}
       className={`gsl-chart-line ${className}`}
+      style={{
+        visibility: chartValues.animationsLocked ? 'hidden' : undefined,
+      }}
       d={line()
         .x((d) => xScale(accessors.x(d)))
         .y((d) => yScale(accessors.y(d)))(chartValues.data)}

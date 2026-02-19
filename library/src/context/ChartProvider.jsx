@@ -36,6 +36,8 @@ function typeCheckChartValues(values) {
         Number(values.margin?.right || 0),
     ),
     animationDuration: Number(values.animationDuration) || 0,
+    // controls whether child components should be visible/animate yet
+    animationsLocked: values.animationsLocked ?? true,
   };
 }
 
@@ -49,19 +51,7 @@ function typeCheckChartValues(values) {
  */
 export function ChartProvider({ children, initialValues = {} }) {
   const [chartValues, setChartValues] = useState(
-    typeCheckChartValues({
-      height: 0,
-      width: 0,
-      margin: { top: 0, right: 0, bottom: 0, left: 0 },
-      data: [],
-      xScaleType: 'linear',
-      yScaleType: 'linear',
-      fixedZeroY: false,
-      xNice: false,
-      yNice: false,
-      animationDuration: 1000,
-      ...initialValues,
-    }),
+    typeCheckChartValues(initialValues),
   );
 
   // series registry: { id: { accessors: { x, y }, scaleHint: { x, y } } }
@@ -137,8 +127,14 @@ export function ChartProvider({ children, initialValues = {} }) {
         xDomain = Array.from(set);
       } else {
         // numeric/time continuous domain
-        // take extents across series' x accessors (fallback: extent of [] -> [0,1])
-        const ext = combineNumericExtent((d, series) => series.accessors.x(d));
+        // take extents across series' x accessors
+        // if no series have registered yet, fall back to deriving domain directly from the data
+        let ext;
+        if (Object.values(seriesMap).length > 0) {
+          ext = combineNumericExtent((d, series) => series.accessors.x(d));
+        } else {
+          ext = extent(data, (d) => d.x);
+        }
         xDomain = [ext[0] ?? 0, ext[1] ?? 1];
       }
     }
@@ -148,7 +144,13 @@ export function ChartProvider({ children, initialValues = {} }) {
     if (explicitY) {
       yDomain = explicitY;
     } else {
-      const ext = combineNumericExtent((d, series) => series.accessors.y(d));
+      // derive y extent from registered series if available, otherwise derive from data
+      let ext;
+      if (Object.values(seriesMap).length > 0) {
+        ext = combineNumericExtent((d, series) => series.accessors.y(d));
+      } else {
+        ext = extent(data, (d) => d.y);
+      }
       let min = ext[0] ?? 0;
       let max = ext[1] ?? 0;
 
@@ -201,6 +203,27 @@ export function ChartProvider({ children, initialValues = {} }) {
     );
   }, [initialValues]);
 
+  // unlock animations after computed scales/layout stabilizes
+  useEffect(() => {
+    // when computed changes, unlock animations on next frame so children
+    // render with final layout before being revealed/animated
+    let raf = null;
+    // if animations are currently locked, schedule an unlock
+    if (chartValues.animationsLocked) {
+      raf = requestAnimationFrame(() => {
+        setChartValues((prev) => ({ ...prev, animationsLocked: false }));
+      });
+    }
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [
+    computed.xScale,
+    computed.yScale,
+    computed.innerWidth,
+    computed.innerHeight,
+  ]);
+
   // API given to children
   const api = useMemo(
     () => ({
@@ -212,14 +235,24 @@ export function ChartProvider({ children, initialValues = {} }) {
       xScale: computed.xScale,
       yScale: computed.yScale,
       domains: {
-        x: computed.xScale.domain(),
-        y: computed.yScale.domain(),
+        x: computed.xScale?.domain(),
+        y: computed.yScale?.domain(),
       },
+      scalesReady: !!(
+        computed.xScale &&
+        computed.yScale &&
+        chartValues.innerWidth &&
+        chartValues.innerHeight
+      ),
       // or we might need to track this in a better way
       getAccessors: () => ({ x: (d) => d.x, y: (d) => d.y }),
     }),
     [chartValues, registerSeries, unregisterSeries, computed],
   );
 
-  return <ChartContext.Provider value={api}>{children}</ChartContext.Provider>;
+  return (
+    <ChartContext.Provider value={api}>
+      {api.scalesReady ? children : null}
+    </ChartContext.Provider>
+  );
 }

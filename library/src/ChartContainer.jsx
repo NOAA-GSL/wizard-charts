@@ -18,6 +18,7 @@ function ChartContainer({
   yScaleType = 'linear',
   xNice = false,
   yNice = false,
+  animationDuration = 1000,
   sx = {},
 }) {
   const updateHoverPoint = useContext(HoverUpdateContext);
@@ -36,8 +37,19 @@ function ChartContainer({
       yScaleType,
       xNice,
       yNice,
+      animationDuration,
     }),
-    [height, width, margin, data, xScaleType, yScaleType, xNice, yNice],
+    [
+      height,
+      width,
+      margin,
+      data,
+      xScaleType,
+      yScaleType,
+      xNice,
+      yNice,
+      animationDuration,
+    ],
   );
   return (
     <ChartProvider initialValues={initialValues}>

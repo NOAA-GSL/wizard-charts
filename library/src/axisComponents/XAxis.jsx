@@ -17,7 +17,7 @@ function XAxis({
 }) {
   const ticksGroupRef = useRef(null);
 
-  const { chartValues, xScale, yScale } = useChartHelpers();
+  const { chartValues, xScale, yScale, domains } = useChartHelpers();
   console.log('chartValues:', chartValues);
 
   useAnimation({
@@ -28,9 +28,6 @@ function XAxis({
 
   // early return if we don't have scales yet
   if (!xScale || !yScale) return null;
-
-  const xDomain = xScale.domain();
-  const yDomain = yScale.domain();
 
   const ticks = xScale
     .ticks()
@@ -60,18 +57,23 @@ function XAxis({
   } else {
     textStyle.alignmentBaseline = 'hanging'; // or middle for tilted?
     textStyle.textAnchor = 'middle';
-    textY = yScale(yDomain[0]) + finalTickLength + tickLabelPadding;
+    textY = yScale(domains.y[0]) + finalTickLength + tickLabelPadding;
   }
 
   return (
-    <g className={`gsl-chart-axis ${className}`}>
+    <g
+      className={`gsl-chart-axis ${className}`}
+      style={{
+        visibility: chartValues.animationsLocked ? 'hidden' : undefined,
+      }}
+    >
       {/* horizontal line above the text for the x axis */}
       {hasAxisLine && (
         <line
-          x1={xScale(xDomain[0])}
-          x2={xScale(xDomain[1])}
-          y1={yScale(yDomain[0])}
-          y2={yScale(yDomain[0])}
+          x1={xScale(domains.x[0])}
+          x2={xScale(domains.x[1])}
+          y1={yScale(domains.y[0])}
+          y2={yScale(domains.y[0])}
         />
       )}
       <g ref={ticksGroupRef}>
@@ -83,14 +85,14 @@ function XAxis({
           >
             {/* Vertical grid line */}
             {hasGridLines && (
-              <line y1={yScale(yDomain[0])} y2={yScale(yDomain[1])} />
+              <line y1={yScale(domains.y[0])} y2={yScale(domains.y[1])} />
             )}
             {/* Tick Mark */}
             {hasAxisLine && (
               <line
                 className="gsl-chart-tick-line"
-                y2={yScale(yDomain[0])}
-                y1={yScale(yDomain[0]) + finalTickLength}
+                y2={yScale(domains.y[0])}
+                y1={yScale(domains.y[0]) + finalTickLength}
               />
             )}
             {/* Tick Label */}
