@@ -17,11 +17,18 @@ function XAxis({
 }) {
   const ticksGroupRef = useRef(null);
 
-  const { getChartValues, getXScale, getYScale } = useChartHelpers();
+  const { chartValues, xScale, yScale } = useChartHelpers();
+  console.log('chartValues:', chartValues);
 
-  const chartValues = getChartValues();
-  const xScale = getXScale();
-  const yScale = getYScale();
+  useAnimation({
+    type: 'fadeIn',
+    ref: ticksGroupRef,
+    trigger: chartValues.data,
+  });
+
+  // early return if we don't have scales yet
+  if (!xScale || !yScale) return null;
+
   const xDomain = xScale.domain();
   const yDomain = yScale.domain();
 
@@ -55,14 +62,6 @@ function XAxis({
     textStyle.textAnchor = 'middle';
     textY = yScale(yDomain[0]) + finalTickLength + tickLabelPadding;
   }
-  console.log('textY:', textY);
-  console.log('yScale(yDomain[0]):', yScale(yDomain[0]));
-
-  useAnimation({
-    type: 'fadeIn',
-    ref: ticksGroupRef,
-    trigger: chartValues.data,
-  });
 
   return (
     <g className={`gsl-chart-axis ${className}`}>

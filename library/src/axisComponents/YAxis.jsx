@@ -17,12 +17,19 @@ function YAxis({
 }) {
   const ticksGroupRef = useRef(null);
 
-  const { getChartValues, getXScale, getYScale } = useChartHelpers();
+  const { chartValues, xScale, yScale } = useChartHelpers();
 
-  const chartValues = getChartValues();
+  useAnimation({
+    type: 'fadeIn',
+    ref: ticksGroupRef,
+    trigger: chartValues.data,
+  });
+
   const { data, margin } = chartValues;
-  const xScale = getXScale();
-  const yScale = getYScale();
+
+  // early return if we don't have scales yet
+  if (!xScale || !yScale) return null;
+
   const xDomain = xScale.domain();
   const yDomain = yScale.domain();
 
@@ -55,12 +62,6 @@ function YAxis({
     fontWeight: tickFontWeight,
     color: tickFontColor,
   };
-
-  useAnimation({
-    type: 'fadeIn',
-    ref: ticksGroupRef,
-    trigger: chartValues.data,
-  });
 
   return (
     <g className={`gsl-chart-axis ${className}`}>

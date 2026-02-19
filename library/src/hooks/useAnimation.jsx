@@ -2,8 +2,7 @@ import { useEffect } from 'react';
 import { useChartHelpers } from './useChartHelpers';
 
 function useAnimation({ type, ref, trigger, duration }) {
-  const { getChartValues } = useChartHelpers();
-  const chartValues = getChartValues();
+  const { chartValues } = useChartHelpers();
   const animationDuration = duration || chartValues.animationDuration;
 
   useEffect(() => {

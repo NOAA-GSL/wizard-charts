@@ -1,25 +1,41 @@
-import { useRef } from 'react';
+import { useRef, useId, useEffect, useMemo } from 'react';
 import { line } from 'd3';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
 import { dataVizColors } from '../../../demo/src/helperFunctions';
 
 function Line({ className = '', color = dataVizColors['tropical-indigo'] }) {
-  const { getChartValues, getXScale, getYScale, getAccessors } =
+  const id = useId();
+  const pathRef = useRef(null);
+  const idRef = useRef(`line-${id}`);
+  const { chartValues, registerSeries, unregisterSeries, xScale, yScale } =
     useChartHelpers();
 
-  const chartValues = getChartValues();
-  const xScale = getXScale();
-  const yScale = getYScale();
-  const accessors = getAccessors();
+  const accessors = useMemo(() => {
+    return {
+      x: (d) => d.x, // or prop-provided accessor
+      y: (d) => d.y,
+    };
+  }, []);
 
-  const pathRef = useRef(null);
+  useEffect(() => {
+    registerSeries({
+      id: idRef.current,
+      accessors,
+      scaleHint: { x: 'linear', y: 'linear' }, // children hint if band/linear/time
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => unregisterSeries(idRef.current);
+  }, [registerSeries, unregisterSeries, accessors]);
 
   useAnimation({
     type: 'drawLine',
     ref: pathRef,
     trigger: chartValues.data,
   });
+
+  // return if we don't have scales yet
+  if (!xScale || !yScale) return null;
 
   return (
     <path
