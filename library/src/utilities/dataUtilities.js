@@ -47,3 +47,34 @@ export function getScale(type, domain, range, isNice = false) {
   }
   return scale;
 }
+
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * Deeply merges two objects or arrays.
+ * @param {*} target - The target object or array.
+ * @param {*} source - The source object or array.
+ * @returns {*} - The merged object or array.
+ */
+export function mergeDeep(target = {}, source = {}) {
+  if (Array.isArray(source)) return source.slice();
+
+  const output = isPlainObject(target) ? { ...target } : {};
+
+  Object.keys(source).forEach((key) => {
+    const srcVal = source[key];
+    const tgtVal = target ? target[key] : undefined;
+
+    if (isPlainObject(srcVal) && isPlainObject(tgtVal)) {
+      output[key] = mergeDeep(tgtVal, srcVal);
+    } else if (Array.isArray(srcVal)) {
+      output[key] = srcVal.slice();
+    } else {
+      output[key] = srcVal;
+    }
+  });
+
+  return output;
+}

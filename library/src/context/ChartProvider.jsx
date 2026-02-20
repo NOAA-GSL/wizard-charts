@@ -48,16 +48,7 @@ function typeCheckChartValues(values) {
  */
 export function ChartProvider({ children, initialValues = {} }) {
   const [chartValues, setChartValues] = useState(
-    typeCheckChartValues({
-      height: 0,
-      width: 0,
-      xScaleType: null,
-      yScaleType: null,
-      margin: { top: 0, right: 0, bottom: 0, left: 0 },
-      data: [],
-      animationDuration: 1000,
-      ...initialValues,
-    }),
+    typeCheckChartValues(initialValues),
   );
 
   // update function

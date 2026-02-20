@@ -6,18 +6,19 @@ import {
 } from './context/HoverPointProvider';
 import ErrorBoundary from './ErrorBoundary';
 import { pointer } from 'd3';
+import { defaultOptions } from './utilities/defaultOptions';
+import { mergeDeep } from './utilities/dataUtilities';
+import XAxis from './axisComponents/XAxis';
+import YAxis from './axisComponents/YAxis';
 
 function ChartContainer({
   height = 600,
   width = 800,
   margin = { top: 0, right: 0, bottom: 0, left: 0 },
   data = [],
+  options = {},
   children,
   className = '',
-  xScaleType = 'linear',
-  yScaleType = 'linear',
-  xNice = false,
-  yNice = false,
   sx = {},
 }) {
   const updateHoverPoint = useContext(HoverUpdateContext);
@@ -32,12 +33,9 @@ function ChartContainer({
       width,
       margin,
       data,
-      xScaleType,
-      yScaleType,
-      xNice,
-      yNice,
+      options: mergeDeep(defaultOptions, options),
     }),
-    [height, width, margin, data, xScaleType, yScaleType, xNice, yNice],
+    [height, width, margin, data, options],
   );
   return (
     <ChartProvider initialValues={initialValues}>
@@ -52,6 +50,8 @@ function ChartContainer({
           }
         >
           {children}
+          <XAxis />
+          <YAxis />
         </svg>
       </ErrorBoundary>
     </ChartProvider>

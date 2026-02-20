@@ -1,12 +1,5 @@
 import { useState } from 'react';
-import {
-  ChartContainer,
-  XAxis,
-  YAxis,
-  Line,
-  Bar,
-  HoverPointProvider,
-} from 'desi-charts';
+import { ChartContainer, HoverPointProvider } from 'desi-charts';
 import InputSlider from './InputSlider';
 import { generateRandomData, dataVizColors } from './helperFunctions';
 import 'desi-charts/desi-charts.css';
@@ -20,7 +13,6 @@ function App() {
   const [chartColor, setChartColor] = useState(
     dataVizColors['tropical-indigo'],
   );
-  console.log('chartColor:', chartColor);
   const [data, setData] = useState(
     generateRandomData({ numPoints: 50, variance: 5 }),
   );
@@ -28,6 +20,53 @@ function App() {
   const handleSliderChange = (dimension) => (event) => {
     const value = event.target.value;
     setDimensions((prev) => ({ ...prev, [dimension]: value }));
+  };
+
+  const options = {
+    series: [
+      {
+        type: 'line',
+        xKey: 'x', // support dot notation
+        yKey: 'y',
+        xAxisPosition: 'bottom', // default
+        yAxisPosition: 'left', // default
+        yName: 'Temperature',
+        isVisible: true,
+        stroke: '',
+        fill: '',
+        className: '',
+      },
+    ],
+    axes: {
+      // can also use the default x and y
+      x: {
+        type: 'band', // band, linear, log, time
+        label: { fontSize: 15, fontWeight: 700, fontFamily: 'sans-serif' },
+        ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
+        // default domain will compute max and min from data
+        domainMin: 0, // optional
+        domainMax: 100, // optional
+        nice: false,
+        className: '',
+        hasGridlines: true,
+        sx: {},
+      },
+      y: {
+        type: 'linear',
+        title: { text: 'Temperature (F)' },
+        ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
+        // default domain will compute max and min from data
+        domainMin: 0, // optional
+        domainMax: 100, // optional
+        nice: false,
+        className: '',
+        hasGridlines: true,
+        sx: {},
+      },
+    },
+    readout: {
+      hoverMode: 'local', // or 'global'
+    },
   };
 
   return (
@@ -77,9 +116,7 @@ function App() {
           width={dimensions.width}
           margin={margin}
           data={data}
-          xScaleType="linear"
-          yScaleType="linear"
-          yNice
+          options={options}
           animationDuration={1000}
           sx={{
             border: '1px solid #737373',
@@ -87,12 +124,7 @@ function App() {
             background:
               'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
           }}
-        >
-          <XAxis hasAxisLine />
-          <YAxis hasGridLines tickLabelPadding={10} />
-          {chartType === 'line' && <Line color={chartColor} />}
-          {chartType === 'bar' && <Bar color={chartColor} />}
-        </ChartContainer>
+        />
       </HoverPointProvider>
     </div>
   );
