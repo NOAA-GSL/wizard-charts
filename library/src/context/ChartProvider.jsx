@@ -6,6 +6,7 @@ import {
   useMemo,
   useEffect,
 } from 'react';
+import { computeScales } from '../utilities/dataUtilities';
 
 export const ChartContext = createContext();
 
@@ -55,6 +56,26 @@ export function ChartProvider({ children, initialValues = {} }) {
   const updateChartValues = useCallback((updates) => {
     setChartValues((prev) => typeCheckChartValues({ ...prev, ...updates }));
   }, []);
+
+  // compute derived values like scales here if needed, and include them in the context value
+  const derivedValues = useMemo(() => {
+    const series = chartValues.options?.series || [];
+    // grab all axis information from options
+    const axisConfig = chartValues.options?.axes || {};
+
+    // we need one x (x or x2) and one y (y or y2) axis present
+    const hasX = Boolean(axisConfig.x || axisConfig.x2);
+    const hasY = Boolean(axisConfig.y || axisConfig.y2);
+    if (series.length === 0 || !hasX || !hasY) return {};
+
+    // helper function to get scales for each axis based on the data and options
+    const scales = computeScales(chartValues, axisConfig);
+
+    return {
+      scales,
+    };
+  }, [chartValues]);
+  console.log('derivedValues:', derivedValues);
 
   // values to be provided by the context, along with the update function
   const contextValue = useMemo(

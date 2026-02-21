@@ -26,10 +26,10 @@ function App() {
     series: [
       {
         type: 'line',
-        xKey: 'x', // support dot notation
-        yKey: 'y',
-        xAxisPosition: 'bottom', // default
-        yAxisPosition: 'left', // default
+        xKey: 'date', // support dot notation
+        yKey: 'value',
+        xAxisKey: 'x', // default
+        yAxisKey: 'y', // default
         yName: 'Temperature',
         isVisible: true,
         stroke: '',
@@ -40,7 +40,7 @@ function App() {
     axes: {
       // can also use the default x and y
       x: {
-        type: 'band', // band, linear, log, time
+        type: 'linear', // band, linear, log, time
         label: { fontSize: 15, fontWeight: 700, fontFamily: 'sans-serif' },
         ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
         // default domain will compute max and min from data

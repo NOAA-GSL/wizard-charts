@@ -58,7 +58,7 @@ function isPlainObject(value) {
  * @param {*} source - The source object or array.
  * @returns {*} - The merged object or array.
  */
-export function mergeDeep(target = {}, source = {}) {
+export const mergeDeep = (target = {}, source = {}) => {
   if (Array.isArray(source)) return source.slice();
 
   const output = isPlainObject(target) ? { ...target } : {};
@@ -77,4 +77,74 @@ export function mergeDeep(target = {}, source = {}) {
   });
 
   return output;
-}
+};
+
+export const combineNumericExtent = (data = [], accessorKeys = []) => {
+  const values = [];
+
+  if (
+    !Array.isArray(data) ||
+    data.length === 0 ||
+    !Array.isArray(accessorKeys) ||
+    accessorKeys.length === 0
+  ) {
+    return [0, 1];
+  }
+
+  accessorKeys.forEach((key) => {
+    if (!key) return;
+    const path = key.split('.');
+    data.forEach((d) => {
+      let v = d;
+      for (let i = 0; i < path.length; i += 1) {
+        if (v == null) {
+          v = undefined;
+          break;
+        }
+        v = v[path[i]];
+      }
+      if (v != null && !Number.isNaN(v)) values.push(v);
+    });
+  });
+
+  return values.length ? extent(values) : [0, 1];
+};
+
+export const computeScales = (chartValues, axisConfig) => {
+  const scales = {};
+  const series = chartValues.options?.series || [];
+  const data = chartValues.data || [];
+
+  // loop through each axis in the config and compute the corresponding scale
+  Object.entries(axisConfig).forEach(([axisKey, config]) => {
+    const { type, domainMin, domainMax, nice } = config;
+
+    // filter matching series that use this axis and return the objects
+    const matchingSeries = series.filter(
+      (s) => s?.[`${axisKey}AxisKey`] === axisKey,
+    );
+
+    // determine whether to use xKey or yKey from the series config
+    const dataKey = axisKey === 'x' || axisKey === 'x2' ? 'xKey' : 'yKey';
+    const accessorKeys = matchingSeries
+      .map((s) => s?.[dataKey])
+      .filter(Boolean);
+    console.log('accessorKeys:', accessorKeys);
+
+    const domain = combineNumericExtent(data, accessorKeys);
+    console.log('domain:', domain);
+    if (domainMin != null) domain[0] = domainMin;
+    if (domainMax != null) domain[1] = domainMax;
+
+    const scaleType = type || 'linear';
+
+    scales[axisKey] = getScale(
+      scaleType,
+      domain,
+      getRange(axisKey, chartValues),
+      nice,
+    );
+  });
+  console.log('scales:', scales);
+  return scales;
+};
