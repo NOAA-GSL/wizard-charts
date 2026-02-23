@@ -2,36 +2,38 @@ import { useRef } from 'react';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
 
-function YAxis({
-  isLeftLocation = true,
-  className = null,
-  hasAxisLine = false,
-  hasGridLines = false,
-  // tick props
-  tickLength = 5,
-  tickLabelPadding = 5,
-  tickFontFamily = 'inherit',
-  tickFontSize = 12,
-  tickFontWeight = 400,
-  tickFontColor = 'currentColor',
-}) {
+function YAxis({ axisOptions = {} }) {
   const ticksGroupRef = useRef(null);
 
-  const { getChartValues, getXScale, getYScale } = useChartHelpers();
+  const { chartValues, xScale, yScale, xDomain, yDomain } = useChartHelpers();
+  // map nested axisOptions to local variables with sensible defaults
+  const opts = axisOptions || {};
+  const ticksOpts = opts.ticks || {};
+  const isLeftLocation =
+    opts.isLeftLocation ?? (opts.position ? opts.position === 'left' : true);
+  const hasAxisLine = opts.hasAxisLine ?? true;
+  const hasGridLines = opts.hasGridLines ?? false;
+  const tickLength = ticksOpts.length ?? 5;
+  const tickLabelPadding = ticksOpts.labelPadding ?? 5;
+  const tickFontFamily = ticksOpts.fontFamily ?? 'inherit';
+  const tickFontSize = ticksOpts.fontSize ?? 12;
+  const tickFontWeight = ticksOpts.fontWeight ?? 400;
+  const tickFontColor = ticksOpts.fontColor ?? 'currentColor';
 
-  const chartValues = getChartValues();
   const { data, margin } = chartValues;
-  const xScale = getXScale();
-  const yScale = getYScale();
-  const xDomain = xScale.domain();
-  const yDomain = yScale.domain();
 
-  const ticks = yScale
-    .ticks()
-    .map((value) => ({ value, label: value.toString() }));
+  const ticks = (typeof yScale.ticks === 'function' ? yScale.ticks() : []).map(
+    (value) => ({ value, label: String(value) }),
+  );
+
+  const xDomainFinal =
+    xDomain || (typeof xScale.domain === 'function' ? xScale.domain() : []);
+  const yDomainFinal =
+    yDomain || (typeof yScale.domain === 'function' ? yScale.domain() : []);
 
   const yMiddle =
-    yScale(yDomain[0]) + (yScale(yDomain[1]) - yScale(yDomain[0])) / 2;
+    yScale(yDomainFinal[0]) +
+    (yScale(yDomainFinal[1]) - yScale(yDomainFinal[0])) / 2;
 
   // if there is no axis line, then there should be no tick length
   const finalTickLength = hasAxisLine ? tickLength : 0;
@@ -62,8 +64,11 @@ function YAxis({
     trigger: chartValues.data,
   });
 
+  // prevent rendering if scales aren't ready yet
+  if (!xScale || !yScale) return null;
+
   return (
-    <g className={`gsl-chart-axis ${className}`}>
+    <g className={`gsl-chart-axis ${opts.className}`}>
       {/* vertical line for y-axis, `location` will set the x values */}
       {hasAxisLine && (
         <line
@@ -91,14 +96,16 @@ function YAxis({
           >
             {/* Horizontal grid line */}
             {hasGridLines && (
-              <line x1={xScale(xDomain[0])} x2={xScale(xDomain[1])} />
+              <line x1={xScale(xDomainFinal[0])} x2={xScale(xDomainFinal[1])} />
             )}
             {/* Tick Mark */}
             {hasAxisLine && (
               <line
                 // todo: well, this isn't using the tickLength prop...
-                x1={xScale(xDomain[xDomainPosition]) - locationTickOffset / 2}
-                x2={xScale(xDomain[xDomainPosition])}
+                x1={
+                  xScale(xDomainFinal[xDomainPosition]) - locationTickOffset / 2
+                }
+                x2={xScale(xDomainFinal[xDomainPosition])}
                 className="gsl-chart-tick-line"
               />
             )}
@@ -106,7 +113,7 @@ function YAxis({
             <text
               style={textStyle}
               className="gsl-chart-tick-label"
-              x={xScale(xDomain[xDomainPosition]) - locationTickOffset}
+              x={xScale(xDomainFinal[xDomainPosition]) - locationTickOffset}
             >
               {tick.label === '' ? tick.value : tick.label}
             </text>

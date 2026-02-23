@@ -1,8 +1,29 @@
 import { useContext } from 'react';
 import { ChartContext } from '../context/ChartProvider';
-import { chartHelpers } from '../utilities/chartHelpers';
 
+// simple hook to access chart values and scales from the context
 export function useChartHelpers() {
-  const { chartValues } = useContext(ChartContext);
-  return chartHelpers(chartValues);
+  const { chartValues, computedScales, updateChartValues } =
+    useContext(ChartContext);
+  const xScale = computedScales.x?.scale;
+  const x2Scale = computedScales.x2?.scale;
+  const yScale = computedScales.y?.scale;
+  const y2Scale = computedScales.y2?.scale;
+  const xDomain = xScale?.domain();
+  const yDomain = yScale?.domain();
+  const x2Domain = x2Scale?.domain();
+  const y2Domain = y2Scale?.domain();
+  return {
+    chartValues,
+    computedScales,
+    updateChartValues,
+    xScale,
+    x2Scale,
+    yScale,
+    y2Scale,
+    xDomain,
+    x2Domain,
+    yDomain,
+    y2Domain,
+  };
 }

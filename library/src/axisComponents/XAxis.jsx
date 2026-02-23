@@ -2,32 +2,27 @@ import { useRef } from 'react';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
 
-function XAxis({
-  isAngledTicks = false,
-  className = null,
-  hasAxisLine = false,
-  hasGridLines = false,
-  // tick props
-  tickLength = 5,
-  tickLabelPadding = 5,
-  tickFontFamily = 'inherit',
-  tickFontSize = 12,
-  tickFontWeight = 400,
-  tickFontColor = 'currentColor',
-}) {
+function XAxis({ axisOptions = {} }) {
   const ticksGroupRef = useRef(null);
 
-  const { getChartValues, getXScale, getYScale } = useChartHelpers();
+  const { chartValues, xScale, yScale, xDomain, yDomain } = useChartHelpers();
 
-  const chartValues = getChartValues();
-  const xScale = getXScale();
-  const yScale = getYScale();
-  const xDomain = xScale.domain();
-  const yDomain = yScale.domain();
+  // map nested axisOptions to local variables with sensible defaults
+  const opts = axisOptions || {};
+  const ticksOpts = opts.ticks || {};
+  const isAngledTicks = ticksOpts.isAngled ?? false;
+  const hasAxisLine = opts.hasAxisLine ?? true;
+  const hasGridLines = opts.hasGridLines ?? false;
+  const tickLength = ticksOpts.length ?? 5;
+  const tickLabelPadding = ticksOpts.labelPadding ?? 5;
+  const tickFontFamily = ticksOpts.fontFamily ?? 'inherit';
+  const tickFontSize = ticksOpts.fontSize ?? 12;
+  const tickFontWeight = ticksOpts.fontWeight ?? 400;
+  const tickFontColor = ticksOpts.fontColor ?? 'currentColor';
 
-  const ticks = xScale
-    .ticks()
-    .map((value) => ({ value, label: value.toString() }));
+  const ticks = (typeof xScale.ticks === 'function' ? xScale.ticks() : []).map(
+    (value) => ({ value, label: String(value) }),
+  );
 
   const textStyle = {
     alignmentBaseline: 'middle',
@@ -64,8 +59,11 @@ function XAxis({
     trigger: chartValues.data,
   });
 
+  // prevent rendering if scales aren't ready yet
+  if (!xScale || !yScale) return null;
+
   return (
-    <g className={`gsl-chart-axis ${className}`}>
+    <g className={`gsl-chart-axis ${opts.className}`}>
       {/* horizontal line above the text for the x axis */}
       {hasAxisLine && (
         <line

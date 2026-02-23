@@ -41,11 +41,9 @@ function App() {
       // can also use the default x and y
       x: {
         type: 'linear', // band, linear, log, time
-        label: { fontSize: 15, fontWeight: 700, fontFamily: 'sans-serif' },
-        ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
         // default domain will compute max and min from data
-        domainMin: 0, // optional
-        domainMax: 100, // optional
+        // domainMin: 0, // optional
+        // domainMax: 100, // optional
         nice: false,
         className: '',
         hasGridlines: true,
@@ -56,8 +54,8 @@ function App() {
         title: { text: 'Temperature (F)' },
         ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
         // default domain will compute max and min from data
-        domainMin: 0, // optional
-        domainMax: 100, // optional
+        // domainMin: 0, // optional
+        // domainMax: 100, // optional
         nice: false,
         className: '',
         hasGridlines: true,
@@ -67,6 +65,7 @@ function App() {
     readout: {
       hoverMode: 'local', // or 'global'
     },
+    animationDuration: 1000, // in ms
   };
 
   return (
@@ -117,7 +116,6 @@ function App() {
           margin={margin}
           data={data}
           options={options}
-          animationDuration={1000}
           sx={{
             border: '1px solid #737373',
             borderRadius: '8px',

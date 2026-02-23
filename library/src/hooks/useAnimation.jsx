@@ -1,12 +1,17 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { useChartHelpers } from './useChartHelpers';
 
 function useAnimation({ type, ref, trigger, duration }) {
-  const { getChartValues } = useChartHelpers();
-  const chartValues = getChartValues();
-  const animationDuration = duration || chartValues.animationDuration;
+  console.log('duration:', duration);
+  const { chartValues } = useChartHelpers();
+  console.log(
+    'chartValues.animationDuration:',
+    chartValues.options.animationDuration,
+  );
+  const animationDuration = duration || chartValues.options.animationDuration;
+  console.log('animationDuration:', animationDuration);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
 

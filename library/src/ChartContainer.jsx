@@ -50,8 +50,8 @@ function ChartContainer({
           }
         >
           {children}
-          <XAxis />
-          <YAxis />
+          <XAxis axisOptions={initialValues.options.axes.x} />
+          <YAxis axisOptions={initialValues.options.axes.y} />
         </svg>
       </ErrorBoundary>
     </ChartProvider>

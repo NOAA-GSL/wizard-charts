@@ -6,36 +6,49 @@ import {
   useMemo,
   useEffect,
 } from 'react';
-import { computeScales } from '../utilities/dataUtilities';
+import { computeScales, mergeDeep } from '../utilities/dataUtilities';
+import {
+  defaultOptions,
+  defaultSeriesOptions,
+  defaultAxisOptions,
+} from '../utilities/defaultOptions';
 
 export const ChartContext = createContext();
 
-// ensure that certain chart values are of the correct type
-function typeCheckChartValues(values) {
+// merge our default options and ensure that certain chart values are of the correct type
+function buildChartValues(chartValues) {
+  const baseOptions = mergeDeep(defaultOptions, chartValues.options || {});
+  const mergedSeries = (baseOptions.series || []).map((series) =>
+    mergeDeep(defaultSeriesOptions, series),
+  );
+  const mergedAxes = Object.keys(baseOptions.axes || {}).reduce((acc, key) => {
+    acc[key] = mergeDeep(defaultAxisOptions, baseOptions.axes[key] || {});
+    return acc;
+  }, {});
+
+  // prefer explicit top-level values (chartValues.height) but fall back to options
+  const height = Number(chartValues.height ?? baseOptions.height) || 0;
+  const width = Number(chartValues.width ?? baseOptions.width) || 0;
+  const margin = {
+    top: Number(chartValues.margin?.top ?? baseOptions.margin?.top) || 0,
+    right: Number(chartValues.margin?.right ?? baseOptions.margin?.right) || 0,
+    bottom:
+      Number(chartValues.margin?.bottom ?? baseOptions.margin?.bottom) || 0,
+    left: Number(chartValues.margin?.left ?? baseOptions.margin?.left) || 0,
+  };
+  const innerHeight = Math.max(0, height - margin.top - margin.bottom);
+  const innerWidth = Math.max(0, width - margin.left - margin.right);
+
+  const options = { ...baseOptions, series: mergedSeries, axes: mergedAxes };
+
   return {
-    ...values,
-    height: Number(values.height) || 0,
-    width: Number(values.width) || 0,
-    margin: {
-      top: Number(values.margin?.top) || 0,
-      right: Number(values.margin?.right) || 0,
-      bottom: Number(values.margin?.bottom) || 0,
-      left: Number(values.margin?.left) || 0,
-    },
-    // inner dimensions are always derived from height/width and margins
-    innerHeight: Math.max(
-      0,
-      Number(values.height) -
-        Number(values.margin?.top || 0) -
-        Number(values.margin?.bottom || 0),
-    ),
-    innerWidth: Math.max(
-      0,
-      Number(values.width) -
-        Number(values.margin?.left || 0) -
-        Number(values.margin?.right || 0),
-    ),
-    animationDuration: Number(values.animationDuration) || 0,
+    ...chartValues,
+    options,
+    height,
+    width,
+    margin,
+    innerHeight,
+    innerWidth,
   };
 }
 
@@ -48,17 +61,18 @@ function typeCheckChartValues(values) {
  * Update values: updateChartValues({ innerWidth: newWidth });
  */
 export function ChartProvider({ children, initialValues = {} }) {
+  console.log('initialValues:', initialValues);
   const [chartValues, setChartValues] = useState(
-    typeCheckChartValues(initialValues),
+    buildChartValues(initialValues),
   );
 
   // update function
   const updateChartValues = useCallback((updates) => {
-    setChartValues((prev) => typeCheckChartValues({ ...prev, ...updates }));
+    setChartValues((prev) => buildChartValues({ ...prev, ...updates }));
   }, []);
 
   // compute derived values like scales here if needed, and include them in the context value
-  const derivedValues = useMemo(() => {
+  const computedScales = useMemo(() => {
     const series = chartValues.options?.series || [];
     // grab all axis information from options
     const axisConfig = chartValues.options?.axes || {};
@@ -71,19 +85,18 @@ export function ChartProvider({ children, initialValues = {} }) {
     // helper function to get scales for each axis based on the data and options
     const scales = computeScales(chartValues, axisConfig);
 
-    return {
-      scales,
-    };
+    return scales;
   }, [chartValues]);
-  console.log('derivedValues:', derivedValues);
+  console.log('computedScales:', computedScales);
 
   // values to be provided by the context, along with the update function
   const contextValue = useMemo(
     () => ({
       chartValues,
+      computedScales,
       updateChartValues,
     }),
-    [chartValues, updateChartValues],
+    [chartValues, computedScales, updateChartValues],
   );
 
   // Update state if initialValues change
@@ -91,9 +104,7 @@ export function ChartProvider({ children, initialValues = {} }) {
     // I can assume that this setState call is safe because initialValues is a
     // a stable object created with useMemo in ChartContainer.jsx
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setChartValues((prev) =>
-      typeCheckChartValues({ ...prev, ...initialValues }),
-    );
+    setChartValues((prev) => buildChartValues({ ...prev, ...initialValues }));
   }, [initialValues]);
 
   return (
