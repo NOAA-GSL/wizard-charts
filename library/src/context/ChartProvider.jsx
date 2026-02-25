@@ -6,7 +6,11 @@ import {
   useMemo,
   useEffect,
 } from 'react';
-import { computeScales, mergeDeep } from '../utilities/dataUtilities';
+import {
+  computeScales,
+  mergeDeep,
+  createAccessor,
+} from '../utilities/dataUtilities';
 import {
   defaultOptions,
   defaultSeriesOptions,
@@ -94,8 +98,8 @@ export function ChartProvider({ children, initialValues = {} }) {
     const series = chartValues.options?.series || [];
     return series.map((s, i) => {
       // build accessor functions from the series object xKey and yKey
-      const xAccessor = (d) => d[s.xKey ?? 'x'];
-      const yAccessor = (d) => d[s.yKey ?? 'y'];
+      const xAccessor = createAccessor(s.xKey);
+      const yAccessor = createAccessor(s.yKey);
 
       return {
         id: s.id ?? i,

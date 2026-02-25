@@ -12,6 +12,21 @@ export function getAccessors() {
   };
 }
 
+// create an accessor that supports dot-notation paths (e.g. 'series1.value')
+export function createAccessor(key) {
+  if (!key && key !== 0) return (d) => d;
+  if (typeof key === 'function') return key;
+  const path = String(key).split('.');
+  return (d) => {
+    let v = d;
+    for (let i = 0; i < path.length; i += 1) {
+      if (v == null) return undefined;
+      v = v[path[i]];
+    }
+    return v;
+  };
+}
+
 export function getRange(axis, chartValues) {
   const { margin, innerWidth, innerHeight } = chartValues;
   switch (axis) {

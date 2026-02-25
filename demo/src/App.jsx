@@ -7,15 +7,39 @@ import InputColor from './InputColor';
 
 const margin = { top: 25, right: 50, bottom: 50, left: 50 };
 
+// use generateRandomData to create an array of objects
+// this each number series should be nested under a key in the data object
+// this would look like [{ date: '2024-01-01', series1: {value: 10}, series2: {value: 20} }, ...]
+const makeFinalData = (numSeries, numPoints) => {
+  const data = [];
+  const seriesData = {};
+  for (let s = 1; s <= numSeries; s++) {
+    seriesData[`series${s}`] = generateRandomData({
+      numPoints,
+      variance: 5,
+    }).map((d) => d.value);
+  }
+  // create number of dates based on numPoints, starting from today and increasing by 1 hour for each point
+  const baseDate = new Date();
+  for (let i = 0; i < numPoints; i++) {
+    const date = new Date(baseDate.getTime() + i * 3600_000).getTime();
+    console.log('date:', date);
+    const dataPoint = { date };
+    for (let s = 1; s <= numSeries; s++) {
+      dataPoint[`series${s}`] = { value: seriesData[`series${s}`][i] };
+    }
+    data.push(dataPoint);
+  }
+  return data;
+};
+
 function App() {
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [chartType, setChartType] = useState('line');
   const [chartColor, setChartColor] = useState(
     dataVizColors['tropical-indigo'],
   );
-  const [data, setData] = useState(
-    generateRandomData({ numPoints: 50, variance: 5 }),
-  );
+  const [data, setData] = useState(makeFinalData(2, 30));
 
   const handleSliderChange = (dimension) => (event) => {
     const value = event.target.value;
@@ -25,26 +49,26 @@ function App() {
   const options = {
     series: [
       {
-        type: 'line', // or 'bar'
-        xKey: 'date', // support dot notation
-        yKey: 'value',
-        xAxisKey: 'x', // default
-        yAxisKey: 'y', // default
+        type: 'bar',
+        xKey: 'date',
+        yKey: 'series2.value',
+        xAxisKey: 'x',
+        yAxisKey: 'y',
         yName: 'Temperature',
         isVisible: true,
-        stroke: chartColor,
-        fill: '',
+        stroke: '',
+        fill: dataVizColors['tropical-indigo'],
         className: '',
       },
       {
-        type: 'bar', // or 'bar'
+        type: 'line', // or 'bar'
         xKey: 'date', // support dot notation
-        yKey: 'value',
+        yKey: 'series1.value',
         xAxisKey: 'x', // default
         yAxisKey: 'y', // default
         yName: 'Temperature',
         isVisible: true,
-        stroke: chartColor,
+        stroke: dataVizColors.tangerine,
         fill: '',
         className: '',
       },
@@ -84,11 +108,7 @@ function App() {
     <div className="app-container">
       <h1>DESI Charts!</h1>
       <div className="flex gap-10">
-        <button
-          onClick={() =>
-            setData(generateRandomData({ numPoints: 50, variance: 5 }))
-          }
-        >
+        <button onClick={() => setData(makeFinalData(2, 30))}>
           Regenerate Data
         </button>
         <InputSlider

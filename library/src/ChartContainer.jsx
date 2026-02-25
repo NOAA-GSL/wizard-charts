@@ -53,7 +53,14 @@ function ChartContainer({
           />
         );
       case 'bar':
-        return <Bar key={s.id ?? i} seriesIndex={i} />;
+        return (
+          <Bar
+            key={s.id ?? i}
+            seriesIndex={i}
+            stroke={s.stroke}
+            fill={s.fill}
+          />
+        );
       default:
         return null;
     }

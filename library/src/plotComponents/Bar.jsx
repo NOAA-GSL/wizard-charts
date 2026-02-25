@@ -3,6 +3,7 @@ import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
 
 function Bar({
+  seriesIndex = 0,
   cornerRadius = 2,
   fill = 'var(--gsl-charts-color-1)',
   className = '',
@@ -11,17 +12,9 @@ function Bar({
   const { chartValues, xScale, yScale, yDomain, getAccessors } =
     useChartHelpers();
 
-  const accessors = getAccessors();
+  const accessors = getAccessors(seriesIndex);
 
   const rectGroupRef = useRef(null);
-
-  // todo: I probably don't want to appy band scale like this, but this
-  // todo: was intended to get things started quickly
-  // const xScale = scaleBand()
-  //   .domain(chartValues.data.map((d) => accessors.x(d)))
-  //   .range(getRange('x', chartValues))
-  //   .paddingInner(0.2)
-  //   .paddingOuter(0.2);
 
   // get x positions in pixels of all bars to calculate step and bar width
   const positions = chartValues.data
