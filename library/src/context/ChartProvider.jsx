@@ -89,14 +89,33 @@ export function ChartProvider({ children, initialValues = {} }) {
   }, [chartValues]);
   console.log('computedScales:', computedScales);
 
+  // this helps consumers get the correct x and y accessors for each series
+  const accessorsBySeries = useMemo(() => {
+    const series = chartValues.options?.series || [];
+    return series.map((s, i) => {
+      // build accessor functions from the series object xKey and yKey
+      const xAccessor = (d) => d[s.xKey ?? 'x'];
+      const yAccessor = (d) => d[s.yKey ?? 'y'];
+
+      return {
+        id: s.id ?? i,
+        x: xAccessor,
+        y: yAccessor,
+        // store series meta for consumers
+        meta: s,
+      };
+    });
+  }, [chartValues.options?.series]);
+
   // values to be provided by the context, along with the update function
   const contextValue = useMemo(
     () => ({
       chartValues,
       computedScales,
+      accessorsBySeries,
       updateChartValues,
     }),
-    [chartValues, computedScales, updateChartValues],
+    [chartValues, computedScales, accessorsBySeries, updateChartValues],
   );
 
   // Update state if initialValues change

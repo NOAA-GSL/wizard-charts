@@ -12,8 +12,8 @@ const defaultSeriesOptions = {
   xAxisPosition: 'bottom',
   yAxisPosition: 'left',
   isVisible: true,
-  stroke: '',
-  fill: '',
+  stroke: null,
+  fill: null,
   className: '',
 };
 

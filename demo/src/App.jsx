@@ -25,14 +25,26 @@ function App() {
   const options = {
     series: [
       {
-        type: 'line',
+        type: 'line', // or 'bar'
         xKey: 'date', // support dot notation
         yKey: 'value',
         xAxisKey: 'x', // default
         yAxisKey: 'y', // default
         yName: 'Temperature',
         isVisible: true,
-        stroke: '',
+        stroke: chartColor,
+        fill: '',
+        className: '',
+      },
+      {
+        type: 'bar', // or 'bar'
+        xKey: 'date', // support dot notation
+        yKey: 'value',
+        xAxisKey: 'x', // default
+        yAxisKey: 'y', // default
+        yName: 'Temperature',
+        isVisible: true,
+        stroke: chartColor,
         fill: '',
         className: '',
       },

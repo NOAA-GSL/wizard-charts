@@ -4,14 +4,17 @@ import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
 import { dataVizColors } from '../../../demo/src/helperFunctions';
 
-function Line({ className = '', color = dataVizColors['tropical-indigo'] }) {
-  const { getChartValues, getXScale, getYScale, getAccessors } =
-    useChartHelpers();
+function Line({
+  className = '',
+  seriesIndex = 0,
+  stroke = dataVizColors['tropical-indigo'],
+  fill = 'none',
+}) {
+  console.log('fill:', fill);
+  console.log('stroke:', stroke);
+  const { chartValues, xScale, yScale, getAccessors } = useChartHelpers();
 
-  const chartValues = getChartValues();
-  const xScale = getXScale();
-  const yScale = getYScale();
-  const accessors = getAccessors();
+  const accessors = getAccessors(seriesIndex);
 
   const pathRef = useRef(null);
 
@@ -28,7 +31,7 @@ function Line({ className = '', color = dataVizColors['tropical-indigo'] }) {
       d={line()
         .x((d) => xScale(accessors.x(d)))
         .y((d) => yScale(accessors.y(d)))(chartValues.data)}
-      stroke={color}
+      stroke={stroke}
       fill="none"
     />
   );

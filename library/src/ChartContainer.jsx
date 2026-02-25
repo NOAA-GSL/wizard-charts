@@ -10,6 +10,8 @@ import { defaultOptions } from './utilities/defaultOptions';
 import { mergeDeep } from './utilities/dataUtilities';
 import XAxis from './axisComponents/XAxis';
 import YAxis from './axisComponents/YAxis';
+import Line from './plotComponents/Line';
+import Bar from './plotComponents/Bar';
 
 function ChartContainer({
   height = 600,
@@ -37,6 +39,26 @@ function ChartContainer({
     }),
     [height, width, margin, data, options],
   );
+
+  // switch statement to render different series types based on options
+  const seriesNodes = initialValues.options.series.map((s, i) => {
+    switch (s.type) {
+      case 'line':
+        return (
+          <Line
+            key={s.id ?? i}
+            seriesIndex={i}
+            stroke={s.stroke}
+            fill={s.fill}
+          />
+        );
+      case 'bar':
+        return <Bar key={s.id ?? i} seriesIndex={i} />;
+      default:
+        return null;
+    }
+  });
+
   return (
     <ChartProvider initialValues={initialValues}>
       <ErrorBoundary>
@@ -49,9 +71,10 @@ function ChartContainer({
             updateHoverPoint(pointer(e, svgReadoutRef.current))
           }
         >
-          {children}
           <XAxis axisOptions={initialValues.options.axes.x} />
           <YAxis axisOptions={initialValues.options.axes.y} />
+          {seriesNodes}
+          {children}
         </svg>
       </ErrorBoundary>
     </ChartProvider>
