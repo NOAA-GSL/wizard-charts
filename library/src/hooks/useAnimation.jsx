@@ -2,14 +2,8 @@ import { useLayoutEffect } from 'react';
 import { useChartHelpers } from './useChartHelpers';
 
 function useAnimation({ type, ref, trigger, duration }) {
-  console.log('duration:', duration);
   const { chartValues } = useChartHelpers();
-  console.log(
-    'chartValues.animationDuration:',
-    chartValues.options.animationDuration,
-  );
   const animationDuration = duration || chartValues.options.animationDuration;
-  console.log('animationDuration:', animationDuration);
 
   useLayoutEffect(() => {
     const element = ref.current;

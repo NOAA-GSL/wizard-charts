@@ -40,6 +40,7 @@ const defaultAxisOptions = {
     fontSize: 12,
     fontWeight: 400,
     fontColor: 'currentColor',
+    formatter: null, // optional formatting function for ticks
   },
 };
 

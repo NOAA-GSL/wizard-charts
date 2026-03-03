@@ -40,7 +40,6 @@ export function getRange(axis, chartValues) {
 }
 
 export function getScale(type, domain, range, isNice = false) {
-  console.log('type:', type);
   let scale;
   switch (type) {
     case 'linear':
@@ -145,12 +144,10 @@ export const computeScales = (chartValues, axisConfig) => {
     const accessorKeys = matchingSeries
       .map((s) => s?.[dataKey])
       .filter(Boolean);
-    console.log('accessorKeys:', accessorKeys);
 
     const domain = combineNumericExtent(data, accessorKeys);
     if (domainMin != null) domain[0] = domainMin;
     if (domainMax != null) domain[1] = domainMax;
-    console.log('domain:', domain);
 
     const scaleType = type || 'linear';
 
@@ -164,6 +161,5 @@ export const computeScales = (chartValues, axisConfig) => {
     const range = scale.range();
     scales[axisKey] = { scale, domain: finalDomain, range };
   });
-  console.log('scales:', scales);
   return scales;
 };

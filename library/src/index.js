@@ -8,3 +8,6 @@ import { HoverPointProvider } from './context/HoverPointProvider';
 import './styles.css';
 
 export { ChartContainer, XAxis, YAxis, Line, Bar, HoverPointProvider };
+
+// export our D3 formating functions
+export * from './utilities/tickFormat';

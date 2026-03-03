@@ -19,9 +19,13 @@ function XAxis({ axisOptions = {} }) {
   const tickFontSize = ticksOpts.fontSize ?? 12;
   const tickFontWeight = ticksOpts.fontWeight ?? 400;
   const tickFontColor = ticksOpts.fontColor ?? 'currentColor';
+  const tickFormatter = ticksOpts.formatter ?? null;
 
   const ticks = (typeof xScale.ticks === 'function' ? xScale.ticks() : []).map(
-    (value) => ({ value, label: String(value) }),
+    (value) => ({
+      value,
+      label: tickFormatter ? tickFormatter(value) : String(value),
+    }),
   );
 
   const textStyle = {

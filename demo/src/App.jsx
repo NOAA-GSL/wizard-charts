@@ -1,107 +1,63 @@
 import { useState } from 'react';
 import { ChartContainer, HoverPointProvider } from 'desi-charts';
 import InputSlider from './InputSlider';
-import { generateRandomData, dataVizColors } from './helperFunctions';
+import { generateRandomData } from './helperFunctions';
 import 'desi-charts/desi-charts.css';
-import InputColor from './InputColor';
+// import InputColor from './InputColor';
+import { demoOptions } from './demoOptions';
 
 const margin = { top: 25, right: 50, bottom: 50, left: 50 };
 
 // use generateRandomData to create an array of objects
-// this each number series should be nested under a key in the data object
-// this would look like [{ date: '2024-01-01', series1: {value: 10}, series2: {value: 20} }, ...]
+// each number series is nested under a key in the data object
+// final shape: [{ date, series1: { mean, p10, p25, p50, p75, p90 }, ... }, ...]
 const makeFinalData = (numSeries, numPoints) => {
-  const data = [];
   const seriesData = {};
+  const variance = 4;
+
+  // Build per-series arrays of percentile objects
   for (let s = 1; s <= numSeries; s++) {
-    seriesData[`series${s}`] = generateRandomData({
-      numPoints,
-      variance: 5,
-    }).map((d) => d.value);
+    const meanArray = generateRandomData({ numPoints, variance }).map(
+      (d) => d.value,
+    );
+
+    seriesData[`series${s}`] = meanArray.map((mean) => {
+      const otherVariance = 2;
+      return {
+        mean,
+        p10: mean - Math.random() * 2.5 * otherVariance,
+        p25: mean - Math.random() * 1 * otherVariance,
+        // p50 as a small random offset around the mean of -.25 to .25
+        p50: mean + (Math.random() * 0.4 - 0.2) * Math.random() * otherVariance,
+        p75: mean + Math.random() * 1 * otherVariance,
+        p90: mean + Math.random() * 2.5 * otherVariance,
+      };
+    });
   }
-  // create number of dates based on numPoints, starting from today and increasing by 1 hour for each point
+
+  // Compose the final array of data points with timestamps
+  const data = [];
   const baseDate = new Date();
   for (let i = 0; i < numPoints; i++) {
     const date = new Date(baseDate.getTime() + i * 3600_000).getTime();
-    console.log('date:', date);
     const dataPoint = { date };
     for (let s = 1; s <= numSeries; s++) {
-      dataPoint[`series${s}`] = { value: seriesData[`series${s}`][i] };
+      dataPoint[`series${s}`] = { ...seriesData[`series${s}`][i] };
     }
     data.push(dataPoint);
   }
+
+  console.log('data:', data);
   return data;
 };
 
 function App() {
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-  const [chartType, setChartType] = useState('line');
-  const [chartColor, setChartColor] = useState(
-    dataVizColors['tropical-indigo'],
-  );
   const [data, setData] = useState(makeFinalData(2, 30));
 
   const handleSliderChange = (dimension) => (event) => {
     const value = event.target.value;
     setDimensions((prev) => ({ ...prev, [dimension]: value }));
-  };
-
-  const options = {
-    series: [
-      {
-        type: 'bar',
-        xKey: 'date',
-        yKey: 'series2.value',
-        xAxisKey: 'x',
-        yAxisKey: 'y',
-        yName: 'Temperature',
-        isVisible: true,
-        stroke: '',
-        fill: dataVizColors['tropical-indigo'],
-        className: '',
-      },
-      {
-        type: 'line', // or 'bar'
-        xKey: 'date', // support dot notation
-        yKey: 'series1.value',
-        xAxisKey: 'x', // default
-        yAxisKey: 'y', // default
-        yName: 'Temperature',
-        isVisible: true,
-        stroke: dataVizColors.tangerine,
-        fill: '',
-        className: '',
-      },
-    ],
-    axes: {
-      // can also use the default x and y
-      x: {
-        type: 'linear', // band, linear, log, time
-        // default domain will compute max and min from data
-        // domainMin: 0, // optional
-        // domainMax: 100, // optional
-        nice: false,
-        className: '',
-        hasGridlines: true,
-        sx: {},
-      },
-      y: {
-        type: 'linear',
-        title: { text: 'Temperature (F)' },
-        ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
-        // default domain will compute max and min from data
-        // domainMin: 0, // optional
-        // domainMax: 100, // optional
-        nice: false,
-        className: '',
-        hasGridlines: true,
-        sx: {},
-      },
-    },
-    readout: {
-      hoverMode: 'local', // or 'global'
-    },
-    animationDuration: 1000, // in ms
   };
 
   return (
@@ -124,38 +80,49 @@ function App() {
           id="height"
         />
       </div>
-      <div className="flex gap-10">
-        <p>Chart Type:</p>
-        <select
-          name="chart-type"
-          id="chart-type"
-          value={chartType}
-          onChange={(e) => setChartType(e.target.value)}
-        >
-          <option value="line">Line</option>
-          <option value="bar">Bar</option>
-        </select>
-        <InputColor
-          color={chartColor}
-          onChange={setChartColor}
-          id="chart-color"
-        />
+      <div className="flex gap-10" style={{ flexWrap: 'wrap' }}>
+        <HoverPointProvider>
+          <ChartContainer
+            height={dimensions.height}
+            width={dimensions.width}
+            margin={margin}
+            data={data}
+            options={demoOptions.bar}
+            sx={{
+              border: '1px solid #737373',
+              borderRadius: '8px',
+              background:
+                'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
+            }}
+          />
+          <ChartContainer
+            height={dimensions.height}
+            width={dimensions.width}
+            margin={margin}
+            data={data}
+            options={demoOptions.line}
+            sx={{
+              border: '1px solid #737373',
+              borderRadius: '8px',
+              background:
+                'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
+            }}
+          />
+          <ChartContainer
+            height={dimensions.height}
+            width={dimensions.width}
+            margin={margin}
+            data={data}
+            options={demoOptions.multiLine}
+            sx={{
+              border: '1px solid #737373',
+              borderRadius: '8px',
+              background:
+                'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
+            }}
+          />
+        </HoverPointProvider>
       </div>
-      <HoverPointProvider>
-        <ChartContainer
-          height={dimensions.height}
-          width={dimensions.width}
-          margin={margin}
-          data={data}
-          options={options}
-          sx={{
-            border: '1px solid #737373',
-            borderRadius: '8px',
-            background:
-              'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
-          }}
-        />
-      </HoverPointProvider>
     </div>
   );
 }
