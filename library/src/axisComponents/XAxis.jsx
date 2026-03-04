@@ -54,8 +54,6 @@ function XAxis({ axisOptions = {} }) {
     textStyle.textAnchor = 'middle';
     textY = yScale(yDomain[0]) + finalTickLength + tickLabelPadding;
   }
-  console.log('textY:', textY);
-  console.log('yScale(yDomain[0]):', yScale(yDomain[0]));
 
   useAnimation({
     type: 'fadeIn',

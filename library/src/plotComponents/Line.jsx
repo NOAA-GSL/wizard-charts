@@ -8,10 +8,8 @@ function Line({
   className = '',
   seriesIndex = 0,
   stroke = dataVizColors['tropical-indigo'],
-  fill = 'none',
+  // fill = 'none',
 }) {
-  console.log('fill:', fill);
-  console.log('stroke:', stroke);
   const { chartValues, xScale, yScale, getAccessors } = useChartHelpers();
 
   const accessors = getAccessors(seriesIndex);

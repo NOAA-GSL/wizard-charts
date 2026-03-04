@@ -9,8 +9,10 @@ const defaultOptions = {
 const defaultSeriesOptions = {
   xKey: 'x',
   yKey: 'y',
-  xAxisPosition: 'bottom',
-  yAxisPosition: 'left',
+  // if these are true, it will pull from the secondary x2 or y2 axis options
+  // instead of the primary x and y
+  isSecondaryYAxis: false,
+  isSecondaryXAxis: false,
   isVisible: true,
   stroke: null,
   fill: null,
@@ -44,4 +46,16 @@ const defaultAxisOptions = {
   },
 };
 
-export { defaultOptions, defaultSeriesOptions, defaultAxisOptions };
+// this gets utilized by the getAccessors function in dataUtilities to determine
+// which keys to pull from the data for each series
+const seriesAccessorProps = {
+  x: ['xKey', 'minXKey', 'q1XKey', 'medianXKey', 'q3XKey', 'maxXKey'],
+  y: ['yKey', 'minYKey', 'q1YKey', 'medianYKey', 'q3YKey', 'maxYKey'],
+};
+
+export {
+  defaultOptions,
+  defaultSeriesOptions,
+  defaultAxisOptions,
+  seriesAccessorProps,
+};

@@ -13,6 +13,7 @@ function BoxPlot({
     useChartHelpers();
 
   const accessors = getAccessors(seriesIndex);
+  console.log('accessors:', accessors);
 
   const rectGroupRef = useRef(null);
 

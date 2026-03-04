@@ -8,8 +8,8 @@ export const demoOptions = {
         type: 'bar',
         xKey: 'date',
         yKey: 'series1.mean',
-        xAxisKey: 'x',
-        yAxisKey: 'y',
+        // primary axes are used by default; use `isSecondaryXAxis: true`
+        // or `isSecondaryYAxis: true` to opt into secondary axes
         yName: 'Temperature',
         isVisible: true,
         stroke: '',
@@ -54,8 +54,8 @@ export const demoOptions = {
         type: 'line', // or 'bar'
         xKey: 'date', // support dot notation
         yKey: 'series2.mean',
-        xAxisKey: 'x', // default
-        yAxisKey: 'y', // default
+        // primary axes are used by default; use `isSecondaryXAxis: true`
+        // or `isSecondaryYAxis: true` to opt into secondary axes
         yName: 'Temperature',
         isVisible: true,
         stroke: dataVizColors.tangerine,
@@ -100,8 +100,8 @@ export const demoOptions = {
         type: 'line', // or 'bar'
         xKey: 'date', // support dot notation
         yKey: 'series2.p10',
-        xAxisKey: 'x', // default
-        yAxisKey: 'y', // default
+        // primary axes are used by default; use `isSecondaryXAxis: true`
+        // or `isSecondaryYAxis: true` to opt into secondary axes
         yName: 'Temperature',
         isVisible: true,
         stroke: dataVizColors.violet,
@@ -112,8 +112,8 @@ export const demoOptions = {
         type: 'line', // or 'bar'
         xKey: 'date', // support dot notation
         yKey: 'series2.p50',
-        xAxisKey: 'x', // default
-        yAxisKey: 'y', // default
+        // primary axes are used by default; use `isSecondaryXAxis: true`
+        // or `isSecondaryYAxis: true` to opt into secondary axes
         yName: 'Temperature',
         isVisible: true,
         stroke: dataVizColors.green,
@@ -124,8 +124,8 @@ export const demoOptions = {
         type: 'line', // or 'bar'
         xKey: 'date', // support dot notation
         yKey: 'series2.p90',
-        xAxisKey: 'x', // default
-        yAxisKey: 'y', // default
+        // primary axes are used by default; use `isSecondaryXAxis: true`
+        // or `isSecondaryYAxis: true` to opt into secondary axes
         yName: 'Temperature',
         isVisible: true,
         stroke: dataVizColors.yellow,
@@ -176,8 +176,8 @@ export const demoOptions = {
         maxYKey: 'series1.p90',
         // todo: should I change this to a boolean `isAlternateYAxis`
         // todo: this would make the logic easier in the computeScales function
-        xAxisKey: 'x',
-        yAxisKey: 'y',
+        // primary axes are used by default; omit explicit axis keys
+        // use `isSecondaryYAxis: true` or `isSecondaryXAxis: true` to opt into secondary axes
         yName: 'Temperature',
         isVisible: true,
         stroke: '',

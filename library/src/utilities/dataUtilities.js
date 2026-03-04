@@ -1,4 +1,5 @@
 import { scaleLinear, scaleBand, scaleTime, scaleThreshold, extent } from 'd3';
+import { seriesAccessorProps } from './defaultOptions';
 
 export function getDomain(data, accessor) {
   return extent(data, accessor);
@@ -131,22 +132,27 @@ export const computeScales = (chartValues, axisConfig) => {
   const data = chartValues.data || [];
 
   // loop through each axis in the config and compute the corresponding scale
-  // todo: don't care about the axisKey. Check if the boolean isAlternateAxis and assign accordingly
   Object.entries(axisConfig).forEach(([axisKey, config]) => {
     const { type, domainMin, domainMax, nice } = config;
+    // determine whether this is an x or y axis
+    const isX = axisKey === 'x' || axisKey === 'x2';
 
     // filter matching series that use this axis and return the objects
-    const matchingSeries = series.filter(
-      (s) => s?.[`${axisKey}AxisKey`] === axisKey,
-    );
+    // only support the boolean flags `isSecondaryXAxis` / `isSecondaryYAxis`
+    // primary axes: axisKey without trailing '2' (e.g., 'x' or 'y')
+    const isSecondaryAxis = String(axisKey).endsWith('2');
+    const matchingSeries = series.filter((s) => {
+      if (!s) return false;
+      const isSecondaryFlag = isX ? !!s.isSecondaryXAxis : !!s.isSecondaryYAxis;
+      return isSecondaryAxis ? isSecondaryFlag : !isSecondaryFlag;
+    });
 
-    // determine whether to use xKey or yKey from the series config
-    const dataKey = axisKey === 'x' || axisKey === 'x2' ? 'xKey' : 'yKey';
-    // todo: need to then check for matching `yKey` and `xKey`. We'll have to toLowerCase
-    // todo: the axisKey and check for `${axisKey}Key` in the series config
-    const accessorKeys = matchingSeries
-      .map((s) => s?.[dataKey])
-      .filter(Boolean);
+    // collect accessor keys for this axis. support boxplot-style multi-value keys
+    const valueProps = isX ? seriesAccessorProps.x : seriesAccessorProps.y;
+
+    const accessorKeys = matchingSeries.flatMap((s) =>
+      valueProps.map((p) => s?.[p]).filter(Boolean),
+    );
 
     const domain = combineNumericExtent(data, accessorKeys);
     if (domainMin != null) domain[0] = domainMin;

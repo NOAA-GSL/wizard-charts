@@ -1,7 +1,7 @@
 import { useMemo, useContext, useRef } from 'react';
 import { ChartProvider } from './context/ChartProvider';
 import {
-  HoverPointContext,
+  // HoverPointContext,
   HoverUpdateContext,
 } from './context/HoverPointProvider';
 import ErrorBoundary from './ErrorBoundary';
@@ -25,8 +25,7 @@ function ChartContainer({
   sx = {},
 }) {
   const updateHoverPoint = useContext(HoverUpdateContext);
-  const hoverPoint = useContext(HoverPointContext);
-  console.log('hoverPoint:', hoverPoint);
+  // const hoverPoint = useContext(HoverPointContext);
   const svgReadoutRef = useRef(null);
 
   // useMemo to avoid unnecessary re-renders in the useEffect hook of ChartProvider

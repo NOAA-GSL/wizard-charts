@@ -15,6 +15,7 @@ import {
   defaultOptions,
   defaultSeriesOptions,
   defaultAxisOptions,
+  seriesAccessorProps,
 } from '../utilities/defaultOptions';
 
 export const ChartContext = createContext();
@@ -65,7 +66,6 @@ function buildChartValues(chartValues) {
  * Update values: updateChartValues({ innerWidth: newWidth });
  */
 export function ChartProvider({ children, initialValues = {} }) {
-  console.log('initialValues:', initialValues);
   const [chartValues, setChartValues] = useState(
     buildChartValues(initialValues),
   );
@@ -97,14 +97,24 @@ export function ChartProvider({ children, initialValues = {} }) {
   const accessorsBySeries = useMemo(() => {
     const series = chartValues.options?.series || [];
     return series.map((s, i) => {
-      // build accessor functions from the series object xKey and yKey
-      const xAccessor = createAccessor(s.xKey);
-      const yAccessor = createAccessor(s.yKey);
+      const accessors = {};
+
+      // build accessors for each configured series prop (x/y groups)
+      Object.entries(seriesAccessorProps).forEach(([, props]) => {
+        props.forEach((prop) => {
+          if (s?.[prop]) accessors[prop] = createAccessor(s[prop]);
+        });
+      });
+
+      // convenience primary accessors (`x` and `y`) always point to the canonical keys
+      accessors.x = createAccessor(s.xKey);
+      accessors.y = createAccessor(s.yKey);
 
       return {
         id: s.id ?? i,
-        x: xAccessor,
-        y: yAccessor,
+        // x: accessors.x,
+        // y: accessors.y,
+        ...accessors,
         // store series meta for consumers
         meta: s,
       };
