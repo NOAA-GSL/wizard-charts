@@ -12,6 +12,7 @@ import XAxis from './axisComponents/XAxis';
 import YAxis from './axisComponents/YAxis';
 import Line from './plotComponents/Line';
 import Bar from './plotComponents/Bar';
+import BoxPlot from './plotComponents/BoxPlot';
 
 function ChartContainer({
   height = 600,
@@ -55,6 +56,16 @@ function ChartContainer({
       case 'bar':
         return (
           <Bar
+            // todo: hmm, need to add things like cornerRadius and paddingFactor to options?
+            key={s.id ?? i}
+            seriesIndex={i}
+            stroke={s.stroke}
+            fill={s.fill}
+          />
+        );
+      case 'boxPlot':
+        return (
+          <BoxPlot
             key={s.id ?? i}
             seriesIndex={i}
             stroke={s.stroke}

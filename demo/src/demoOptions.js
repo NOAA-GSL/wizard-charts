@@ -164,4 +164,56 @@ export const demoOptions = {
     },
     animationDuration: 1000, // in ms
   },
+  boxPlot: {
+    series: [
+      {
+        type: 'boxPlot',
+        xKey: 'date',
+        minYKey: 'series1.p10',
+        q1YKey: 'series1.p25',
+        medianYKey: 'series1.p50',
+        q3YKey: 'series1.p75',
+        maxYKey: 'series1.p90',
+        // todo: should I change this to a boolean `isAlternateYAxis`
+        // todo: this would make the logic easier in the computeScales function
+        xAxisKey: 'x',
+        yAxisKey: 'y',
+        yName: 'Temperature',
+        isVisible: true,
+        stroke: '',
+        fill: dataVizColors['tropical-indigo'],
+        className: '',
+      },
+    ],
+    axes: {
+      // can also use the default x and y
+      x: {
+        type: 'linear', // band, linear, log, time
+        ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
+        // default domain will compute max and min from data
+        // domainMin: 0, // optional
+        // domainMax: 100, // optional
+        nice: false,
+        className: '',
+        hasGridlines: true,
+        sx: {},
+      },
+      y: {
+        type: 'linear',
+        title: { text: 'Temperature (F)' },
+        ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
+        // default domain will compute max and min from data
+        // domainMin: 0, // optional
+        // domainMax: 100, // optional
+        nice: false,
+        className: '',
+        hasGridlines: true,
+        sx: {},
+      },
+    },
+    readout: {
+      hoverMode: 'local', // or 'global'
+    },
+    animationDuration: 1000, // in ms
+  },
 };

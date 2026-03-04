@@ -131,6 +131,7 @@ export const computeScales = (chartValues, axisConfig) => {
   const data = chartValues.data || [];
 
   // loop through each axis in the config and compute the corresponding scale
+  // todo: don't care about the axisKey. Check if the boolean isAlternateAxis and assign accordingly
   Object.entries(axisConfig).forEach(([axisKey, config]) => {
     const { type, domainMin, domainMax, nice } = config;
 
@@ -141,6 +142,8 @@ export const computeScales = (chartValues, axisConfig) => {
 
     // determine whether to use xKey or yKey from the series config
     const dataKey = axisKey === 'x' || axisKey === 'x2' ? 'xKey' : 'yKey';
+    // todo: need to then check for matching `yKey` and `xKey`. We'll have to toLowerCase
+    // todo: the axisKey and check for `${axisKey}Key` in the series config
     const accessorKeys = matchingSeries
       .map((s) => s?.[dataKey])
       .filter(Boolean);

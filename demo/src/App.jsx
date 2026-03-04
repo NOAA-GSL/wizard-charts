@@ -7,6 +7,7 @@ import 'desi-charts/desi-charts.css';
 import { demoOptions } from './demoOptions';
 
 const margin = { top: 25, right: 50, bottom: 50, left: 50 };
+const chartTypes = ['bar', 'line', 'multiLine', 'boxPlot'];
 
 // use generateRandomData to create an array of objects
 // each number series is nested under a key in the data object
@@ -81,13 +82,15 @@ function App() {
         />
       </div>
       <div className="flex gap-10" style={{ flexWrap: 'wrap' }}>
-        <HoverPointProvider>
+        {/* <HoverPointProvider> */}
+        {chartTypes.map((type) => (
           <ChartContainer
+            key={type}
             height={dimensions.height}
             width={dimensions.width}
             margin={margin}
             data={data}
-            options={demoOptions.bar}
+            options={demoOptions[type]}
             sx={{
               border: '1px solid #737373',
               borderRadius: '8px',
@@ -95,33 +98,8 @@ function App() {
                 'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
             }}
           />
-          <ChartContainer
-            height={dimensions.height}
-            width={dimensions.width}
-            margin={margin}
-            data={data}
-            options={demoOptions.line}
-            sx={{
-              border: '1px solid #737373',
-              borderRadius: '8px',
-              background:
-                'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
-            }}
-          />
-          <ChartContainer
-            height={dimensions.height}
-            width={dimensions.width}
-            margin={margin}
-            data={data}
-            options={demoOptions.multiLine}
-            sx={{
-              border: '1px solid #737373',
-              borderRadius: '8px',
-              background:
-                'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
-            }}
-          />
-        </HoverPointProvider>
+        ))}
+        {/* </HoverPointProvider> */}
       </div>
     </div>
   );
