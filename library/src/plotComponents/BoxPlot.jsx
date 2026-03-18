@@ -8,12 +8,11 @@ function BoxPlot({
   fill = 'var(--gsl-charts-color-1)',
   className = '',
   paddingFactor = 0.8,
+  alignment = 'center',
 }) {
-  const { chartValues, xScale, yScale, yDomain, getAccessors } =
-    useChartHelpers();
+  const { chartValues, xScale, yScale, getAccessors } = useChartHelpers();
 
   const accessors = getAccessors(seriesIndex);
-  console.log('accessors:', accessors);
 
   const rectGroupRef = useRef(null);
 
@@ -38,19 +37,30 @@ function BoxPlot({
   // barWidth is shrunk by a padding factor to create space between bars
   const barWidth = (step || fallback) * paddingFactor;
 
-  // useAnimation({
-  //   type: 'growBar',
-  //   // ref: rectGroupRef,
-  //   trigger: chartValues.data,
-  // });
+  useAnimation({
+    type: 'growBar',
+    ref: rectGroupRef,
+    trigger: chartValues.data,
+  });
 
   return (
     <g className={`gsl-chart-bar ${className}`} fill={fill} ref={rectGroupRef}>
       {chartValues.data.map((dataPoint) => {
         const cx = xScale(accessors.x(dataPoint));
-        const x = cx - barWidth / 2; // center the bar on the x value
-        const y = yScale(accessors.y(dataPoint)); // top of the bar
-        const baseline = yScale(yDomain[0]); // bottom of the bar
+        let x;
+        if (alignment === 'right') x = cx;
+        else if (alignment === 'left') x = cx - barWidth;
+        else x = cx - barWidth / 2; // center the bar on the x value
+
+        // prefer box-specific accessors at top-level (q3YKey/q1YKey); fall back to primary `y`
+        const q3Val = accessors.q3YKey
+          ? accessors.q3YKey(dataPoint)
+          : accessors.y(dataPoint);
+        const q1Val = accessors.q1YKey
+          ? accessors.q1YKey(dataPoint)
+          : accessors.y(dataPoint);
+        const y = yScale(q3Val); // top of the bar
+        const baseline = yScale(q1Val); // bottom of the bar
         const height = baseline - y; // height from top to baseline
 
         /**

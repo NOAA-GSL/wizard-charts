@@ -55,11 +55,13 @@ function ChartContainer({
       case 'bar':
         return (
           <Bar
-            // todo: hmm, need to add things like cornerRadius and paddingFactor to options?
             key={s.id ?? i}
             seriesIndex={i}
             stroke={s.stroke}
             fill={s.fill}
+            alignment={s.alignment}
+            paddingFactor={s.paddingFactor}
+            cornerRadius={s.cornerRadius}
           />
         );
       case 'boxPlot':
@@ -69,6 +71,9 @@ function ChartContainer({
             seriesIndex={i}
             stroke={s.stroke}
             fill={s.fill}
+            alignment={s.alignment}
+            paddingFactor={s.paddingFactor}
+            cornerRadius={s.cornerRadius}
           />
         );
       default:

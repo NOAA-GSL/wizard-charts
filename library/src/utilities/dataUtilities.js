@@ -154,12 +154,26 @@ export const computeScales = (chartValues, axisConfig) => {
       valueProps.map((p) => s?.[p]).filter(Boolean),
     );
 
-    const domain = combineNumericExtent(data, accessorKeys);
-    if (domainMin != null) domain[0] = domainMin;
-    if (domainMax != null) domain[1] = domainMax;
-
+    let domain;
     const scaleType = type || 'linear';
 
+    if (scaleType === 'band') {
+      // For band scales we need an array of categorical values (preserve order, unique)
+      const vals = [];
+      accessorKeys.forEach((key) => {
+        if (!key) return;
+        const accessor = createAccessor(key);
+        data.forEach((d) => {
+          const v = accessor(d);
+          if (v != null && !vals.includes(v)) vals.push(v);
+        });
+      });
+      domain = vals.length ? vals : [];
+    } else {
+      domain = combineNumericExtent(data, accessorKeys);
+      if (domainMin != null) domain[0] = domainMin;
+      if (domainMax != null) domain[1] = domainMax;
+    }
     const scale = getScale(
       scaleType,
       domain,

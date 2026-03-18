@@ -8,6 +8,7 @@ function Bar({
   fill = 'var(--gsl-charts-color-1)',
   className = '',
   paddingFactor = 0.8,
+  alignment = 'center',
 }) {
   const { chartValues, xScale, yScale, yDomain, getAccessors } =
     useChartHelpers();
@@ -58,7 +59,29 @@ function Bar({
     <g className={`gsl-chart-bar ${className}`} fill={fill} ref={rectGroupRef}>
       {chartValues.data.map((dataPoint) => {
         const cx = xScale(accessors.x(dataPoint));
-        const x = cx - barWidth / 2; // center the bar on the x value
+        // default width uses computed barWidth; for band scales use bandwidth
+        let width = barWidth;
+        let x;
+
+        // if bandwidth is available, use it instead of computed barWidth and apply alignment within the band
+        if (typeof xScale.bandwidth === 'function') {
+          const bandStart = xScale(accessors.x(dataPoint));
+          const band = xScale.bandwidth();
+          width = band * paddingFactor;
+          if (alignment === 'left') {
+            x = bandStart;
+          } else if (alignment === 'right') {
+            x = bandStart + (band - width);
+          } else {
+            x = bandStart + (band - width) / 2;
+          }
+        } else {
+          if (!Number.isFinite(cx)) return null;
+          if (alignment === 'right') x = cx;
+          else if (alignment === 'left') x = cx - width;
+          else x = cx - width / 2; // center
+        }
+
         const y = yScale(accessors.y(dataPoint)); // top of the bar
         const baseline = yScale(yDomain[0]); // bottom of the bar
         const height = baseline - y; // height from top to baseline
@@ -76,15 +99,14 @@ function Bar({
             key={accessors.x(dataPoint)}
             x={x}
             y={y}
-            width={barWidth}
+            width={width}
             height={height}
             rx={cornerRadius}
             ry={cornerRadius}
             shapeRendering="crispEdges"
             style={{
               transform: 'scaleY(0)',
-              transformOrigin: `center ${baseline}px`,
-              // animation: 'growBar 1s forwards',
+              transformOrigin: `${x + width / 2}px ${baseline}px`,
             }}
           />
         );

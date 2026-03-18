@@ -91,7 +91,6 @@ export function ChartProvider({ children, initialValues = {} }) {
 
     return scales;
   }, [chartValues]);
-  console.log('computedScales:', computedScales);
 
   // this helps consumers get the correct x and y accessors for each series
   const accessorsBySeries = useMemo(() => {
