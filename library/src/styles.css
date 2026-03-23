@@ -39,3 +39,11 @@
     transform: scaleY(1);
   }
 }
+@keyframes growBox {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}

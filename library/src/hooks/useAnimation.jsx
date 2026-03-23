@@ -40,8 +40,8 @@ function useAnimation({ type, ref, trigger, duration }) {
         rects.forEach((rect) => {
           rect.style.animation = 'none';
           rect.style.transform = 'scaleY(0)';
-          rect.style.transformOrigin =
-            rect.style.transformOrigin || 'center bottom';
+          rect.style.transformOrigin = rect.style.transformOrigin || '50% 100%';
+          rect.style.transformBox = rect.style.transformBox || 'fill-box';
         });
         // Force reflow
         element.getBoundingClientRect();
@@ -49,6 +49,25 @@ function useAnimation({ type, ref, trigger, duration }) {
         requestAnimationFrame(() => {
           rects.forEach((rect) => {
             rect.style.animation = `growBar ${animationDuration}ms forwards`;
+            rect.style.transform = 'scaleY(1)';
+          });
+        });
+        break;
+      }
+      case 'growBox': {
+        const rects = element.querySelectorAll('rect');
+        rects.forEach((rect) => {
+          rect.style.animation = 'none';
+          rect.style.transform = 'scaleY(0)';
+          rect.style.transformOrigin = rect.style.transformOrigin || '50% 50%';
+          rect.style.transformBox = rect.style.transformBox || 'fill-box';
+        });
+        // Force reflow
+        element.getBoundingClientRect();
+        // Trigger animation in the next frame
+        requestAnimationFrame(() => {
+          rects.forEach((rect) => {
+            rect.style.animation = `growBox ${animationDuration}ms forwards`;
             rect.style.transform = 'scaleY(1)';
           });
         });

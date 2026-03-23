@@ -38,7 +38,7 @@ function BoxPlot({
   const barWidth = (step || fallback) * paddingFactor;
 
   useAnimation({
-    type: 'growBar',
+    type: 'growBox',
     ref: rectGroupRef,
     trigger: chartValues.data,
   });
@@ -83,8 +83,8 @@ function BoxPlot({
             shapeRendering="crispEdges"
             style={{
               transform: 'scaleY(0)',
-              transformOrigin: `center ${baseline}px`,
-              // animation: 'growBar 1s forwards',
+              transformOrigin: '50% 50%',
+              transformBox: 'fill-box',
             }}
           />
         );
