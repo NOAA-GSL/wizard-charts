@@ -43,6 +43,13 @@ function BoxPlot({
     trigger: chartValues.data,
   });
 
+  // animate whisker lines (min/max) using stroke-dashoffset drawing
+  useAnimation({
+    type: 'drawLines',
+    ref: rectGroupRef,
+    trigger: chartValues.data,
+  });
+
   return (
     <g className={`gsl-chart-bar ${className}`} fill={fill} ref={rectGroupRef}>
       {chartValues.data.map((dataPoint) => {
@@ -71,22 +78,60 @@ function BoxPlot({
          * const x = cx + groupBand(seriesKey); // already offset from center
          */
 
+        // compute center y for whisker start
+        const centerY = y + height / 2;
+
+        // whisker end positions (fall back gracefully if accessors missing)
+        const maxVal = accessors.maxYKey
+          ? accessors.maxYKey(dataPoint)
+          : undefined;
+        const minVal = accessors.minYKey
+          ? accessors.minYKey(dataPoint)
+          : undefined;
+        const yMax = typeof maxVal !== 'undefined' ? yScale(maxVal) : null;
+        const yMin = typeof minVal !== 'undefined' ? yScale(minVal) : null;
+
         return (
-          <rect
-            key={accessors.x(dataPoint)}
-            x={x}
-            y={y}
-            width={barWidth}
-            height={height}
-            rx={cornerRadius}
-            ry={cornerRadius}
-            shapeRendering="crispEdges"
-            style={{
-              transform: 'scaleY(0)',
-              transformOrigin: '50% 50%',
-              transformBox: 'fill-box',
-            }}
-          />
+          <g key={accessors.x(dataPoint)}>
+            <rect
+              x={x}
+              y={y}
+              width={barWidth}
+              height={height}
+              rx={cornerRadius}
+              ry={cornerRadius}
+              shapeRendering="crispEdges"
+              style={{
+                transform: 'scaleY(0)',
+                transformOrigin: '50% 50%',
+                transformBox: 'fill-box',
+              }}
+            />
+            {yMax != null && (
+              <line
+                x1={x + barWidth / 2}
+                x2={x + barWidth / 2}
+                y1={centerY}
+                y2={yMax}
+                stroke={fill}
+                strokeWidth={2}
+                strokeLinecap="round"
+                shapeRendering="crispEdges"
+              />
+            )}
+            {yMin != null && (
+              <line
+                x1={x + barWidth / 2}
+                x2={x + barWidth / 2}
+                y1={centerY}
+                y2={yMin}
+                stroke={fill}
+                strokeWidth={2}
+                strokeLinecap="round"
+                shapeRendering="crispEdges"
+              />
+            )}
+          </g>
         );
       })}
     </g>

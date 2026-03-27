@@ -73,6 +73,28 @@ function useAnimation({ type, ref, trigger, duration }) {
         });
         break;
       }
+      case 'drawLines': {
+        const lines = element.querySelectorAll('line');
+        lines.forEach((ln) => {
+          try {
+            const length = ln.getTotalLength();
+            ln.style.strokeDasharray = length;
+            ln.style.strokeDashoffset = length;
+          } catch (e) {
+            // ignore if element doesn't support getTotalLength
+            console.error('Element does not support getTotalLength:', ln, e);
+          }
+          ln.style.animation = 'none';
+        });
+        // Force reflow
+        element.getBoundingClientRect();
+        requestAnimationFrame(() => {
+          lines.forEach((ln) => {
+            ln.style.animation = `drawLine ${animationDuration}ms forwards`;
+          });
+        });
+        break;
+      }
       default:
         break;
     }

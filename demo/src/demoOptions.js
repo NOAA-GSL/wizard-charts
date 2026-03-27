@@ -58,7 +58,6 @@ export const demoOptions = {
         yName: 'Temperature',
         isVisible: true,
         stroke: dataVizColors.tangerine,
-        fill: '',
         className: '',
       },
     ],
@@ -102,7 +101,6 @@ export const demoOptions = {
         yName: 'Temperature',
         isVisible: true,
         stroke: dataVizColors.violet,
-        fill: '',
         className: '',
       },
       {
@@ -112,7 +110,6 @@ export const demoOptions = {
         yName: 'Temperature',
         isVisible: true,
         stroke: dataVizColors.green,
-        fill: '',
         className: '',
       },
       {
@@ -122,7 +119,6 @@ export const demoOptions = {
         yName: 'Temperature',
         isVisible: true,
         stroke: dataVizColors.yellow,
-        fill: '',
         className: '',
       },
     ],

@@ -1,4 +1,19 @@
-const defaultOptions = {
+export const dataVizColors = {
+  'sea-green': '#0FB5AE',
+  'palatinate-blue': '#4046CA',
+  tangerine: '#F68511',
+  magenta: '#DE3D82',
+  'tropical-indigo': '#7E84FA',
+  malachite: '#72E06A',
+  azure: '#147AF3',
+  violet: '#7326D3',
+  yellow: '#E8C600',
+  'alloy-orange': '#CB5D00',
+  green: '#008F5D',
+  lime: '#BCE931',
+};
+
+export const defaultOptions = {
   series: [],
   axes: {},
   readout: {
@@ -6,7 +21,7 @@ const defaultOptions = {
   },
 };
 
-const defaultSeriesOptions = {
+export const defaultSeriesOptions = {
   xKey: 'x',
   yKey: 'y',
   // if these are true, it will pull from the secondary x2 or y2 axis options
@@ -19,7 +34,7 @@ const defaultSeriesOptions = {
   className: '',
 };
 
-const defaultAxisOptions = {
+export const defaultAxisOptions = {
   type: 'linear', // band, linear, log, time
   // default domain will compute max and min from data
   domainMin: undefined, // optional
@@ -48,14 +63,26 @@ const defaultAxisOptions = {
 
 // this gets utilized by the getAccessors function in dataUtilities to determine
 // which keys to pull from the data for each series
-const seriesAccessorProps = {
+export const seriesAccessorProps = {
   x: ['xKey', 'minXKey', 'q1XKey', 'medianXKey', 'q3XKey', 'maxXKey'],
   y: ['yKey', 'minYKey', 'q1YKey', 'medianYKey', 'q3YKey', 'maxYKey'],
 };
 
-export {
-  defaultOptions,
-  defaultSeriesOptions,
-  defaultAxisOptions,
-  seriesAccessorProps,
+// defaults for the different plots ------------------------- //
+export const defaultLineOptions = {
+  className: '',
+  fill: 'none',
+  stroke: dataVizColors['tropical-indigo'],
+  sx: {},
+};
+
+// defaults for the different plots
+export const defaultBarOptions = {
+  alignment: 'center',
+  cornerRadius: 2,
+  className: '',
+  fill: dataVizColors['tropical-indigo'],
+  paddingFactor: 0.8,
+  stroke: 'none',
+  sx: {},
 };

@@ -2,14 +2,13 @@ import { useRef } from 'react';
 import { line } from 'd3';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
-import { dataVizColors } from '../../../demo/src/helperFunctions';
+import { mergeDeep } from '../utilities/dataUtilities';
+import { defaultLineOptions } from '../utilities/defaultOptions';
 
-function Line({
-  className = '',
-  seriesIndex = 0,
-  stroke = dataVizColors['tropical-indigo'],
-  // fill = 'none',
-}) {
+function Line({ seriesIndex = 0, options = {} }) {
+  const finalOptions = mergeDeep(defaultLineOptions, options);
+  const { stroke, fill, className, sx } = finalOptions;
+
   const { chartValues, xScale, yScale, getAccessors } = useChartHelpers();
 
   const accessors = getAccessors(seriesIndex);
@@ -30,7 +29,8 @@ function Line({
         .x((d) => xScale(accessors.x(d)))
         .y((d) => yScale(accessors.y(d)))(chartValues.data)}
       stroke={stroke}
-      fill="none"
+      fill={fill}
+      style={sx}
     />
   );
 }

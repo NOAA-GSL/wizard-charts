@@ -44,14 +44,7 @@ function ChartContainer({
   const seriesNodes = initialValues.options.series.map((s, i) => {
     switch (s.type) {
       case 'line':
-        return (
-          <Line
-            key={s.id ?? i}
-            seriesIndex={i}
-            stroke={s.stroke}
-            fill={s.fill}
-          />
-        );
+        return <Line key={s.id ?? i} seriesIndex={i} options={{ ...s }} />;
       case 'bar':
         return (
           <Bar

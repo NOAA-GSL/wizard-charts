@@ -1,15 +1,21 @@
 import { useRef } from 'react';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
+import { mergeDeep } from '../utilities/dataUtilities';
+import { defaultBarOptions } from '../utilities/defaultOptions';
 
-function Bar({
-  seriesIndex = 0,
-  cornerRadius = 2,
-  fill = 'var(--gsl-charts-color-1)',
-  className = '',
-  paddingFactor = 0.8,
-  alignment = 'center',
-}) {
+function Bar({ seriesIndex = 0, options = {} }) {
+  const finalOptions = mergeDeep(defaultBarOptions, options);
+  const {
+    alignment,
+    cornerRadius,
+    fill,
+    className,
+    paddingFactor,
+    stroke,
+    sx,
+  } = finalOptions;
+
   const { chartValues, xScale, yScale, yDomain, getAccessors } =
     useChartHelpers();
 
@@ -56,7 +62,12 @@ function Bar({
   });
 
   return (
-    <g className={`gsl-chart-bar ${className}`} fill={fill} ref={rectGroupRef}>
+    <g
+      className={`gsl-chart-bar ${className}`}
+      stroke={stroke}
+      fill={fill}
+      ref={rectGroupRef}
+    >
       {chartValues.data.map((dataPoint) => {
         const cx = xScale(accessors.x(dataPoint));
         // default width uses computed barWidth; for band scales use bandwidth
@@ -106,7 +117,9 @@ function Bar({
             shapeRendering="crispEdges"
             style={{
               transform: 'scaleY(0)',
-              transformOrigin: `${x + width / 2}px ${baseline}px`,
+              transformOrigin: '50% 100%',
+              transformBox: 'fill-box',
+              ...sx,
             }}
           />
         );
