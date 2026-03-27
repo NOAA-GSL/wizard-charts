@@ -38,8 +38,12 @@ const x1dDataProcessor = (chartObject) => {
   const getAxisTypes = () => {
     const plotIds = getPlotIds();
     //* taking the first index since we are assuming all plots have the same axis types
-    const yAxis = getUniqueValues(plotIds.map((key) => chartObject.plots[key].yaxisType))[0];
-    const xAxis = getUniqueValues(plotIds.map((key) => chartObject.plots[key].xaxisType))[0];
+    const yAxis = getUniqueValues(
+      plotIds.map((key) => chartObject.plots[key].yaxisType),
+    )[0];
+    const xAxis = getUniqueValues(
+      plotIds.map((key) => chartObject.plots[key].xaxisType),
+    )[0];
     return { xAxis, yAxis };
   };
 
@@ -70,9 +74,15 @@ const x1dDataProcessor = (chartObject) => {
         const [valuesMin, valuesMax] = d3.extent(values);
         const [datesMin, datesMax] = d3.extent(dates);
 
-        if (!ranges.yMin[yAxisLocation] || valuesMin < ranges.yMin[yAxisLocation])
+        if (
+          !ranges.yMin[yAxisLocation] ||
+          valuesMin < ranges.yMin[yAxisLocation]
+        )
           ranges.yMin[yAxisLocation] = valuesMin;
-        if (!ranges.yMax[yAxisLocation] || valuesMax > ranges.yMax[yAxisLocation])
+        if (
+          !ranges.yMax[yAxisLocation] ||
+          valuesMax > ranges.yMax[yAxisLocation]
+        )
           ranges.yMax[yAxisLocation] = valuesMax;
         // assuming xAxis for time
         if (isTimeAxis('xAxis')) {
@@ -95,8 +105,10 @@ const x1dDataProcessor = (chartObject) => {
       // Some charts have set yaxis ranges, set logic here
       const yMin = chartObject.plots[plotId]?.yaxisrange?.[0];
       const yMax = chartObject.plots[plotId]?.yaxisrange?.[1];
-      if (yMin != null && ranges.yMin[yAxisLocation] > yMin) ranges.yMin[yAxisLocation] = yMin;
-      if (yMax != null && ranges.yMax[yAxisLocation] < yMax) ranges.yMax[yAxisLocation] = yMax;
+      if (yMin != null && ranges.yMin[yAxisLocation] > yMin)
+        ranges.yMin[yAxisLocation] = yMin;
+      if (yMax != null && ranges.yMax[yAxisLocation] < yMax)
+        ranges.yMax[yAxisLocation] = yMax;
 
       // TODO: This needs to be reworked since we are not storing the yAxis scale
       // If the axis is made, and yaxis lock is on, return the current yaxis domain
@@ -187,7 +199,10 @@ const x1dDataProcessor = (chartObject) => {
       // if we have a right scale, add that as well
       axisScales.yRightScale =
         yMin.right !== null
-          ? d3.scaleLog().domain([yMin.right, yMax.right]).range([rangeStart.yAxis, rangeEnd.yAxis])
+          ? d3
+              .scaleLog()
+              .domain([yMin.right, yMax.right])
+              .range([rangeStart.yAxis, rangeEnd.yAxis])
           : null;
     } else {
       throw new Error('Unsupported axis type');
@@ -234,7 +249,11 @@ const x1dDataProcessor = (chartObject) => {
       // function to handle rounding to nearest 1, 3, 6, 12 hours
       const coeff = interval / 60 / 60;
       rounded = new Date(
-        adjustedDate.setHours(Math.ceil(adjustedDate.getHours() / coeff) * coeff, 0, 0),
+        adjustedDate.setHours(
+          Math.ceil(adjustedDate.getHours() / coeff) * coeff,
+          0,
+          0,
+        ),
       );
       // needed otherwise we won't get nice round values
       if (timeZone === 'UTC') {
@@ -246,12 +265,16 @@ const x1dDataProcessor = (chartObject) => {
       // Have the day tick marks at 00Z
       if (timeZone === 'UTC') {
         rounded = new Date(
-          adjustedDate.setUTCHours(Math.ceil(adjustedDate.getUTCHours() / coeff) * coeff),
+          adjustedDate.setUTCHours(
+            Math.ceil(adjustedDate.getUTCHours() / coeff) * coeff,
+          ),
         );
       } else {
         // Have the day tick marks at 12am local time
         rounded = new Date(
-          adjustedDate.setHours(Math.ceil(adjustedDate.getHours() / coeff) * coeff),
+          adjustedDate.setHours(
+            Math.ceil(adjustedDate.getHours() / coeff) * coeff,
+          ),
         );
       }
     }
@@ -373,7 +396,9 @@ const x1dDataProcessor = (chartObject) => {
     // ScaleTime
     if (isTimeAxis(axisName)) {
       const tickValues = getTickValues(domainStart, domainEnd);
-      const tickLables = tickValues.map((date) => getTickLabel(date, domainStart, domainEnd));
+      const tickLables = tickValues.map((date) =>
+        getTickLabel(date, domainStart, domainEnd),
+      );
       tickValues.forEach((date, index) => {
         tickInfo.push({
           value: date,
@@ -384,8 +409,13 @@ const x1dDataProcessor = (chartObject) => {
       // ScaleLinear
       // Get the automatic tick values
       // using toLowerCase because the dictionary keys (ie 'xaxis') are all lowercase
-      const tickValues = limitTickValues(axisScale.ticks(), axisName.toLowerCase());
-      const tickLabels = tickValues.map((value) => customTickFormat(value, true));
+      const tickValues = limitTickValues(
+        axisScale.ticks(),
+        axisName.toLowerCase(),
+      );
+      const tickLabels = tickValues.map((value) =>
+        customTickFormat(value, true),
+      );
       tickValues.forEach((value, index) => {
         tickInfo.push({
           value,

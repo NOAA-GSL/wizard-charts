@@ -43,3 +43,13 @@
     transform: scaleY(1);
   }
 }
+@keyframes growMedian {
+  from {
+    transform: translateY(var(--startTranslateY, 0px));
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

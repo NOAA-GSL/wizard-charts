@@ -24,6 +24,7 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
   const accessors = getAccessors(seriesIndex);
 
   const rectGroupRef = useRef(null);
+  const medianGroupRef = useRef(null);
 
   // get x positions in pixels of all bars to calculate step and bar width
   const positions = chartValues.data
@@ -52,6 +53,13 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
     trigger: chartValues.data,
   });
 
+  // animate median lines separately (scale from center + fade)
+  useAnimation({
+    type: 'growMedian',
+    ref: medianGroupRef,
+    trigger: chartValues.data,
+  });
+
   // animate whisker lines (min/max) using stroke-dashoffset drawing
   useAnimation({
     type: 'drawLines',
@@ -60,112 +68,147 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
   });
 
   return (
-    <g className={className} style={sx} ref={rectGroupRef}>
-      {chartValues.data.map((dataPoint) => {
-        const cx = xScale(accessors.x(dataPoint));
-        let x;
-        if (alignment === 'right') x = cx;
-        else if (alignment === 'left') x = cx - barWidth;
-        else x = cx - barWidth / 2; // center the bar on the x value
+    <>
+      <g className={className} style={sx} ref={rectGroupRef}>
+        {chartValues.data.map((dataPoint) => {
+          const cx = xScale(accessors.x(dataPoint));
+          let x;
+          if (alignment === 'right') x = cx;
+          else if (alignment === 'left') x = cx - barWidth;
+          else x = cx - barWidth / 2; // center the bar on the x value
 
-        // prefer box-specific accessors at top-level (q3YKey/q1YKey); fall back to primary `y`
-        const q3Val = accessors.q3YKey
-          ? accessors.q3YKey(dataPoint)
-          : accessors.y(dataPoint);
-        const q1Val = accessors.q1YKey
-          ? accessors.q1YKey(dataPoint)
-          : accessors.y(dataPoint);
-        const y = yScale(q3Val); // top of the bar
-        const baseline = yScale(q1Val); // bottom of the bar
-        const height = baseline - y; // height from top to baseline
+          // prefer box-specific accessors at top-level (q3YKey/q1YKey); fall back to primary `y`
+          const q3Val = accessors.q3YKey
+            ? accessors.q3YKey(dataPoint)
+            : accessors.y(dataPoint);
+          const q1Val = accessors.q1YKey
+            ? accessors.q1YKey(dataPoint)
+            : accessors.y(dataPoint);
+          const y = yScale(q3Val); // top of the bar
+          const baseline = yScale(q1Val); // bottom of the bar
+          const height = baseline - y; // height from top to baseline
 
-        /**
-         * // Could also stack multiple bars with this example
-         * const groupBand = scaleBand().domain(seriesKeys).range([ -step/2, step/2 ]).paddingInner(0.1);
-         * const barW = groupBand.bandwidth();
-         * const cx = xScale(xValue);
-         * const x = cx + groupBand(seriesKey); // already offset from center
-         */
+          /**
+           * // Could also stack multiple bars with this example
+           * const groupBand = scaleBand().domain(seriesKeys).range([ -step/2, step/2 ]).paddingInner(0.1);
+           * const barW = groupBand.bandwidth();
+           * const cx = xScale(xValue);
+           * const x = cx + groupBand(seriesKey); // already offset from center
+           */
 
-        // compute center y for whisker start
-        const centerY = y + height / 2;
+          // compute center y for whisker start
+          const centerY = y + height / 2;
 
-        // whisker end positions (fall back gracefully if accessors missing)
-        const maxVal = accessors.maxYKey
-          ? accessors.maxYKey(dataPoint)
-          : undefined;
-        const minVal = accessors.minYKey
-          ? accessors.minYKey(dataPoint)
-          : undefined;
-        const yMax = typeof maxVal !== 'undefined' ? yScale(maxVal) : null;
-        const yMin = typeof minVal !== 'undefined' ? yScale(minVal) : null;
+          // whisker end positions (fall back gracefully if accessors missing)
+          const maxVal = accessors.maxYKey
+            ? accessors.maxYKey(dataPoint)
+            : undefined;
+          const minVal = accessors.minYKey
+            ? accessors.minYKey(dataPoint)
+            : undefined;
+          const yMax = typeof maxVal !== 'undefined' ? yScale(maxVal) : null;
+          const yMin = typeof minVal !== 'undefined' ? yScale(minVal) : null;
 
-        // median position (if provided via accessor `medianYKey`)
-        const medianVal = accessors.medianYKey
-          ? accessors.medianYKey(dataPoint)
-          : undefined;
-        const yMedian =
-          typeof medianVal !== 'undefined' ? yScale(medianVal) : null;
+          return (
+            <g key={accessors.x(dataPoint)}>
+              <rect
+                x={x}
+                y={y}
+                width={barWidth}
+                height={height}
+                rx={cornerRadius}
+                ry={cornerRadius}
+                fill={fill}
+                stroke={strokeBox}
+                strokeWidth={strokeWidth}
+                shapeRendering="crispEdges"
+                style={{
+                  transform: 'scaleY(0)',
+                  transformOrigin: '50% 50%',
+                  transformBox: 'fill-box',
+                }}
+              />
+              {yMax != null && (
+                <line
+                  x1={x + barWidth / 2}
+                  x2={x + barWidth / 2}
+                  y1={centerY}
+                  y2={yMax}
+                  stroke={strokeWhisker}
+                  strokeWidth={strokeWidth}
+                  strokeLinecap="round"
+                  shapeRendering="crispEdges"
+                />
+              )}
+              {yMin != null && (
+                <line
+                  x1={x + barWidth / 2}
+                  x2={x + barWidth / 2}
+                  y1={centerY}
+                  y2={yMin}
+                  stroke={strokeWhisker}
+                  strokeWidth={strokeWidth}
+                  strokeLinecap="round"
+                  shapeRendering="crispEdges"
+                />
+              )}
+            </g>
+          );
+        })}
+      </g>
 
-        return (
-          <g key={accessors.x(dataPoint)}>
-            <rect
-              x={x}
-              y={y}
-              width={barWidth}
-              height={height}
-              rx={cornerRadius}
-              ry={cornerRadius}
-              fill={fill}
-              stroke={strokeBox}
+      {/* median line moved to separate group to avoid drawLines animation */}
+      <g ref={medianGroupRef}>
+        {chartValues.data.map((dataPoint) => {
+          const cx = xScale(accessors.x(dataPoint));
+          let xPos;
+          if (alignment === 'right') xPos = cx;
+          else if (alignment === 'left') xPos = cx - barWidth;
+          else xPos = cx - barWidth / 2;
+
+          // compute box center Y to start median animation from
+          const q3Val = accessors.q3YKey
+            ? accessors.q3YKey(dataPoint)
+            : accessors.y(dataPoint);
+          const q1Val = accessors.q1YKey
+            ? accessors.q1YKey(dataPoint)
+            : accessors.y(dataPoint);
+          const yTop = yScale(q3Val);
+          const yBaseline = yScale(q1Val);
+          const centerY = yTop + (yBaseline - yTop) / 2;
+
+          const medianVal = accessors.medianYKey
+            ? accessors.medianYKey(dataPoint)
+            : undefined;
+          const yMedian =
+            typeof medianVal !== 'undefined' ? yScale(medianVal) : null;
+
+          if (yMedian == null) return null;
+
+          // startTranslateY moves the line from box center to final median
+          const startTranslateY = centerY - yMedian;
+
+          return (
+            <line
+              key={`median-${accessors.x(dataPoint)}`}
+              className="median"
+              x1={xPos}
+              x2={xPos + barWidth}
+              y1={yMedian}
+              y2={yMedian}
+              stroke={strokeMedian}
               strokeWidth={strokeWidth}
+              strokeLinecap="round"
               shapeRendering="crispEdges"
               style={{
-                transform: 'scaleY(0)',
-                transformOrigin: '50% 50%',
-                transformBox: 'fill-box',
+                ['--startTranslateY']: `${startTranslateY}px`,
+                transform: `translateY(var(--startTranslateY))`,
               }}
             />
-            {yMax != null && (
-              <line
-                x1={x + barWidth / 2}
-                x2={x + barWidth / 2}
-                y1={centerY}
-                y2={yMax}
-                stroke={strokeWhisker}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                shapeRendering="crispEdges"
-              />
-            )}
-            {yMin != null && (
-              <line
-                x1={x + barWidth / 2}
-                x2={x + barWidth / 2}
-                y1={centerY}
-                y2={yMin}
-                stroke={strokeWhisker}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                shapeRendering="crispEdges"
-              />
-            )}
-            {yMedian != null && (
-              <line
-                x1={x}
-                x2={x + barWidth}
-                y1={yMedian}
-                y2={yMedian}
-                stroke={strokeMedian}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                shapeRendering="crispEdges"
-              />
-            )}
-          </g>
-        );
-      })}
-    </g>
+          );
+        })}
+      </g>
+    </>
   );
 }
 

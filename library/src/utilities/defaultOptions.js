@@ -96,7 +96,7 @@ export const defaultBoxPlotOptions = {
   paddingFactor: 0.8,
   // stroke broken out for each plot element
   strokeBox: 'none',
-  strokeMedian: '#ffffff99',
+  strokeMedian: '#ffffff88',
   strokeWhisker: dataVizColors['tropical-indigo'],
   strokeWidth: 2,
   sx: {},

@@ -73,6 +73,24 @@ function useAnimation({ type, ref, trigger, duration }) {
         });
         break;
       }
+      case 'growMedian': {
+        const lines = element.querySelectorAll('line');
+        lines.forEach((ln) => {
+          ln.style.animation = 'none';
+          // preserve per-line initial transform (translateY from center)
+          ln.style.transformOrigin = ln.style.transformOrigin || '50% 50%';
+          ln.style.transformBox = ln.style.transformBox || 'fill-box';
+          ln.style.opacity = '0';
+        });
+        // Force reflow
+        element.getBoundingClientRect();
+        requestAnimationFrame(() => {
+          lines.forEach((ln) => {
+            ln.style.animation = `growMedian ${animationDuration}ms forwards`;
+          });
+        });
+        break;
+      }
       case 'drawLines': {
         const lines = element.querySelectorAll('line');
         lines.forEach((ln) => {
