@@ -1,25 +1,27 @@
 import { useRef } from 'react';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
+import { mergeDeep } from '../utilities/dataUtilities';
+import { defaultAxisOptions } from '../utilities/defaultOptions';
 
-function XAxis({ axisOptions = {} }) {
+function XAxis({ options = {} }) {
   const ticksGroupRef = useRef(null);
 
   const { chartValues, xScale, yScale, xDomain, yDomain } = useChartHelpers();
 
   // map nested axisOptions to local variables with sensible defaults
-  const opts = axisOptions || {};
-  const ticksOpts = opts.ticks || {};
-  const isAngledTicks = ticksOpts.isAngled ?? false;
-  const hasAxisLine = opts.hasAxisLine ?? true;
-  const hasGridLines = opts.hasGridLines ?? false;
-  const tickLength = ticksOpts.length ?? 5;
-  const tickLabelPadding = ticksOpts.labelPadding ?? 5;
-  const tickFontFamily = ticksOpts.fontFamily ?? 'inherit';
-  const tickFontSize = ticksOpts.fontSize ?? 12;
-  const tickFontWeight = ticksOpts.fontWeight ?? 400;
-  const tickFontColor = ticksOpts.fontColor ?? 'currentColor';
-  const tickFormatter = ticksOpts.formatter ?? null;
+  const finalOptions = mergeDeep(defaultAxisOptions, options);
+  const ticksOpts = finalOptions.ticks;
+  const { hasAxisLine, hasGridLines, strokeAxis, strokeGrid, strokeWidth } =
+    finalOptions;
+  const isAngledTicks = ticksOpts.isAngled;
+  const tickLength = ticksOpts.length;
+  const tickLabelPadding = ticksOpts.labelPadding;
+  const tickFontFamily = ticksOpts.fontFamily;
+  const tickFontSize = ticksOpts.fontSize;
+  const tickFontWeight = ticksOpts.fontWeight;
+  const tickFontColor = ticksOpts.fontColor;
+  const tickFormatter = ticksOpts.formatter;
 
   const ticks = (typeof xScale.ticks === 'function' ? xScale.ticks() : []).map(
     (value) => ({
@@ -65,7 +67,7 @@ function XAxis({ axisOptions = {} }) {
   if (!xScale || !yScale) return null;
 
   return (
-    <g className={`gsl-chart-axis ${opts.className}`}>
+    <g className={`gsl-chart-axis ${finalOptions.className}`}>
       {/* horizontal line above the text for the x axis */}
       {hasAxisLine && (
         <line
@@ -73,18 +75,21 @@ function XAxis({ axisOptions = {} }) {
           x2={xScale(xDomain[1])}
           y1={yScale(yDomain[0])}
           y2={yScale(yDomain[0])}
+          stroke={strokeAxis}
+          strokeWidth={strokeWidth}
         />
       )}
       <g ref={ticksGroupRef}>
         {ticks.map((tick) => (
-          <g
-            key={tick.value}
-            transform={`translate(${xScale(tick.value)},0)`}
-            className="gsl-chart-tick"
-          >
+          <g key={tick.value} transform={`translate(${xScale(tick.value)},0)`}>
             {/* Vertical grid line */}
             {hasGridLines && (
-              <line y1={yScale(yDomain[0])} y2={yScale(yDomain[1])} />
+              <line
+                y1={yScale(yDomain[0])}
+                y2={yScale(yDomain[1])}
+                stroke={strokeGrid}
+                strokeWidth={strokeWidth}
+              />
             )}
             {/* Tick Mark */}
             {hasAxisLine && (
@@ -92,6 +97,8 @@ function XAxis({ axisOptions = {} }) {
                 className="gsl-chart-tick-line"
                 y2={yScale(yDomain[0])}
                 y1={yScale(yDomain[0]) + finalTickLength}
+                stroke={strokeAxis}
+                strokeWidth={strokeWidth}
               />
             )}
             {/* Tick Label */}

@@ -62,12 +62,12 @@ function ChartContainer({
           width={width}
           className={className}
           style={sx}
-          onMouseMove={(e) =>
-            updateHoverPoint(pointer(e, svgReadoutRef.current))
-          }
+          // onMouseMove={(e) =>
+          //   updateHoverPoint(pointer(e, svgReadoutRef.current))
+          // }
         >
-          <XAxis axisOptions={initialValues.options.axes.x} />
-          <YAxis axisOptions={initialValues.options.axes.y} />
+          <XAxis options={initialValues.options.axes.x} />
+          <YAxis options={initialValues.options.axes.y} />
           {seriesNodes}
           {children}
         </svg>

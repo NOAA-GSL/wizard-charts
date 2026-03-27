@@ -1,24 +1,27 @@
 import { useRef } from 'react';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
+import { mergeDeep } from '../utilities/dataUtilities';
+import { defaultAxisOptions } from '../utilities/defaultOptions';
 
-function YAxis({ axisOptions = {} }) {
+function YAxis({ options = {} }) {
   const ticksGroupRef = useRef(null);
 
   const { chartValues, xScale, yScale, xDomain, yDomain } = useChartHelpers();
   // map nested axisOptions to local variables with sensible defaults
-  const opts = axisOptions || {};
-  const ticksOpts = opts.ticks || {};
+  const finalOptions = mergeDeep(defaultAxisOptions, options);
+  const { hasAxisLine, hasGridLines, strokeAxis, strokeGrid, strokeWidth } =
+    finalOptions;
+  const ticksOpts = finalOptions.ticks;
   const isLeftLocation =
-    opts.isLeftLocation ?? (opts.position ? opts.position === 'left' : true);
-  const hasAxisLine = opts.hasAxisLine ?? true;
-  const hasGridLines = opts.hasGridLines ?? false;
-  const tickLength = ticksOpts.length ?? 5;
-  const tickLabelPadding = ticksOpts.labelPadding ?? 5;
-  const tickFontFamily = ticksOpts.fontFamily ?? 'inherit';
-  const tickFontSize = ticksOpts.fontSize ?? 12;
-  const tickFontWeight = ticksOpts.fontWeight ?? 400;
-  const tickFontColor = ticksOpts.fontColor ?? 'currentColor';
+    finalOptions.isLeftLocation ??
+    (finalOptions.position ? finalOptions.position === 'left' : true);
+  const tickLength = ticksOpts.length;
+  const tickLabelPadding = ticksOpts.labelPadding;
+  const tickFontFamily = ticksOpts.fontFamily;
+  const tickFontSize = ticksOpts.fontSize;
+  const tickFontWeight = ticksOpts.fontWeight;
+  const tickFontColor = ticksOpts.fontColor;
 
   const { data, margin } = chartValues;
 
@@ -68,7 +71,7 @@ function YAxis({ axisOptions = {} }) {
   if (!xScale || !yScale) return null;
 
   return (
-    <g className={`gsl-chart-axis ${opts.className}`}>
+    <g className={finalOptions.className}>
       {/* vertical line for y-axis, `location` will set the x values */}
       {hasAxisLine && (
         <line
@@ -76,6 +79,8 @@ function YAxis({ axisOptions = {} }) {
           x2={xScale(xDomain[xDomainPosition])}
           y1={yScale(yDomain[0])}
           y2={yScale(yDomain[1])}
+          stroke={strokeAxis}
+          strokeWidth={strokeWidth}
         />
       )}
       {/* legend */}
@@ -89,14 +94,15 @@ function YAxis({ axisOptions = {} }) {
       </text>
       <g ref={ticksGroupRef}>
         {ticks.map((tick) => (
-          <g
-            key={tick.value}
-            transform={`translate(0, ${yScale(tick.value)})`}
-            className="gsl-chart-tick"
-          >
+          <g key={tick.value} transform={`translate(0, ${yScale(tick.value)})`}>
             {/* Horizontal grid line */}
             {hasGridLines && (
-              <line x1={xScale(xDomainFinal[0])} x2={xScale(xDomainFinal[1])} />
+              <line
+                x1={xScale(xDomainFinal[0])}
+                x2={xScale(xDomainFinal[1])}
+                stroke={strokeGrid}
+                strokeWidth={strokeWidth}
+              />
             )}
             {/* Tick Mark */}
             {hasAxisLine && (
@@ -106,7 +112,8 @@ function YAxis({ axisOptions = {} }) {
                   xScale(xDomainFinal[xDomainPosition]) - locationTickOffset / 2
                 }
                 x2={xScale(xDomainFinal[xDomainPosition])}
-                className="gsl-chart-tick-line"
+                stroke={strokeAxis}
+                strokeWidth={strokeWidth}
               />
             )}
             {/* Tick Label */}

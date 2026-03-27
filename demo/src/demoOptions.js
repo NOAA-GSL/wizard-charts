@@ -1,5 +1,4 @@
-import { dataVizColors } from './helperFunctions';
-import { timeFormatter } from 'desi-charts';
+import { timeFormatter, dataVizColors } from 'desi-charts';
 
 export const demoOptions = {
   bar: {
@@ -12,7 +11,6 @@ export const demoOptions = {
         isVisible: true,
         stroke: '',
         fill: dataVizColors['tropical-indigo'],
-        className: '',
         alignment: 'right', // 'left', 'right' or 'center'
         paddingFactor: 0.8, // how much of the band to fill with the bar (0-1)
         cornerRadius: 2, // for rounded corners, in pixels
@@ -23,12 +21,7 @@ export const demoOptions = {
       x: {
         type: 'linear', // band, linear, log, time
         ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
-        // default domain will compute max and min from data
-        // domainMin: 0, // optional
-        // domainMax: 100, // optional
         nice: false,
-        className: '',
-        hasGridlines: true,
         sx: {},
       },
       y: {
@@ -36,11 +29,10 @@ export const demoOptions = {
         title: { text: 'Temperature (F)' },
         ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
         // default domain will compute max and min from data
-        // domainMin: 0, // optional
-        // domainMax: 100, // optional
-        nice: false,
-        className: '',
-        hasGridlines: true,
+        domainMin: 0, // optional
+        domainMax: 100, // optional
+        hasAxisLine: false,
+        hasGridLines: true,
         sx: {},
       },
     },
@@ -58,7 +50,6 @@ export const demoOptions = {
         yName: 'Temperature',
         isVisible: true,
         stroke: dataVizColors.tangerine,
-        className: '',
       },
     ],
     axes: {
@@ -66,25 +57,15 @@ export const demoOptions = {
       x: {
         type: 'linear', // band, linear, log, time
         ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
-        // default domain will compute max and min from data
-        // domainMin: 0, // optional
-        // domainMax: 100, // optional
         nice: false,
-        className: '',
-        hasGridlines: true,
-        sx: {},
       },
       y: {
         type: 'linear',
         title: { text: 'Temperature (F)' },
         ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
-        // default domain will compute max and min from data
-        // domainMin: 0, // optional
-        // domainMax: 100, // optional
-        nice: false,
-        className: '',
-        hasGridlines: true,
-        sx: {},
+        nice: true,
+        hasAxisLine: false,
+        hasGridLines: true,
       },
     },
     readout: {
@@ -101,7 +82,6 @@ export const demoOptions = {
         yName: 'Temperature',
         isVisible: true,
         stroke: dataVizColors.violet,
-        className: '',
       },
       {
         type: 'line', // or 'bar'
@@ -110,7 +90,6 @@ export const demoOptions = {
         yName: 'Temperature',
         isVisible: true,
         stroke: dataVizColors.green,
-        className: '',
       },
       {
         type: 'line', // or 'bar'
@@ -119,7 +98,6 @@ export const demoOptions = {
         yName: 'Temperature',
         isVisible: true,
         stroke: dataVizColors.yellow,
-        className: '',
       },
     ],
     axes: {
@@ -127,25 +105,15 @@ export const demoOptions = {
       x: {
         type: 'linear', // band, linear, log, time
         ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
-        // default domain will compute max and min from data
-        // domainMin: 0, // optional
-        // domainMax: 100, // optional
         nice: false,
-        className: '',
-        hasGridlines: true,
-        sx: {},
       },
       y: {
         type: 'linear',
         title: { text: 'Temperature (F)' },
         ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
-        // default domain will compute max and min from data
-        // domainMin: 0, // optional
-        // domainMax: 100, // optional
-        nice: false,
-        className: '',
-        hasGridlines: true,
-        sx: {},
+        nice: true,
+        hasAxisLine: false,
+        hasGridLines: true,
       },
     },
     readout: {
@@ -175,25 +143,15 @@ export const demoOptions = {
       x: {
         type: 'linear', // band, linear, log, time
         ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
-        // default domain will compute max and min from data
-        // domainMin: 0, // optional
-        // domainMax: 100, // optional
         nice: false,
-        className: '',
-        hasGridlines: true,
-        sx: {},
       },
       y: {
         type: 'linear',
         title: { text: 'Temperature (F)' },
         ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
-        // default domain will compute max and min from data
-        // domainMin: 0, // optional
-        // domainMax: 100, // optional
-        nice: false,
-        className: '',
-        hasGridlines: true,
-        sx: {},
+        nice: true,
+        hasAxisLine: false,
+        hasGridLines: true,
       },
     },
     readout: {

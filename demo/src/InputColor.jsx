@@ -1,4 +1,4 @@
-import { dataVizColors } from './helperFunctions';
+import { dataVizColors } from 'desi-charts';
 
 function InputColor({ color, onChange, id }) {
   return (

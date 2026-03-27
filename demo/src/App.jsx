@@ -48,7 +48,6 @@ const makeFinalData = (numSeries, numPoints) => {
     data.push(dataPoint);
   }
 
-  console.log('data:', data);
   return data;
 };
 

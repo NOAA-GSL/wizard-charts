@@ -37,13 +37,16 @@ export const defaultSeriesOptions = {
 export const defaultAxisOptions = {
   type: 'linear', // band, linear, log, time
   // default domain will compute max and min from data
-  domainMin: undefined, // optional
-  domainMax: undefined, // optional
+  domainMin: undefined, // optionally provide a min domain
+  domainMax: undefined, // optionally provide a max domain
   label: { text: '', fontSize: 14, fontWeight: 700, fontFamily: 'sans-serif' },
   hasAxisLine: true,
   hasGridLines: false,
   nice: false,
   className: '',
+  strokeAxis: '#404040',
+  strokeGrid: '#404040',
+  strokeWidth: 1,
   sx: {},
   // tick props
   ticks: {

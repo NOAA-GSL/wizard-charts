@@ -31,18 +31,3 @@ export const generateRandomData = ({
     return finalData;
   }
 };
-
-export const dataVizColors = {
-  'sea-green': '#0FB5AE',
-  'palatinate-blue': '#4046CA',
-  tangerine: '#F68511',
-  magenta: '#DE3D82',
-  'tropical-indigo': '#7E84FA',
-  malachite: '#72E06A',
-  azure: '#147AF3',
-  violet: '#7326D3',
-  yellow: '#E8C600',
-  'alloy-orange': '#CB5D00',
-  green: '#008F5D',
-  lime: '#BCE931',
-};
