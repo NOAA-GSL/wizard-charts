@@ -13,10 +13,6 @@
   }
 }
 
-.gsl-chart-line {
-  stroke-width: 2px;
-}
-
 @keyframes drawLine {
   to {
     stroke-dashoffset: 0;

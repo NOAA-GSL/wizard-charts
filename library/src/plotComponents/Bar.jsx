@@ -13,6 +13,7 @@ function Bar({ seriesIndex = 0, options = {} }) {
     className,
     paddingFactor,
     stroke,
+    strokeWidth,
     sx,
   } = finalOptions;
 
@@ -62,12 +63,7 @@ function Bar({ seriesIndex = 0, options = {} }) {
   });
 
   return (
-    <g
-      className={`gsl-chart-bar ${className}`}
-      stroke={stroke}
-      fill={fill}
-      ref={rectGroupRef}
-    >
+    <g className={className} style={sx} ref={rectGroupRef}>
       {chartValues.data.map((dataPoint) => {
         const cx = xScale(accessors.x(dataPoint));
         // default width uses computed barWidth; for band scales use bandwidth
@@ -114,12 +110,14 @@ function Bar({ seriesIndex = 0, options = {} }) {
             height={height}
             rx={cornerRadius}
             ry={cornerRadius}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            fill={fill}
             shapeRendering="crispEdges"
             style={{
               transform: 'scaleY(0)',
               transformOrigin: '50% 100%',
               transformBox: 'fill-box',
-              ...sx,
             }}
           />
         );

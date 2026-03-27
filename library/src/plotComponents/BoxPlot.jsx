@@ -1,15 +1,24 @@
 import { useRef } from 'react';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
+import { mergeDeep } from '../utilities/dataUtilities';
+import { defaultBoxPlotOptions } from '../utilities/defaultOptions';
 
-function BoxPlot({
-  seriesIndex = 0,
-  cornerRadius = 2,
-  fill = 'var(--gsl-charts-color-1)',
-  className = '',
-  paddingFactor = 0.8,
-  alignment = 'center',
-}) {
+function BoxPlot({ seriesIndex = 0, options = {} }) {
+  const finalOptions = mergeDeep(defaultBoxPlotOptions, options);
+  const {
+    alignment,
+    cornerRadius,
+    fill,
+    className,
+    paddingFactor,
+    strokeBox,
+    strokeMedian,
+    strokeWhisker,
+    strokeWidth,
+    sx,
+  } = finalOptions;
+
   const { chartValues, xScale, yScale, getAccessors } = useChartHelpers();
 
   const accessors = getAccessors(seriesIndex);
@@ -51,7 +60,7 @@ function BoxPlot({
   });
 
   return (
-    <g className={`gsl-chart-bar ${className}`} fill={fill} ref={rectGroupRef}>
+    <g className={className} style={sx} ref={rectGroupRef}>
       {chartValues.data.map((dataPoint) => {
         const cx = xScale(accessors.x(dataPoint));
         let x;
@@ -91,6 +100,13 @@ function BoxPlot({
         const yMax = typeof maxVal !== 'undefined' ? yScale(maxVal) : null;
         const yMin = typeof minVal !== 'undefined' ? yScale(minVal) : null;
 
+        // median position (if provided via accessor `medianYKey`)
+        const medianVal = accessors.medianYKey
+          ? accessors.medianYKey(dataPoint)
+          : undefined;
+        const yMedian =
+          typeof medianVal !== 'undefined' ? yScale(medianVal) : null;
+
         return (
           <g key={accessors.x(dataPoint)}>
             <rect
@@ -100,6 +116,9 @@ function BoxPlot({
               height={height}
               rx={cornerRadius}
               ry={cornerRadius}
+              fill={fill}
+              stroke={strokeBox}
+              strokeWidth={strokeWidth}
               shapeRendering="crispEdges"
               style={{
                 transform: 'scaleY(0)',
@@ -113,8 +132,8 @@ function BoxPlot({
                 x2={x + barWidth / 2}
                 y1={centerY}
                 y2={yMax}
-                stroke={fill}
-                strokeWidth={2}
+                stroke={strokeWhisker}
+                strokeWidth={strokeWidth}
                 strokeLinecap="round"
                 shapeRendering="crispEdges"
               />
@@ -125,8 +144,20 @@ function BoxPlot({
                 x2={x + barWidth / 2}
                 y1={centerY}
                 y2={yMin}
-                stroke={fill}
-                strokeWidth={2}
+                stroke={strokeWhisker}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                shapeRendering="crispEdges"
+              />
+            )}
+            {yMedian != null && (
+              <line
+                x1={x}
+                x2={x + barWidth}
+                y1={yMedian}
+                y2={yMedian}
+                stroke={strokeMedian}
+                strokeWidth={strokeWidth}
                 strokeLinecap="round"
                 shapeRendering="crispEdges"
               />

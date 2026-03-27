@@ -7,7 +7,7 @@ import { defaultLineOptions } from '../utilities/defaultOptions';
 
 function Line({ seriesIndex = 0, options = {} }) {
   const finalOptions = mergeDeep(defaultLineOptions, options);
-  const { stroke, fill, className, sx } = finalOptions;
+  const { stroke, strokeWidth, fill, className, sx } = finalOptions;
 
   const { chartValues, xScale, yScale, getAccessors } = useChartHelpers();
 
@@ -29,6 +29,7 @@ function Line({ seriesIndex = 0, options = {} }) {
         .x((d) => xScale(accessors.x(d)))
         .y((d) => yScale(accessors.y(d)))(chartValues.data)}
       stroke={stroke}
+      strokeWidth={strokeWidth}
       fill={fill}
       style={sx}
     />

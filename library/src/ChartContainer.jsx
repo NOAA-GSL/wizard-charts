@@ -44,31 +44,11 @@ function ChartContainer({
   const seriesNodes = initialValues.options.series.map((s, i) => {
     switch (s.type) {
       case 'line':
-        return <Line key={s.id ?? i} seriesIndex={i} options={{ ...s }} />;
+        return <Line key={s.id ?? i} seriesIndex={i} options={s} />;
       case 'bar':
-        return (
-          <Bar
-            key={s.id ?? i}
-            seriesIndex={i}
-            stroke={s.stroke}
-            fill={s.fill}
-            alignment={s.alignment}
-            paddingFactor={s.paddingFactor}
-            cornerRadius={s.cornerRadius}
-          />
-        );
+        return <Bar key={s.id ?? i} seriesIndex={i} options={s} />;
       case 'boxPlot':
-        return (
-          <BoxPlot
-            key={s.id ?? i}
-            seriesIndex={i}
-            stroke={s.stroke}
-            fill={s.fill}
-            alignment={s.alignment}
-            paddingFactor={s.paddingFactor}
-            cornerRadius={s.cornerRadius}
-          />
-        );
+        return <BoxPlot key={s.id ?? i} seriesIndex={i} options={s} />;
       default:
         return null;
     }

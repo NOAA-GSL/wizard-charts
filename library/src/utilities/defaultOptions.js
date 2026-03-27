@@ -73,10 +73,10 @@ export const defaultLineOptions = {
   className: '',
   fill: 'none',
   stroke: dataVizColors['tropical-indigo'],
+  strokeWidth: 2,
   sx: {},
 };
 
-// defaults for the different plots
 export const defaultBarOptions = {
   alignment: 'center',
   cornerRadius: 2,
@@ -84,5 +84,20 @@ export const defaultBarOptions = {
   fill: dataVizColors['tropical-indigo'],
   paddingFactor: 0.8,
   stroke: 'none',
+  strokeWidth: 2,
+  sx: {},
+};
+
+export const defaultBoxPlotOptions = {
+  alignment: 'center',
+  cornerRadius: 2,
+  className: '',
+  fill: dataVizColors['tropical-indigo'],
+  paddingFactor: 0.8,
+  // stroke broken out for each plot element
+  strokeBox: 'none',
+  strokeMedian: '#ffffff99',
+  strokeWhisker: dataVizColors['tropical-indigo'],
+  strokeWidth: 2,
   sx: {},
 };
