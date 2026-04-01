@@ -19,7 +19,7 @@
   "files": [
     "dist"
   ],
-  "homepage": "https://vlab.noaa.gov/gitlab-community/OAR/GSL/DESI/desi-charts",
+  "homepage": "https://github.com/NOAA-GSL/wizard-charts",
   "scripts": {
     "dev": "vite",
     "build:dev": "vite build --config vite.config.dev.js",
