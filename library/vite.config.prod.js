@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@noaa-gsl/charts': path.resolve('./src'),
+      '@noaa-gsl/wizard-charts': path.resolve('./src'),
     },
   },
   build: {
@@ -17,10 +17,10 @@ export default defineConfig({
       // Defines the entry point for the library build. It resolves
       // to src/index.ts,indicating that the library starts from this file.
       entry: path.resolve(__dirname, 'src/index.js'),
-      name: 'noaaGslCharts',
+      name: 'wizardCharts',
       // A function that generates the output file
       // name for different formats during the build
-      fileName: (format) => `noaa-gsl-charts.${format}.js`,
+      fileName: (format) => `wizard-charts.${format}.js`,
       // name for CSS file
       cssFileName: 'styles',
     },

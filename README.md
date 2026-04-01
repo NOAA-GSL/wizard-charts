@@ -1,4 +1,4 @@
-# @noaa-gsl/charts
+# WIZARD Charts
 
 An extension of D3 to create complex graphs of weather data.
 
@@ -16,7 +16,7 @@ _**Note:** Following commands are all from the root directory_
    npm install
    ```
 
-2. Build the `noaa-gsl-charts` package
+2. Build the `@noaa-gsl/wizard-charts` package
 
    ```bash
    npm run build

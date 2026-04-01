@@ -1,4 +1,4 @@
-import { dataVizColors } from '@noaa-gsl/charts';
+import { dataVizColors } from '@noaa-gsl/wizard-charts';
 
 function InputColor({ color, onChange, id }) {
   return (

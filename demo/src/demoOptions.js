@@ -1,4 +1,4 @@
-import { timeFormatter, dataVizColors } from '@noaa-gsl/charts';
+import { timeFormatter, dataVizColors } from '@noaa-gsl/wizard-charts';
 
 export const demoOptions = {
   bar: {

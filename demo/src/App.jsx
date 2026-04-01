@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { ChartContainer } from '@noaa-gsl/charts';
+import { ChartContainer } from '@noaa-gsl/wizard-charts';
 import InputSlider from './InputSlider';
 import { generateRandomData } from './helperFunctions';
-import '@noaa-gsl/charts/styles.css';
+import '@noaa-gsl/wizard-charts/styles.css';
 // import InputColor from './InputColor';
 import { demoOptions } from './demoOptions';
 
@@ -62,7 +62,7 @@ function App() {
 
   return (
     <div className="app-container">
-      <h1>NOAA-GSL Charts!</h1>
+      <h1>WIZARD Charts!</h1>
       <div className="flex gap-10">
         <button onClick={() => setData(makeFinalData(2, 30))}>
           Regenerate Data

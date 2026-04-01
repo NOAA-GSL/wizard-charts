@@ -1,4 +1,4 @@
-# NOAA-GSL Charts
+# WIZARD Charts
 
 A charting library built on top of D3 for displaying complex weather data.
 
@@ -9,13 +9,13 @@ A charting library built on top of D3 for displaying complex weather data.
 Import the CSS stylesheet in the `<App />` component or where you import your global CSS.
 
 ```jsx
-import '@noaa-gsl/charts/styles.css';
+import '@noaa-gsl/wizard-charts/styles.css';
 ```
 
 Create the `<ChartContainer />` where you would like to render the chart
 
 ```jsx
-import { ChartContainer } from '@noaa-gsl/charts';
+import { ChartContainer } from '@noaa-gsl/wizard-charts';
 
 <ChartContainer
   // required props

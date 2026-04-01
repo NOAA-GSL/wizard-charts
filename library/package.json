@@ -1,5 +1,5 @@
 {
-  "name": "@noaa-gsl/charts",
+  "name": "@noaa-gsl/wizard-charts",
   "publishConfig": {
     "access": "public"
   },
@@ -7,12 +7,12 @@
   "description": "An extension of D3 for visualizing weather data in a variety of charts.",
   "type": "module",
   "license": "Apache-2.0",
-  "main": "./dist/noaa-gsl-charts.umd.js",
-  "module": "./dist/noaa-gsl-charts.es.js",
+  "main": "./dist/wizard-charts.umd.js",
+  "module": "./dist/wizard-charts.es.js",
   "exports": {
     ".": {
-      "import": "./dist/noaa-gsl-charts.es.js",
-      "require": "./dist/noaa-gsl-charts.umd.js"
+      "import": "./dist/wizard-charts.es.js",
+      "require": "./dist/wizard-charts.umd.js"
     },
     "./styles.css": "./dist/styles.css"
   },
