@@ -62,7 +62,7 @@ function App() {
 
   return (
     <div className="app-container">
-      <h1>DESI Charts!</h1>
+      <h1>NOAA-GSL Charts!</h1>
       <div className="flex gap-10">
         <button onClick={() => setData(makeFinalData(2, 30))}>
           Regenerate Data
