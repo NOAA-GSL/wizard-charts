@@ -1,4 +1,4 @@
-import { timeFormatter, dataVizColors } from 'desi-charts';
+import { timeFormatter, dataVizColors } from '@noaa-gsl/charts';
 
 export const demoOptions = {
   bar: {

@@ -16,7 +16,7 @@ _**Note:** Following commands are all from the root directory_
    npm install
    ```
 
-2. Build the `desi-charts` package
+2. Build the `noaa-gsl-charts` package
 
    ```bash
    npm run build

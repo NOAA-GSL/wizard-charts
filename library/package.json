@@ -4,14 +4,14 @@
   "description": "An extension of D3 for visualizing weather data in a variety of charts.",
   "type": "module",
   "license": "Apache-2.0",
-  "main": "./dist/@noaa-gsl/charts.umd.cjs",
-  "module": "./dist/@noaa-gsl/charts.es.js",
+  "main": "./dist/noaa-gsl-charts.umd.js",
+  "module": "./dist/noaa-gsl-charts.es.js",
   "exports": {
     ".": {
-      "import": "./dist/@noaa-gsl/charts.es.js",
-      "require": "./dist/@noaa-gsl/charts.umd.cjs"
+      "import": "./dist/noaa-gsl-charts.es.js",
+      "require": "./dist/noaa-gsl-charts.umd.js"
     },
-    "./desi-charts.css": "./dist/desi-charts.css"
+    "./styles.css": "./dist/styles.css"
   },
   "files": [
     "dist"

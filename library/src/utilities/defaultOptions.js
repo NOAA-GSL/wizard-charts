@@ -19,9 +19,11 @@ export const defaultOptions = {
   readout: {
     hoverMode: 'local',
   },
+  animationDuration: 1000, // in ms
 };
 
 export const defaultSeriesOptions = {
+  type: 'line', // 'bar' or 'boxPlot'
   xKey: 'x',
   yKey: 'y',
   // if these are true, it will pull from the secondary x2 or y2 axis options
@@ -32,6 +34,7 @@ export const defaultSeriesOptions = {
   stroke: null,
   fill: null,
   className: '',
+  sx: {},
 };
 
 export const defaultAxisOptions = {

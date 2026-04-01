@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { ChartContainer, HoverPointProvider } from 'desi-charts';
+import { ChartContainer } from '@noaa-gsl/charts';
 import InputSlider from './InputSlider';
 import { generateRandomData } from './helperFunctions';
-import 'desi-charts/desi-charts.css';
+import '@noaa-gsl/charts/styles.css';
 // import InputColor from './InputColor';
 import { demoOptions } from './demoOptions';
 

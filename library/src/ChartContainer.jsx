@@ -1,11 +1,11 @@
-import { useMemo, useContext, useRef } from 'react';
+import { useMemo } from 'react';
 import { ChartProvider } from './context/ChartProvider';
-import {
-  // HoverPointContext,
-  HoverUpdateContext,
-} from './context/HoverPointProvider';
+// import {
+// HoverPointContext,
+// HoverUpdateContext,
+// } from './context/HoverPointProvider';
 import ErrorBoundary from './ErrorBoundary';
-import { pointer } from 'd3';
+// import { pointer } from 'd3';
 import { defaultOptions } from './utilities/defaultOptions';
 import { mergeDeep } from './utilities/dataUtilities';
 import XAxis from './axisComponents/XAxis';
@@ -24,9 +24,9 @@ function ChartContainer({
   className = '',
   sx = {},
 }) {
-  const updateHoverPoint = useContext(HoverUpdateContext);
+  // const updateHoverPoint = useContext(HoverUpdateContext);
   // const hoverPoint = useContext(HoverPointContext);
-  const svgReadoutRef = useRef(null);
+  // const svgReadoutRef = useRef(null);
 
   // useMemo to avoid unnecessary re-renders in the useEffect hook of ChartProvider
   const initialValues = useMemo(

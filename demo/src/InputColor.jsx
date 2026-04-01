@@ -1,4 +1,4 @@
-import { dataVizColors } from 'desi-charts';
+import { dataVizColors } from '@noaa-gsl/charts';
 
 function InputColor({ color, onChange, id }) {
   return (
