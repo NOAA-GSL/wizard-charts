@@ -1,5 +1,8 @@
 {
   "name": "@noaa-gsl/charts",
+  "publishConfig": {
+    "access": "public"
+  },
   "version": "1.0.0",
   "description": "An extension of D3 for visualizing weather data in a variety of charts.",
   "type": "module",
