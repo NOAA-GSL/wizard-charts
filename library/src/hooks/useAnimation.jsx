@@ -73,6 +73,27 @@ function useAnimation({ type, ref, trigger, duration }) {
         });
         break;
       }
+      case 'growCircle': {
+        const circles = element.querySelectorAll('circle');
+        circles.forEach((c) => {
+          c.style.animation = 'none';
+          c.style.transform = 'scale(0)';
+          c.style.transformOrigin = c.style.transformOrigin || '50% 50%';
+          c.style.transformBox = c.style.transformBox || 'fill-box';
+          c.style.opacity = '0';
+        });
+        // Force reflow
+        element.getBoundingClientRect();
+        // Trigger animation in the next frame
+        requestAnimationFrame(() => {
+          circles.forEach((c) => {
+            c.style.animation = `growCircle ${animationDuration}ms forwards`;
+            c.style.transform = 'scale(1)';
+            c.style.opacity = '1';
+          });
+        });
+        break;
+      }
       case 'growMedian': {
         const lines = element.querySelectorAll('line');
         lines.forEach((ln) => {

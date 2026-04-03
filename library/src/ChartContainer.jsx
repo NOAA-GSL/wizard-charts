@@ -13,6 +13,7 @@ import YAxis from './axisComponents/YAxis';
 import Line from './plotComponents/Line';
 import Bar from './plotComponents/Bar';
 import BoxPlot from './plotComponents/BoxPlot';
+import Circle from './plotComponents/Circle';
 
 function ChartContainer({
   height = 600,
@@ -49,6 +50,8 @@ function ChartContainer({
         return <Bar key={s.id ?? i} seriesIndex={i} options={s} />;
       case 'boxPlot':
         return <BoxPlot key={s.id ?? i} seriesIndex={i} options={s} />;
+      case 'circle':
+        return <Circle key={s.id ?? i} seriesIndex={i} options={s} />;
       default:
         return null;
     }

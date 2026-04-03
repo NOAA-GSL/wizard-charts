@@ -107,3 +107,11 @@ export const defaultBoxPlotOptions = {
   strokeWidth: 2,
   sx: {},
 };
+
+export const defaultCircleOptions = {
+  className: '',
+  fill: dataVizColors['tropical-indigo'],
+  stroke: 'none',
+  radius: 4,
+  sx: {},
+};

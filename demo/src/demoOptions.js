@@ -159,4 +159,38 @@ export const demoOptions = {
     },
     animationDuration: 1000, // in ms
   },
+  circle: {
+    series: [
+      {
+        type: 'circle',
+        xKey: 'date',
+        yKey: 'series1.p50',
+        yName: 'Temperature',
+        isVisible: true,
+        fill: 'none',
+        stroke: dataVizColors['sea-green'],
+        radius: 4,
+      },
+    ],
+    axes: {
+      // can also use the default x and y
+      x: {
+        type: 'linear', // band, linear, log, time
+        ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
+        nice: false,
+      },
+      y: {
+        type: 'linear',
+        title: { text: 'Temperature (F)' },
+        ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
+        nice: true,
+        hasAxisLine: false,
+        hasGridLines: true,
+      },
+    },
+    readout: {
+      hoverMode: 'local', // or 'global'
+    },
+    animationDuration: 1000, // in ms
+  },
 };

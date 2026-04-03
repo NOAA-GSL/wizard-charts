@@ -24,7 +24,7 @@ function Line({ seriesIndex = 0, options = {} }) {
   return (
     <path
       ref={pathRef}
-      className={`gsl-chart-line ${className}`}
+      className={`${className}`}
       d={line()
         .x((d) => xScale(accessors.x(d)))
         .y((d) => yScale(accessors.y(d)))(chartValues.data)}
