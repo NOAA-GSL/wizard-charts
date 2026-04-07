@@ -123,6 +123,15 @@ function useAnimation({ type, ref, trigger, duration }) {
             // ignore if element doesn't support getTotalLength
             console.error('Element does not support getTotalLength:', ln, e);
           }
+          // allow per-line delay via data-delay or dataset.delay (ms)
+          // this was added for the area line whiskers to create a staggered effect
+          // based on horizontal position
+          if (ln.dataset && ln.dataset.delay) {
+            ln.style.animationDelay = `${ln.dataset.delay}ms`;
+          } else {
+            ln.style.animationDelay = '';
+          }
+
           ln.style.animation = 'none';
         });
         // Force reflow
@@ -132,6 +141,20 @@ function useAnimation({ type, ref, trigger, duration }) {
             ln.style.animation = `drawLine ${animationDuration}ms forwards`;
           });
         });
+        break;
+      }
+      case 'revealArea': {
+        // reveal area by scaling horizontally from left
+        element.style.animation = 'none';
+        element.style.transform = 'scaleX(0)';
+        element.style.transformOrigin =
+          element.style.transformOrigin || '0% 50%';
+        element.style.transformBox = element.style.transformBox || 'fill-box';
+
+        // Force reflow
+        element.getBoundingClientRect();
+        // Trigger animation
+        element.style.animation = `revealArea ${animationDuration}ms forwards`;
         break;
       }
       default:

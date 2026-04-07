@@ -14,6 +14,7 @@ import Line from './plotComponents/Line';
 import Bar from './plotComponents/Bar';
 import BoxPlot from './plotComponents/BoxPlot';
 import Circle from './plotComponents/Circle';
+import Area from './plotComponents/Area';
 
 function ChartContainer({
   height = 600,
@@ -44,14 +45,16 @@ function ChartContainer({
   // switch statement to render different series types based on options
   const seriesNodes = initialValues.options.series.map((s, i) => {
     switch (s.type) {
-      case 'line':
-        return <Line key={s.id ?? i} seriesIndex={i} options={s} />;
+      case 'area':
+        return <Area key={s.id ?? i} seriesIndex={i} options={s} />;
       case 'bar':
         return <Bar key={s.id ?? i} seriesIndex={i} options={s} />;
       case 'boxPlot':
         return <BoxPlot key={s.id ?? i} seriesIndex={i} options={s} />;
       case 'circle':
         return <Circle key={s.id ?? i} seriesIndex={i} options={s} />;
+      case 'line':
+        return <Line key={s.id ?? i} seriesIndex={i} options={s} />;
       default:
         return null;
     }

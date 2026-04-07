@@ -167,9 +167,46 @@ export const demoOptions = {
         yKey: 'series1.p50',
         yName: 'Temperature',
         isVisible: true,
-        fill: 'none',
-        stroke: dataVizColors['sea-green'],
+        fill: `${dataVizColors.lime}88`, // with some transparency
+        stroke: dataVizColors.yellow,
         radius: 4,
+      },
+    ],
+    axes: {
+      // can also use the default x and y
+      x: {
+        type: 'linear', // band, linear, log, time
+        ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
+        nice: false,
+      },
+      y: {
+        type: 'linear',
+        title: { text: 'Temperature (F)' },
+        ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
+        nice: true,
+        hasAxisLine: false,
+        hasGridLines: true,
+      },
+    },
+    readout: {
+      hoverMode: 'local', // or 'global'
+    },
+    animationDuration: 1000, // in ms
+  },
+  area: {
+    series: [
+      {
+        type: 'area',
+        xKey: 'date',
+        minYKey: 'series1.p10',
+        q1YKey: 'series1.p25',
+        medianYKey: 'series1.p50',
+        q3YKey: 'series1.p75',
+        maxYKey: 'series1.p90',
+        yName: 'Temperature',
+        isVisible: true,
+        fill: `${dataVizColors.green}88`,
+        stroke: dataVizColors.green,
       },
     ],
     axes: {

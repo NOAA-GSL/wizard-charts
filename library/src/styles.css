@@ -64,3 +64,12 @@
     opacity: 1;
   }
 }
+
+@keyframes revealArea {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}

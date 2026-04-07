@@ -115,3 +115,10 @@ export const defaultCircleOptions = {
   radius: 4,
   sx: {},
 };
+
+export const defaultAreaOptions = {
+  className: '',
+  fill: dataVizColors['tropical-indigo'],
+  stroke: 'none',
+  sx: {},
+};

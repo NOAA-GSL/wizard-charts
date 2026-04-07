@@ -7,7 +7,7 @@ import '@noaa-gsl/wizard-charts/styles.css';
 import { demoOptions } from './demoOptions';
 
 const margin = { top: 25, right: 50, bottom: 50, left: 50 };
-const chartTypes = ['bar', 'line', 'multiLine', 'boxPlot', 'circle'];
+const chartTypes = ['bar', 'line', 'multiLine', 'boxPlot', 'circle', 'area'];
 
 // use generateRandomData to create an array of objects
 // each number series is nested under a key in the data object
