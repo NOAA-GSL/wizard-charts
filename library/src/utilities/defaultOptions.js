@@ -103,8 +103,8 @@ export const defaultBoxPlotOptions = {
   fill: dataVizColors['tropical-indigo'],
   isVisible: true,
   paddingFactor: 0.8,
-  // stroke broken out for each plot element
-  strokeBox: 'none',
+  // `stroke` applies to the box outline
+  stroke: 'none',
   strokeMedian: '#ffffff88',
   strokeWhisker: dataVizColors['tropical-indigo'],
   strokeWidth: 2,

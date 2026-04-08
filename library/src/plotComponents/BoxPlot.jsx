@@ -13,7 +13,7 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
     isVisible,
     className,
     paddingFactor,
-    strokeBox,
+    stroke,
     strokeMedian,
     strokeWhisker,
     strokeWidth,
@@ -120,7 +120,7 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
                 rx={cornerRadius}
                 ry={cornerRadius}
                 fill={fill}
-                stroke={strokeBox}
+                stroke={stroke}
                 strokeWidth={strokeWidth}
                 shapeRendering="crispEdges"
                 style={{

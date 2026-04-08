@@ -2,6 +2,14 @@
 
 A charting library built on top of D3 for displaying complex weather data.
 
+### Installation
+
+The library is built on top of `D3` and requires that package to be installed in addition to Wizard Charts
+
+```bash
+npm install @noaa-gsl/wizard-charts d3
+```
+
 <br>
 
 ## Usage
@@ -41,25 +49,28 @@ import { ChartContainer } from '@noaa-gsl/wizard-charts';
 The data should be arranged as an array of objects, with each array index representing a point on the x-axis for your dependent variable. Here is an example of one such object:
 
 ```js
-{
-  "date": 1775075088409,
-  "series1": {
-    "mean": 31.451618078254917,
-    "p10": 27.66429878923369,
-    "p25": 30.604620527202997,
-    "p50": 31.405882108075584,
-    "p75": 31.828612758013502,
-    "p90": 32.63097066315947
+[
+  {
+    "date": 1775075088409,
+    "series1": {
+      "mean": 31.451618078254917,
+      "p10": 27.66429878923369,
+      "p25": 30.604620527202997,
+      "p50": 31.405882108075584,
+      "p75": 31.828612758013502,
+      "p90": 32.63097066315947
+    },
+    "series2": {
+      "mean": 81.28298222199525,
+      "p10": 81.18530113763336,
+      "p25": 81.1763584330726,
+      "p50": 81.50001057061314,
+      "p75": 82.00724816412736,
+      "p90": 81.69317918940664
+    }
   },
-  "series2": {
-    "mean": 81.28298222199525,
-    "p10": 81.18530113763336,
-    "p25": 81.1763584330726,
-    "p50": 81.50001057061314,
-    "p75": 82.00724816412736,
-    "p90": 81.69317918940664
-  }
-}
+  { ... }
+]
 ```
 
 You may structure this in any way that makes sense for your data. Each data point will be accessed with an `xKey` and a `yKey`. For example, in the series configuration, I may set `xKey: 'date'` and `yKey: 'series2.p50'`
@@ -105,13 +116,24 @@ The `series` array will accept one or multiple objects. Each object will determi
 
 ## Default Series Options For Each Plot Type
 
-### Line
+### Area
 
 ```js
 {
+  // note that yKeys are different to allow access to percentile data that builds the box plot
+  xKey: 'date',
+  minYKey: 'series1.p10',
+  q1YKey: 'series1.p25',
+  medianYKey: 'series1.p50',
+  q3YKey: 'series1.p75',
+  maxYKey: 'series1.p90',
+  // styling
   className: '',
-  fill: 'none',
-  stroke: dataVizColors['tropical-indigo'],
+  fill: `${dataVizColors['tropical-indigo']}88`,
+  isVisible: true,
+  // `stroke` applies to outline of area
+  stroke: 'none',
+  strokeWhisker: dataVizColors['tropical-indigo'],
   strokeWidth: 2,
   sx: {},
 };
@@ -125,6 +147,7 @@ The `series` array will accept one or multiple objects. Each object will determi
   cornerRadius: 2,
   className: '',
   fill: dataVizColors['tropical-indigo'],
+  isVisible: true,
   paddingFactor: 0.8,
   stroke: 'none',
   strokeWidth: 2,
@@ -143,15 +166,43 @@ The `series` array will accept one or multiple objects. Each object will determi
   medianYKey: 'series1.p50',
   q3YKey: 'series1.p75',
   maxYKey: 'series1.p90',
+  // styling
   alignment: 'center',
   cornerRadius: 2,
   className: '',
   fill: dataVizColors['tropical-indigo'],
+  isVisible: true,
   paddingFactor: 0.8,
-  // stroke broken out for each plot element
-  strokeBox: 'none',
+  // `stroke` applies to the box outline
+  stroke: 'none',
   strokeMedian: '#ffffff88',
   strokeWhisker: dataVizColors['tropical-indigo'],
+  strokeWidth: 2,
+  sx: {},
+};
+```
+
+### Circle
+
+```js
+{
+  className: '',
+  fill: dataVizColors['tropical-indigo'],
+  isVisible: true,
+  stroke: 'none',
+  radius: 4,
+  sx: {},
+};
+```
+
+### Line
+
+```js
+{
+  className: '',
+  fill: 'none',
+  isVisible: true,
+  stroke: dataVizColors['tropical-indigo'],
   strokeWidth: 2,
   sx: {},
 };
