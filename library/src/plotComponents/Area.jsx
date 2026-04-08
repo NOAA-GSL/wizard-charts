@@ -27,13 +27,14 @@ function Area({ seriesIndex = 0, options = {} }) {
 
   const areaPath = areaGen(chartValues.data);
 
+  // animation for the area chart
   useAnimation({
     type: 'revealArea',
     ref: clipRectRef,
     trigger: chartValues.data,
   });
 
-  // animate whiskers (min/max) as lines with per-line delay based on x position
+  // animate whiskers as lines with per-line delay based on x position
   useAnimation({
     type: 'drawLines',
     ref: whiskerRef,
@@ -65,7 +66,8 @@ function Area({ seriesIndex = 0, options = {} }) {
           </defs>
 
           <g clipPath={`url(#area-clip-${seriesIndex})`}>
-            <path d={areaPath} fill={fill} stroke={stroke} />
+            {/* area, filled but no stroke */}
+            <path d={areaPath} fill={fill} stroke="none" />
 
             {/* top and bottom edges drawn as separate lines so strokes are clipped to the area bounds */}
             {(() => {
@@ -106,63 +108,65 @@ function Area({ seriesIndex = 0, options = {} }) {
                 </g>
               );
             })()}
+            {/* whiskers (min/max) - placed inside clip so they reveal with area */}
+            <g ref={whiskerRef}>
+              {chartValues.data.map((dataPoint) => {
+                const cx = xScale(accessors.x(dataPoint));
+
+                const q3Val = accessors.q3YKey
+                  ? accessors.q3YKey(dataPoint)
+                  : accessors.y(dataPoint);
+                const q1Val = accessors.q1YKey
+                  ? accessors.q1YKey(dataPoint)
+                  : accessors.y(dataPoint);
+                const yTop = yScale(q3Val);
+                const yBottom = yScale(q1Val);
+
+                const maxVal = accessors.maxYKey
+                  ? accessors.maxYKey(dataPoint)
+                  : undefined;
+                const minVal = accessors.minYKey
+                  ? accessors.minYKey(dataPoint)
+                  : undefined;
+
+                // compute delay (ms) based on horizontal position within inner width
+                const delay =
+                  Math.max(
+                    0,
+                    Math.min(1, cx / Math.max(1, chartValues.innerWidth)),
+                  ) * chartValues.options.animationDuration;
+
+                return (
+                  <g key={accessors.x(dataPoint)}>
+                    {typeof maxVal !== 'undefined' && (
+                      <line
+                        x1={cx}
+                        x2={cx}
+                        y1={yTop}
+                        y2={yScale(maxVal)}
+                        stroke={stroke || 'currentColor'}
+                        strokeWidth={1}
+                        data-delay={delay}
+                      />
+                    )}
+                    {typeof minVal !== 'undefined' && (
+                      <line
+                        x1={cx}
+                        x2={cx}
+                        y1={yBottom}
+                        y2={yScale(minVal)}
+                        stroke={stroke || 'currentColor'}
+                        strokeWidth={1}
+                        data-delay={delay}
+                      />
+                    )}
+                  </g>
+                );
+              })}
+            </g>
           </g>
         </>
       )}
-
-      <g ref={whiskerRef}>
-        {chartValues.data.map((dataPoint) => {
-          const cx = xScale(accessors.x(dataPoint));
-
-          const q3Val = accessors.q3YKey
-            ? accessors.q3YKey(dataPoint)
-            : accessors.y(dataPoint);
-          const q1Val = accessors.q1YKey
-            ? accessors.q1YKey(dataPoint)
-            : accessors.y(dataPoint);
-          const yTop = yScale(q3Val);
-          const yBottom = yScale(q1Val);
-
-          const maxVal = accessors.maxYKey
-            ? accessors.maxYKey(dataPoint)
-            : undefined;
-          const minVal = accessors.minYKey
-            ? accessors.minYKey(dataPoint)
-            : undefined;
-
-          // compute delay (ms) based on horizontal position within inner width
-          const delay =
-            Math.max(0, Math.min(1, cx / Math.max(1, chartValues.innerWidth))) *
-            chartValues.options.animationDuration;
-
-          return (
-            <g key={accessors.x(dataPoint)}>
-              {typeof maxVal !== 'undefined' && (
-                <line
-                  x1={cx}
-                  x2={cx}
-                  y1={yTop}
-                  y2={yScale(maxVal)}
-                  stroke={stroke || 'currentColor'}
-                  strokeWidth={1}
-                  data-delay={delay}
-                />
-              )}
-              {typeof minVal !== 'undefined' && (
-                <line
-                  x1={cx}
-                  x2={cx}
-                  y1={yBottom}
-                  y2={yScale(minVal)}
-                  stroke={stroke || 'currentColor'}
-                  strokeWidth={1}
-                  data-delay={delay}
-                />
-              )}
-            </g>
-          );
-        })}
-      </g>
     </g>
   );
 }
