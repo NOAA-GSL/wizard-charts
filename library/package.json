@@ -4,7 +4,7 @@
     "registry": "https://registry.npmjs.org/",
     "access": "public"
   },
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "An extension of D3 for visualizing weather data in a variety of charts.",
   "type": "module",
   "license": "Apache-2.0",
