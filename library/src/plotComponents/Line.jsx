@@ -7,7 +7,7 @@ import { defaultLineOptions } from '../utilities/defaultOptions';
 
 function Line({ seriesIndex = 0, options = {} }) {
   const finalOptions = mergeDeep(defaultLineOptions, options);
-  const { stroke, strokeWidth, fill, className, sx } = finalOptions;
+  const { isVisible, stroke, strokeWidth, fill, className, sx } = finalOptions;
 
   const { chartValues, xScale, yScale, getAccessors } = useChartHelpers();
 
@@ -31,7 +31,7 @@ function Line({ seriesIndex = 0, options = {} }) {
       stroke={stroke}
       strokeWidth={strokeWidth}
       fill={fill}
-      style={sx}
+      style={{ ...sx, visibility: isVisible ? 'visible' : 'hidden' }}
     />
   );
 }

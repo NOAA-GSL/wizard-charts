@@ -8,7 +8,6 @@ export const demoOptions = {
         xKey: 'date',
         yKey: 'series1.mean',
         yName: 'Temperature',
-        isVisible: true,
         stroke: '',
         fill: dataVizColors['tropical-indigo'],
         alignment: 'right', // 'left', 'right' or 'center'
@@ -48,7 +47,6 @@ export const demoOptions = {
         xKey: 'date', // support dot notation
         yKey: 'series2.mean',
         yName: 'Temperature',
-        isVisible: true,
         stroke: dataVizColors.tangerine,
       },
     ],
@@ -80,7 +78,6 @@ export const demoOptions = {
         xKey: 'date', // support dot notation
         yKey: 'series2.p10',
         yName: 'Temperature',
-        isVisible: true,
         stroke: dataVizColors.violet,
       },
       {
@@ -88,7 +85,6 @@ export const demoOptions = {
         xKey: 'date', // support dot notation
         yKey: 'series2.p50',
         yName: 'Temperature',
-        isVisible: true,
         stroke: dataVizColors.green,
       },
       {
@@ -96,7 +92,6 @@ export const demoOptions = {
         xKey: 'date', // support dot notation
         yKey: 'series2.p90',
         yName: 'Temperature',
-        isVisible: true,
         stroke: dataVizColors.yellow,
       },
     ],
@@ -132,7 +127,6 @@ export const demoOptions = {
         q3YKey: 'series1.p75',
         maxYKey: 'series1.p90',
         yName: 'Temperature',
-        isVisible: true,
         fill: dataVizColors.magenta,
         strokeWhisker: dataVizColors.magenta,
         alignment: 'right',
@@ -166,7 +160,6 @@ export const demoOptions = {
         xKey: 'date',
         yKey: 'series1.p50',
         yName: 'Temperature',
-        isVisible: true,
         fill: `${dataVizColors.lime}88`, // with some transparency
         stroke: dataVizColors.yellow,
         radius: 4,
@@ -204,9 +197,9 @@ export const demoOptions = {
         q3YKey: 'series1.p75',
         maxYKey: 'series1.p90',
         yName: 'Temperature',
-        isVisible: true,
         fill: `${dataVizColors.green}88`,
         stroke: dataVizColors.green,
+        strokeWhisker: dataVizColors.green,
       },
     ],
     axes: {

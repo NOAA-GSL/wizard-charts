@@ -10,6 +10,7 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
     alignment,
     cornerRadius,
     fill,
+    isVisible,
     className,
     paddingFactor,
     strokeBox,
@@ -68,7 +69,7 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
   });
 
   return (
-    <>
+    <g style={{ visibility: isVisible ? 'visible' : 'hidden' }}>
       <g className={className} style={sx} ref={rectGroupRef}>
         {chartValues.data.map((dataPoint) => {
           const cx = xScale(accessors.x(dataPoint));
@@ -208,7 +209,7 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
           );
         })}
       </g>
-    </>
+    </g>
   );
 }
 

@@ -3,14 +3,12 @@ import { area as d3Area, line as d3Line } from 'd3';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
 import { mergeDeep } from '../utilities/dataUtilities';
-import {
-  defaultAreaOptions,
-  defaultLineOptions,
-} from '../utilities/defaultOptions';
+import { defaultAreaOptions } from '../utilities/defaultOptions';
 
 function Area({ seriesIndex = 0, options = {} }) {
   const finalOptions = mergeDeep(defaultAreaOptions, options);
-  const { fill, stroke, className, sx } = finalOptions;
+  const { fill, isVisible, stroke, strokeWhisker, strokeWidth, className, sx } =
+    finalOptions;
 
   const { chartValues, xScale, yScale, getAccessors } = useChartHelpers();
   const accessors = getAccessors(seriesIndex);
@@ -42,7 +40,10 @@ function Area({ seriesIndex = 0, options = {} }) {
   });
 
   return (
-    <g className={className} style={sx}>
+    <g
+      className={className}
+      style={{ ...sx, visibility: isVisible ? 'visible' : 'hidden' }}
+    >
       {areaPath && (
         <>
           <defs>
@@ -85,24 +86,22 @@ function Area({ seriesIndex = 0, options = {} }) {
                     accessors.q1YKey ? accessors.q1YKey(d) : accessors.y(d),
                   ),
                 )(chartValues.data);
-              const lineStroke = stroke || defaultLineOptions.stroke;
-              const lineStrokeWidth = defaultLineOptions.strokeWidth;
               return (
                 <g>
                   {topLine && (
                     <path
                       d={topLine}
                       fill="none"
-                      stroke={lineStroke}
-                      strokeWidth={lineStrokeWidth}
+                      stroke={stroke}
+                      strokeWidth={strokeWidth}
                     />
                   )}
                   {bottomLine && (
                     <path
                       d={bottomLine}
                       fill="none"
-                      stroke={lineStroke}
-                      strokeWidth={lineStrokeWidth}
+                      stroke={stroke}
+                      strokeWidth={strokeWidth}
                     />
                   )}
                 </g>
@@ -137,8 +136,8 @@ function Area({ seriesIndex = 0, options = {} }) {
                         x2={cx}
                         y1={yTop}
                         y2={yScale(maxVal)}
-                        stroke={stroke || 'currentColor'}
-                        strokeWidth={1}
+                        stroke={strokeWhisker || 'currentColor'}
+                        strokeWidth={strokeWidth || 1}
                       />
                     )}
                     {typeof minVal !== 'undefined' && (
@@ -147,8 +146,8 @@ function Area({ seriesIndex = 0, options = {} }) {
                         x2={cx}
                         y1={yBottom}
                         y2={yScale(minVal)}
-                        stroke={stroke || 'currentColor'}
-                        strokeWidth={1}
+                        stroke={strokeWhisker || 'currentColor'}
+                        strokeWidth={strokeWidth || 1}
                       />
                     )}
                   </g>

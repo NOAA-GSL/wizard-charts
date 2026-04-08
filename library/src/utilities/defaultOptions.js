@@ -78,6 +78,7 @@ export const seriesAccessorProps = {
 export const defaultLineOptions = {
   className: '',
   fill: 'none',
+  isVisible: true,
   stroke: dataVizColors['tropical-indigo'],
   strokeWidth: 2,
   sx: {},
@@ -88,6 +89,7 @@ export const defaultBarOptions = {
   cornerRadius: 2,
   className: '',
   fill: dataVizColors['tropical-indigo'],
+  isVisible: true,
   paddingFactor: 0.8,
   stroke: 'none',
   strokeWidth: 2,
@@ -99,6 +101,7 @@ export const defaultBoxPlotOptions = {
   cornerRadius: 2,
   className: '',
   fill: dataVizColors['tropical-indigo'],
+  isVisible: true,
   paddingFactor: 0.8,
   // stroke broken out for each plot element
   strokeBox: 'none',
@@ -111,6 +114,7 @@ export const defaultBoxPlotOptions = {
 export const defaultCircleOptions = {
   className: '',
   fill: dataVizColors['tropical-indigo'],
+  isVisible: true,
   stroke: 'none',
   radius: 4,
   sx: {},
@@ -118,7 +122,11 @@ export const defaultCircleOptions = {
 
 export const defaultAreaOptions = {
   className: '',
-  fill: dataVizColors['tropical-indigo'],
+  fill: `${dataVizColors['tropical-indigo']}88`,
+  isVisible: true,
+  // `stroke` applies to outline of area
   stroke: 'none',
+  strokeWhisker: dataVizColors['tropical-indigo'],
+  strokeWidth: 2,
   sx: {},
 };

@@ -8,9 +8,10 @@ function Bar({ seriesIndex = 0, options = {} }) {
   const finalOptions = mergeDeep(defaultBarOptions, options);
   const {
     alignment,
+    className,
     cornerRadius,
     fill,
-    className,
+    isVisible,
     paddingFactor,
     stroke,
     strokeWidth,
@@ -63,7 +64,11 @@ function Bar({ seriesIndex = 0, options = {} }) {
   });
 
   return (
-    <g className={className} style={sx} ref={rectGroupRef}>
+    <g
+      className={className}
+      style={{ ...sx, visibility: isVisible ? 'visible' : 'hidden' }}
+      ref={rectGroupRef}
+    >
       {chartValues.data.map((dataPoint) => {
         const cx = xScale(accessors.x(dataPoint));
         // default width uses computed barWidth; for band scales use bandwidth
