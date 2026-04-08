@@ -123,20 +123,13 @@ function useAnimation({ type, ref, trigger, duration }) {
             // ignore if element doesn't support getTotalLength
             console.error('Element does not support getTotalLength:', ln, e);
           }
-          // allow per-line delay via data-delay or dataset.delay (ms)
-          // this was added for the area line whiskers to create a staggered effect
-          // based on horizontal position
-          if (ln.dataset && ln.dataset.delay) {
-            ln.style.animationDelay = `${ln.dataset.delay}ms`;
-          } else {
-            ln.style.animationDelay = '';
-          }
-
+          // reset animation first; start all lines together
           ln.style.animation = 'none';
         });
         // Force reflow
         element.getBoundingClientRect();
         requestAnimationFrame(() => {
+          // start the same animation on all lines (no per-line delay)
           lines.forEach((ln) => {
             ln.style.animation = `drawLine ${animationDuration}ms forwards`;
           });

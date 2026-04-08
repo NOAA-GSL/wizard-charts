@@ -34,7 +34,7 @@ function Area({ seriesIndex = 0, options = {} }) {
     trigger: chartValues.data,
   });
 
-  // animate whiskers as lines with per-line delay based on x position
+  // animate whiskers as lines, will reveal left to right inside the clip path
   useAnimation({
     type: 'drawLines',
     ref: whiskerRef,
@@ -129,13 +129,6 @@ function Area({ seriesIndex = 0, options = {} }) {
                   ? accessors.minYKey(dataPoint)
                   : undefined;
 
-                // compute delay (ms) based on horizontal position within inner width
-                const delay =
-                  Math.max(
-                    0,
-                    Math.min(1, cx / Math.max(1, chartValues.innerWidth)),
-                  ) * chartValues.options.animationDuration;
-
                 return (
                   <g key={accessors.x(dataPoint)}>
                     {typeof maxVal !== 'undefined' && (
@@ -146,7 +139,6 @@ function Area({ seriesIndex = 0, options = {} }) {
                         y2={yScale(maxVal)}
                         stroke={stroke || 'currentColor'}
                         strokeWidth={1}
-                        data-delay={delay}
                       />
                     )}
                     {typeof minVal !== 'undefined' && (
@@ -157,7 +149,6 @@ function Area({ seriesIndex = 0, options = {} }) {
                         y2={yScale(minVal)}
                         stroke={stroke || 'currentColor'}
                         strokeWidth={1}
-                        data-delay={delay}
                       />
                     )}
                   </g>
