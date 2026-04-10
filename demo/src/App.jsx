@@ -40,7 +40,7 @@ const makeFinalData = (numSeries, numPoints) => {
   const data = [];
   const baseDate = new Date();
   for (let i = 0; i < numPoints; i++) {
-    const date = new Date(baseDate.getTime() + i * 3600_000).getTime();
+    const date = new Date(baseDate.getTime() + i * 3600_000);
     const dataPoint = { date };
     for (let s = 1; s <= numSeries; s++) {
       dataPoint[`series${s}`] = { ...seriesData[`series${s}`][i] };

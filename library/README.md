@@ -223,6 +223,8 @@ Here are the relevant options for a particular axis:
 ```js
 // axis default options
 {
+
+  // NOTE: `time` scale type must be provided as a number or Date Object
   type: 'linear', // band, linear, log, time
   // default domain will compute max and min from data
   domainMin: undefined, // optionally provide a min domain
