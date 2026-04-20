@@ -92,37 +92,6 @@ export const demoOptions = {
     },
     animationDuration: 1000,
   },
-  line: {
-    series: [
-      {
-        type: 'line', // or 'bar'
-        xKey: 'date', // support dot notation
-        yKey: 'series2.mean',
-        yName: 'Temperature',
-        stroke: dataVizColors.tangerine,
-      },
-    ],
-    axes: {
-      // can also use the default x and y
-      x: {
-        type: 'linear', // band, linear, log, time
-        ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
-        nice: false,
-      },
-      y: {
-        type: 'linear',
-        title: { text: 'Temperature (F)' },
-        ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
-        nice: true,
-        hasAxisLine: false,
-        hasGridLines: true,
-      },
-    },
-    readout: {
-      hoverMode: 'local', // or 'global'
-    },
-    animationDuration: 1000, // in ms
-  },
   multiLine: {
     series: [
       {
