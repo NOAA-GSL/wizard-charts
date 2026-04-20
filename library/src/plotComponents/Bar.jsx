@@ -13,6 +13,8 @@ function Bar({ seriesIndex = 0, options = {} }) {
     fill,
     isVisible,
     paddingFactor,
+    stacked,
+    isCumulative,
     stroke,
     strokeWidth,
     sx,
@@ -22,8 +24,31 @@ function Bar({ seriesIndex = 0, options = {} }) {
     useChartHelpers();
 
   const accessors = getAccessors(seriesIndex);
+  const series = chartValues.options?.series || [];
+  const currentSeries = series[seriesIndex] || {};
 
   const rectGroupRef = useRef(null);
+
+  const stackedPredecessorAccessors = stacked
+    ? series
+        .map((s, i) => ({ s, i }))
+        .filter(
+          ({ s, i }) =>
+            i < seriesIndex &&
+            s?.type === 'bar' &&
+            s?.stacked &&
+            s?.isCumulative &&
+            s?.xKey === currentSeries.xKey &&
+            !!s?.isSecondaryXAxis === !!currentSeries.isSecondaryXAxis &&
+            !!s?.isSecondaryYAxis === !!currentSeries.isSecondaryYAxis,
+        )
+        .map(({ i }) => getAccessors(i))
+    : [];
+
+  const toNumberOrZero = (value) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : 0;
+  };
 
   // get x positions in pixels of all bars to calculate step and bar width
   const positions = chartValues.data
@@ -46,17 +71,6 @@ function Bar({ seriesIndex = 0, options = {} }) {
   // barWidth is shrunk by a padding factor to create space between bars
   const barWidth = (step || fallback) * paddingFactor;
 
-  // placeholder for now showing how to possibly handle bars that have a time duration
-  /**
-   * // inside render for each datum (assumes xScale is scaleTime or linear with timestamps)
-   * const tEnd = accessors.x(d); // Date or ms
-   * const tStart = accessors.xStart ? accessors.xStart(d) : new Date(new Date(tEnd).getTime() - 6 * 3600_000);
-   * const x0 = xScale(tStart);
-   * const x1 = xScale(tEnd);
-   * const x = Math.min(x0, x1);
-   * const width = Math.max(0, Math.abs(x1 - x0));
-   */
-
   useAnimation({
     type: 'growBar',
     ref: rectGroupRef,
@@ -71,6 +85,7 @@ function Bar({ seriesIndex = 0, options = {} }) {
     >
       {chartValues.data.map((dataPoint) => {
         const cx = xScale(accessors.x(dataPoint));
+        const axisBaselineY = yScale(yDomain[0]);
         // default width uses computed barWidth; for band scales use bandwidth
         let width = barWidth;
         let x;
@@ -94,21 +109,32 @@ function Bar({ seriesIndex = 0, options = {} }) {
           else x = cx - width / 2; // center
         }
 
-        const y = yScale(accessors.y(dataPoint)); // top of the bar
-        const baseline = yScale(yDomain[0]); // bottom of the bar
-        const height = baseline - y; // height from top to baseline
+        const yValue = toNumberOrZero(accessors.y(dataPoint));
 
-        /**
-         * // Could also stack multiple bars with this example
-         * const groupBand = scaleBand().domain(seriesKeys).range([ -step/2, step/2 ]).paddingInner(0.1);
-         * const barW = groupBand.bandwidth();
-         * const cx = xScale(xValue);
-         * const x = cx + groupBand(seriesKey); // already offset from center
-         */
+        let y;
+        let baseline;
+
+        if (stacked && isCumulative) {
+          const start = stackedPredecessorAccessors.reduce(
+            (sum, prevAccessors) =>
+              sum + toNumberOrZero(prevAccessors.y(dataPoint)),
+            0,
+          );
+          const end = start + yValue;
+          y = yScale(Math.max(start, end));
+          baseline = yScale(Math.min(start, end));
+        } else {
+          y = yScale(yValue); // top of the bar
+          baseline = axisBaselineY; // bottom of the bar
+        }
+
+        const height = Math.max(0, baseline - y); // height from top to baseline
+        const barBottom = y + height;
+        const startTranslateY = axisBaselineY - barBottom;
 
         return (
           <rect
-            key={accessors.x(dataPoint)}
+            key={`${seriesIndex}-${String(accessors.x(dataPoint))}`}
             x={x}
             y={y}
             width={width}
@@ -120,7 +146,9 @@ function Bar({ seriesIndex = 0, options = {} }) {
             fill={fill}
             shapeRendering="crispEdges"
             style={{
-              transform: 'scaleY(0)',
+              '--bar-start-translate': `${startTranslateY}px`,
+              transform:
+                'translateY(var(--bar-start-translate, 0px)) scaleY(0)',
               transformOrigin: '50% 100%',
               transformBox: 'fill-box',
             }}

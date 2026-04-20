@@ -74,7 +74,10 @@ export const seriesAccessorProps = {
   y: ['yKey', 'minYKey', 'q1YKey', 'medianYKey', 'q3YKey', 'maxYKey'],
 };
 
-// defaults for the different plots ------------------------- //
+/**
+ * defaults for the different plots -----------------------------------
+ * These get options get appended to the default series options
+ */
 export const defaultLineOptions = {
   className: '',
   fill: 'none',
@@ -91,6 +94,10 @@ export const defaultBarOptions = {
   fill: dataVizColors['tropical-indigo'],
   isVisible: true,
   paddingFactor: 0.8,
+  // set true to stack bars that share the same x values
+  stacked: false,
+  // when stacked=true, set true to cumulatively sum bar values
+  isCumulative: false,
   stroke: 'none',
   strokeWidth: 2,
   sx: {},

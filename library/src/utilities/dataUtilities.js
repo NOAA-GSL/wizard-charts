@@ -126,6 +126,49 @@ export const combineNumericExtent = (data = [], accessorKeys = []) => {
   return values.length ? extent(values) : [0, 1];
 };
 
+function toStackXKey(value) {
+  if (value instanceof Date) return value.getTime();
+  return value;
+}
+
+function computeStackedExtent(data = [], series = []) {
+  const stackedBarSeries = series.filter(
+    (s) =>
+      s?.type === 'bar' && s?.stacked && s?.isCumulative && s?.xKey && s?.yKey,
+  );
+  if (stackedBarSeries.length === 0) return null;
+
+  const totals = [];
+
+  const sumByX = new Map();
+
+  stackedBarSeries.forEach((s) => {
+    const getX = createAccessor(s.xKey);
+    const getY = createAccessor(s.yKey);
+
+    data.forEach((d) => {
+      const rawX = getX(d);
+      const yValue = Number(getY(d));
+      if (rawX == null || !Number.isFinite(yValue)) return;
+
+      const xKey = toStackXKey(rawX);
+      const current = sumByX.get(xKey) || { pos: 0, neg: 0 };
+
+      if (yValue >= 0) current.pos += yValue;
+      else current.neg += yValue;
+
+      sumByX.set(xKey, current);
+    });
+  });
+
+  sumByX.forEach(({ pos, neg }) => {
+    totals.push(pos, neg);
+  });
+
+  if (totals.length === 0) return null;
+  return extent(totals);
+}
+
 export const computeScales = (chartValues, axisConfig) => {
   const scales = {};
   const series = chartValues.options?.series || [];
@@ -171,6 +214,18 @@ export const computeScales = (chartValues, axisConfig) => {
       domain = vals.length ? vals : [];
     } else {
       domain = combineNumericExtent(data, accessorKeys);
+
+      // include cumulative totals for stacked bars so bars are not clipped
+      if (!isX) {
+        const stackedExtent = computeStackedExtent(data, matchingSeries);
+        if (stackedExtent) {
+          domain = [
+            Math.min(domain[0], stackedExtent[0], 0),
+            Math.max(domain[1], stackedExtent[1], 0),
+          ];
+        }
+      }
+
       if (domainMin != null) domain[0] = domainMin;
       if (domainMax != null) domain[1] = domainMax;
     }

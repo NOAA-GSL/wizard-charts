@@ -39,7 +39,8 @@ function useAnimation({ type, ref, trigger, duration }) {
         const rects = element.querySelectorAll('rect');
         rects.forEach((rect) => {
           rect.style.animation = 'none';
-          rect.style.transform = 'scaleY(0)';
+          rect.style.transform =
+            'translateY(var(--bar-start-translate, 0px)) scaleY(0)';
           rect.style.transformOrigin = rect.style.transformOrigin || '50% 100%';
           rect.style.transformBox = rect.style.transformBox || 'fill-box';
         });
@@ -49,7 +50,7 @@ function useAnimation({ type, ref, trigger, duration }) {
         requestAnimationFrame(() => {
           rects.forEach((rect) => {
             rect.style.animation = `growBar ${animationDuration}ms forwards`;
-            rect.style.transform = 'scaleY(1)';
+            rect.style.transform = 'translateY(0) scaleY(1)';
           });
         });
         break;

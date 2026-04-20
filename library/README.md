@@ -100,6 +100,8 @@ The `series` array will accept one or multiple objects. Each object will determi
   type: 'line', // determines type of chart: 'line', 'bar' or 'boxPlot'
   xKey: 'nameOfDataKey', // accessor for x data
   yKey: 'can.use.dot.notation', // accessory for y data
+  stacked: false, // for bar series only: stack with other matching stacked bars
+  isCumulative: false, // for stacked bars: sum values when true, overlay values when false
   // if these are true, it will pull from the secondary x2 or y2 axis options
   // instead of the primary x and y
   isSecondaryYAxis: false,
@@ -149,6 +151,8 @@ The `series` array will accept one or multiple objects. Each object will determi
   fill: dataVizColors['tropical-indigo'],
   isVisible: true,
   paddingFactor: 0.8,
+  stacked: false,
+  isCumulative: false,
   stroke: 'none',
   strokeWidth: 2,
   sx: {},

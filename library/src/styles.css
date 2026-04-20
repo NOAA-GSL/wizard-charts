@@ -29,10 +29,10 @@
 
 @keyframes growBar {
   from {
-    transform: scaleY(0);
+    transform: translateY(var(--bar-start-translate, 0px)) scaleY(0);
   }
   to {
-    transform: scaleY(1);
+    transform: translateY(0) scaleY(1);
   }
 }
 @keyframes growBox {

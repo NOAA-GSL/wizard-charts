@@ -40,6 +40,58 @@ export const demoOptions = {
     },
     animationDuration: 1000, // in ms
   },
+  stackedBar: {
+    series: [
+      {
+        type: 'bar',
+        xKey: 'date',
+        yKey: 'series1.p90',
+        yName: 'Series 1',
+        fill: dataVizColors['sea-green'],
+        stacked: true,
+        isCumulative: false,
+        alignment: 'right',
+      },
+      {
+        type: 'bar',
+        xKey: 'date',
+        yKey: 'series1.p50',
+        yName: 'Series 1',
+        fill: dataVizColors.tangerine,
+        stacked: true,
+        isCumulative: false,
+        alignment: 'right',
+      },
+      {
+        type: 'bar',
+        xKey: 'date',
+        yKey: 'series1.p10',
+        yName: 'Series 1',
+        fill: dataVizColors.violet,
+        stacked: true,
+        isCumulative: false,
+        alignment: 'right',
+      },
+    ],
+    axes: {
+      x: {
+        type: 'linear',
+        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+        nice: false,
+      },
+      y: {
+        type: 'linear',
+        title: { text: 'Temperature (F)' },
+        ticks: { values: [], labels: [], amount: 10 },
+        hasAxisLine: false,
+        hasGridLines: true,
+      },
+    },
+    readout: {
+      hoverMode: 'local',
+    },
+    animationDuration: 1000,
+  },
   line: {
     series: [
       {
