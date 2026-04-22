@@ -96,7 +96,7 @@ function App() {
             width={dimensions.width}
             margin={margin}
             data={data}
-            options={demoOptions[type]}
+            options={demoOptions}
             sx={{
               border: '1px solid #737373',
               borderRadius: '8px',

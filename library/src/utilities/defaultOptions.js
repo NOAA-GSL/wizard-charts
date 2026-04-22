@@ -13,30 +13,6 @@ export const dataVizColors = {
   lime: '#BCE931',
 };
 
-export const defaultOptions = {
-  series: [],
-  axes: {},
-  readout: {
-    hoverMode: 'local',
-  },
-  animationDuration: 1000, // in ms
-};
-
-export const defaultSeriesOptions = {
-  type: 'line', // 'bar' or 'boxPlot'
-  xKey: 'x',
-  yKey: 'y',
-  // if these are true, it will pull from the secondary x2 or y2 axis options
-  // instead of the primary x and y
-  isSecondaryYAxis: false,
-  isSecondaryXAxis: false,
-  isVisible: true,
-  stroke: null,
-  fill: null,
-  className: '',
-  sx: {},
-};
-
 export const defaultAxisOptions = {
   type: 'linear', // band, linear, log, time
   // default domain will compute max and min from data
@@ -65,6 +41,30 @@ export const defaultAxisOptions = {
     fontColor: 'currentColor',
     formatter: null, // optional formatting function for ticks
   },
+};
+
+export const defaultOptions = {
+  series: [],
+  axes: { x: defaultAxisOptions, y: defaultAxisOptions },
+  readout: {
+    hoverMode: 'local',
+  },
+  animationDuration: 1000, // in ms
+};
+
+export const defaultSeriesOptions = {
+  type: 'line', // 'bar' or 'boxPlot'
+  xKey: 'x',
+  yKey: 'y',
+  // if these are true, it will pull from the secondary x2 or y2 axis options
+  // instead of the primary x and y
+  isSecondaryYAxis: false,
+  isSecondaryXAxis: false,
+  isVisible: true,
+  stroke: null,
+  fill: null,
+  className: '',
+  sx: {},
 };
 
 // this gets utilized by the getAccessors function in dataUtilities to determine

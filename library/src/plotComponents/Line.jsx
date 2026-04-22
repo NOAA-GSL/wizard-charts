@@ -12,6 +12,11 @@ function Line({ seriesIndex = 0, options = {} }) {
   const { chartValues, xScale, yScale, getAccessors } = useChartHelpers();
 
   const accessors = getAccessors(seriesIndex);
+  const lineData = (chartValues.data || []).filter((d) => {
+    const xValue = accessors.x(d);
+    const yValue = accessors.y(d);
+    return xValue != null && Number.isFinite(Number(yValue));
+  });
 
   const pathRef = useRef(null);
 
@@ -27,7 +32,7 @@ function Line({ seriesIndex = 0, options = {} }) {
       className={`${className}`}
       d={line()
         .x((d) => xScale(accessors.x(d)))
-        .y((d) => yScale(accessors.y(d)))(chartValues.data)}
+        .y((d) => yScale(accessors.y(d)))(lineData)}
       stroke={stroke}
       strokeWidth={strokeWidth}
       fill={fill}
