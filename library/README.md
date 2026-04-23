@@ -111,7 +111,23 @@ The `series` array will accept one or multiple objects. Each object will determi
   fill: null, // fill color
   className: '', // styles can also be defined by classes
   sx: {}, // styles can also be inlined
+  data: {} // can supply the data in an alternate format (see below)
 };
+```
+
+### Alternate Data Shape
+
+The default data structure expects an array of objects, but you can also provide an object of arrays to the series options. This will override the default. The object keys need to match what is provided in the corresponding `xKey`, `yKey`, etc.
+
+```js
+data: {
+  date: [
+    new Date('2024-01-01'),
+    new Date('2024-01-02'),
+    new Date('2024-01-03'),
+  ],
+  mean: [10, 20, 15],
+},
 ```
 
 <br>

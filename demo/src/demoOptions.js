@@ -6,19 +6,11 @@ export const demoOptions = {
       {
         type: 'bar',
         xKey: 'date',
-        yKey: 'mean',
+        yKey: 'series1.mean',
         fill: dataVizColors['tropical-indigo'],
         alignment: 'right', // 'left', 'right' or 'center'
         paddingFactor: 0.8, // how much of the band to fill with the bar (0-1)
         cornerRadius: 2, // for rounded corners, in pixels
-        data: {
-          date: [
-            new Date('2024-01-01'),
-            new Date('2024-01-02'),
-            new Date('2024-01-03'),
-          ],
-          mean: [10, 20, 15],
-        },
       },
     ],
     axes: {
