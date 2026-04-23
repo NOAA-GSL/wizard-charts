@@ -131,6 +131,10 @@ function Bar({ seriesIndex = 0, options = {} }) {
           else x = cx - width / 2; // center
         }
 
+        if (!Number.isFinite(x) || !Number.isFinite(width) || width <= 0) {
+          return null;
+        }
+
         const yValue = toNumberOrZero(accessors.y(dataPoint));
 
         let y;

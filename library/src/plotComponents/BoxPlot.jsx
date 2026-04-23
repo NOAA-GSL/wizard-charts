@@ -45,8 +45,7 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
     step = Math.max(0, Math.min(...diffs));
   }
   // if step fails, use this fallback that divides the width by the number of points
-  const fallback =
-    chartValues.innerWidth / Math.max(1, seriesData.length);
+  const fallback = chartValues.innerWidth / Math.max(1, seriesData.length);
   // barWidth is shrunk by a padding factor to create space between bars
   const barWidth = (step || fallback) * paddingFactor;
 
@@ -75,10 +74,13 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
       <g className={className} style={sx} ref={rectGroupRef}>
         {seriesData.map((dataPoint) => {
           const cx = xScale(accessors.x(dataPoint));
+          if (!Number.isFinite(cx)) return null;
           let x;
           if (alignment === 'right') x = cx;
           else if (alignment === 'left') x = cx - barWidth;
           else x = cx - barWidth / 2; // center the bar on the x value
+
+          if (!Number.isFinite(barWidth) || barWidth <= 0) return null;
 
           // prefer box-specific accessors at top-level (q3YKey/q1YKey); fall back to primary `y`
           const q3Val = accessors.q3YKey
@@ -164,6 +166,13 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
       <g ref={medianGroupRef}>
         {seriesData.map((dataPoint) => {
           const cx = xScale(accessors.x(dataPoint));
+          if (
+            !Number.isFinite(cx) ||
+            !Number.isFinite(barWidth) ||
+            barWidth <= 0
+          ) {
+            return null;
+          }
           let xPos;
           if (alignment === 'right') xPos = cx;
           else if (alignment === 'left') xPos = cx - barWidth;

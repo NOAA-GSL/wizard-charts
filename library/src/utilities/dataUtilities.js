@@ -214,10 +214,73 @@ function computeStackedExtent(data = [], series = []) {
   return extent(totals);
 }
 
+function getContinuousXDomainPadding(series = [], domain = []) {
+  const [domainStart, domainEnd] = domain;
+  const toComparableNumber = (value) => {
+    if (value instanceof Date) return value.getTime();
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  };
+
+  const domainStartNum = toComparableNumber(domainStart);
+  const domainEndNum = toComparableNumber(domainEnd);
+  if (domainStartNum == null || domainEndNum == null) {
+    return { start: 0, end: 0 };
+  }
+
+  let minStep = Infinity;
+  series.forEach((s) => {
+    if (!s || (s.type !== 'bar' && s.type !== 'boxPlot') || !s.xKey) return;
+
+    const getX = createAccessor(s.xKey);
+    const seriesData = Array.isArray(s?.data) ? s.data : [];
+    const xs = seriesData
+      .map((d) => toComparableNumber(getX(d)))
+      .filter((v) => v != null)
+      .sort((a, b) => a - b);
+
+    for (let i = 1; i < xs.length; i += 1) {
+      const step = xs[i] - xs[i - 1];
+      if (step > 0 && step < minStep) minStep = step;
+    }
+  });
+
+  if (!Number.isFinite(minStep) || minStep <= 0) {
+    const span = domainEndNum - domainStartNum;
+    minStep = span > 0 ? span : 1;
+  }
+
+  let padStart = 0;
+  let padEnd = 0;
+
+  series.forEach((s) => {
+    if (!s || (s.type !== 'bar' && s.type !== 'boxPlot')) return;
+
+    const alignment = s.alignment || 'center';
+    const paddingFactor = Number.isFinite(Number(s.paddingFactor))
+      ? Number(s.paddingFactor)
+      : 0.8;
+    const barDomainWidth = minStep * paddingFactor;
+
+    if (alignment === 'left') {
+      padStart = Math.max(padStart, barDomainWidth);
+    } else if (alignment === 'right') {
+      padEnd = Math.max(padEnd, barDomainWidth);
+    } else {
+      const halfWidth = barDomainWidth / 2;
+      padStart = Math.max(padStart, halfWidth);
+      padEnd = Math.max(padEnd, halfWidth);
+    }
+  });
+
+  return { start: padStart, end: padEnd };
+}
+
 export const computeScales = (chartValues, axisConfig) => {
   const scales = {};
   const series = chartValues.options?.series || [];
   const data = chartValues.data || [];
+  const rootData = Array.isArray(data) ? data : [];
 
   // loop through each axis in the config and compute the corresponding scale
   Object.entries(axisConfig).forEach(([axisKey, config]) => {
@@ -235,7 +298,7 @@ export const computeScales = (chartValues, axisConfig) => {
       return isSecondaryAxis ? isSecondaryFlag : !isSecondaryFlag;
     });
 
-    const getSeriesData = (s) => (Array.isArray(s?.data) ? s.data : data);
+    const getSeriesData = (s) => (Array.isArray(s?.data) ? s.data : rootData);
 
     // collect accessor keys for this axis. support boxplot-style multi-value keys
     const valueProps = isX ? seriesAccessorProps.x : seriesAccessorProps.y;
@@ -306,6 +369,34 @@ export const computeScales = (chartValues, axisConfig) => {
             Math.min(domain[0], stackedExtent[0], 0),
             Math.max(domain[1], stackedExtent[1], 0),
           ];
+        }
+      }
+
+      if (isX && (scaleType === 'linear' || scaleType === 'time')) {
+        // Add side-specific domain padding for bar-like glyph widths.
+        // This avoids edge clipping while preserving spacing/alignment.
+        const paddedSeries = matchingSeries.map((s) => ({
+          ...s,
+          data: getSeriesData(s),
+        }));
+        const domainPadding = getContinuousXDomainPadding(paddedSeries, domain);
+
+        if (domainMin == null) {
+          if (domain[0] instanceof Date) {
+            const startMs = domain[0].getTime() - domainPadding.start;
+            domain[0] = new Date(startMs);
+          } else {
+            domain[0] = Number(domain[0]) - domainPadding.start;
+          }
+        }
+
+        if (domainMax == null) {
+          if (domain[1] instanceof Date) {
+            const endMs = domain[1].getTime() + domainPadding.end;
+            domain[1] = new Date(endMs);
+          } else {
+            domain[1] = Number(domain[1]) + domainPadding.end;
+          }
         }
       }
 
