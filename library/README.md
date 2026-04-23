@@ -1,160 +1,240 @@
 # WIZARD Charts
 
-A charting library built on top of D3 for displaying complex weather data.
+WIZARD Charts is a React charting library built on top of D3 for weather and forecast-oriented visualizations.
 
-### Installation
+## Table of Contents
 
-The library is built on top of `D3` and requires that package to be installed in addition to Wizard Charts
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [ChartContainer Props](#chartcontainer-props)
+- [Data Model](#data-model)
+- [Options Overview](#options-overview)
+- [Series Configuration](#series-configuration)
+- [Per-Plot Defaults](#per-plot-defaults)
+- [Axis Configuration](#axis-configuration)
+- [Utility Exports](#utility-exports)
+- [Notes and Gotchas](#notes-and-gotchas)
+
+## Installation
+
+`d3` is a peer dependency and must be installed alongside WIZARD Charts.
 
 ```bash
 npm install @noaa-gsl/wizard-charts d3
 ```
 
-<br>
+## Quick Start
 
-## Usage
-
-Import the CSS stylesheet in the `<App />` component or where you import your global CSS.
+Import the stylesheet once in your app entrypoint or global styles location:
 
 ```jsx
 import '@noaa-gsl/wizard-charts/styles.css';
 ```
 
-Create the `<ChartContainer />` where you would like to render the chart
+Render a `ChartContainer` with `data` and `options`:
 
 ```jsx
 import { ChartContainer } from '@noaa-gsl/wizard-charts';
 
+const data = [
+  {
+    date: new Date('2026-01-01'),
+    temp: { mean: 30, p90: 38 },
+  },
+  {
+    date: new Date('2026-01-02'),
+    temp: { mean: 27, p90: 35 },
+  },
+];
+
+const options = {
+  series: [
+    {
+      type: 'line',
+      xKey: 'date',
+      yKey: 'temp.mean',
+      stroke: '#147AF3',
+    },
+  ],
+  axes: {
+    x: { type: 'time' },
+    y: { type: 'linear', nice: true },
+  },
+};
+
 <ChartContainer
-  // required props
-  height={height} // 600
-  width={width} // 800
-  margin={margin} // { left: 40, right: 40, top: 20, bottom: 20 }
-  data={data} // [...]
-  options={options} // { series: [...], axis: {...}, etc }
-  // optional props
-  sx={{
-    border: '1px solid #737373',
-  }}
->
-  {/* you may render any SVG elements as children of ChartContainer */}
-  {children}
-</ChartContainer>;
+  height={600}
+  width={800}
+  margin={{ left: 40, right: 40, top: 20, bottom: 20 }}
+  data={data}
+  options={options}
+  sx={{ border: '1px solid #737373' }}
+/>;
 ```
 
-<br>
+## ChartContainer Props
 
-## Data Configuration
+```tsx
+type ChartContainerProps = {
+  height: number;
+  width: number;
+  margin: { top: number; right: number; bottom: number; left: number };
+  data: unknown[] | Record<string, unknown[]>;
+  options: ChartOptions;
+  children?: React.ReactNode;
+  className?: string;
+  sx?: React.CSSProperties;
+};
+```
 
-The data should be arranged as an array of objects, with each array index representing a point on the x-axis for your dependent variable. Here is an example of one such object:
+## Data Model
+
+WIZARD Charts supports two input data shapes:
+
+1. Row-based arrays (default)
+2. Columnar object-of-arrays (auto-normalized)
+
+### Row-Based Data (Default)
+
+Each array element maps to one position on the x-axis.
 
 ```js
 [
   {
-    "date": 1775075088409,
-    "series1": {
-      "mean": 31.451618078254917,
-      "p10": 27.66429878923369,
-      "p25": 30.604620527202997,
-      "p50": 31.405882108075584,
-      "p75": 31.828612758013502,
-      "p90": 32.63097066315947
+    date: 1775075088409,
+    series1: {
+      mean: 31.45,
+      p10: 27.66,
+      p25: 30.6,
+      p50: 31.4,
+      p75: 31.82,
+      p90: 32.63,
     },
-    "series2": {
-      "mean": 81.28298222199525,
-      "p10": 81.18530113763336,
-      "p25": 81.1763584330726,
-      "p50": 81.50001057061314,
-      "p75": 82.00724816412736,
-      "p90": 81.69317918940664
-    }
+    series2: {
+      mean: 81.28,
+      p10: 81.18,
+      p25: 81.17,
+      p50: 81.5,
+      p75: 82.0,
+      p90: 81.69,
+    },
   },
-  { ... }
-]
+];
 ```
 
-You may structure this in any way that makes sense for your data. Each data point will be accessed with an `xKey` and a `yKey`. For example, in the series configuration, I may set `xKey: 'date'` and `yKey: 'series2.p50'`
+### Accessors and Dot Notation
 
-<br>
+Series values are read with keys like `xKey`, `yKey`, `minYKey`, etc.
+Dot notation is supported:
 
-## Options Configuration
+- `xKey: 'date'`
+- `yKey: 'series2.p50'`
 
-Every `option` object requires information that constructs the series and axes. (WIP: Readout). This is the general structure:
+### Columnar Data (Per-Series Override)
+
+You can provide `data` directly on a series as an object-of-arrays. This overrides root-level `data` for that series.
+
+```js
+{
+  type: 'line',
+  xKey: 'date',
+  yKey: 'mean',
+  data: {
+    date: [
+      new Date('2024-01-01'),
+      new Date('2024-01-02'),
+      new Date('2024-01-03'),
+    ],
+    mean: [10, 20, 15],
+  },
+}
+```
+
+All column arrays must be the same length.
+
+## Options Overview
+
+`options` drives how series and axes are rendered:
 
 ```js
 {
   series: [],
-  axes: { x: {...}, y: {...} },
+  axes: {
+    x: {},
+    y: {},
+    // optional secondary axes
+    // x2: {},
+    // y2: {},
+  },
   readout: {
     hoverMode: 'local',
   },
-  animationDuration: 1000, // in ms, set to 0 for no animation
-};
+  animationDuration: 1000, // ms (set 0 to disable animation)
+}
 ```
 
-The `series` array will accept one or multiple objects. Each object will determine what type of plot gets visualized on the chart.
+## Series Configuration
+
+Each entry in `options.series` renders one plot layer.
+
+### Common Series Options
 
 ```js
-// series default options
 {
-  type: 'line', // determines type of chart: 'line', 'bar' or 'boxPlot'
-  xKey: 'nameOfDataKey', // accessor for x data
-  yKey: 'can.use.dot.notation', // accessory for y data
-  stacked: false, // for bar series only: stack with other matching stacked bars
-  isCumulative: false, // for stacked bars: sum values when true, overlay values when false
-  // if these are true, it will pull from the secondary x2 or y2 axis options
-  // instead of the primary x and y
+  type: 'line', // 'line' | 'bar' | 'boxPlot' | 'circle' | 'area'
+  xKey: 'x',
+  yKey: 'y',
+  data: undefined, // optional per-series dataset
   isSecondaryYAxis: false,
   isSecondaryXAxis: false,
   isVisible: true,
-  stroke: null, // stroke color
-  fill: null, // fill color
-  className: '', // styles can also be defined by classes
-  sx: {}, // styles can also be inlined
-  data: {} // can supply the data in an alternate format (see below)
-};
+  stroke: null,
+  fill: null,
+  className: '',
+  sx: {},
+}
 ```
 
-### Alternate Data Shape
+### Stacked Bar Behavior
 
-The default data structure expects an array of objects, but you can also provide an object of arrays to the series options. This will override the default. The object keys need to match what is provided in the corresponding `xKey`, `yKey`, etc.
+For bar series:
+
+- `stacked: true` enables stacking with compatible bar series.
+- `isCumulative: true` sums stacked values on the y-domain.
+- Stacking is computed by matching x positions and compatible bar-series settings.
 
 ```js
-data: {
-  date: [
-    new Date('2024-01-01'),
-    new Date('2024-01-02'),
-    new Date('2024-01-03'),
-  ],
-  mean: [10, 20, 15],
-},
+{
+  type: 'bar',
+  xKey: 'date',
+  yKey: 'precip',
+  stacked: true,
+  isCumulative: true,
+}
 ```
 
-<br>
+## Per-Plot Defaults
 
-## Default Series Options For Each Plot Type
+Use these as references when building options.
 
 ### Area
 
 ```js
 {
-  // note that yKeys are different to allow access to percentile data that builds the box plot
   xKey: 'date',
   minYKey: 'series1.p10',
   q1YKey: 'series1.p25',
   medianYKey: 'series1.p50',
   q3YKey: 'series1.p75',
   maxYKey: 'series1.p90',
-  // styling
   className: '',
   fill: `${dataVizColors['tropical-indigo']}88`,
   isVisible: true,
-  // `stroke` applies to outline of area
   stroke: 'none',
   strokeWhisker: dataVizColors['tropical-indigo'],
   strokeWidth: 2,
   sx: {},
-};
+}
 ```
 
 ### Bar
@@ -172,34 +252,31 @@ data: {
   stroke: 'none',
   strokeWidth: 2,
   sx: {},
-};
+}
 ```
 
 ### BoxPlot
 
 ```js
 {
-  // note that yKeys are different to allow access to percentile data that builds the box plot
   xKey: 'date',
   minYKey: 'series1.p10',
   q1YKey: 'series1.p25',
   medianYKey: 'series1.p50',
   q3YKey: 'series1.p75',
   maxYKey: 'series1.p90',
-  // styling
   alignment: 'center',
   cornerRadius: 2,
   className: '',
   fill: dataVizColors['tropical-indigo'],
   isVisible: true,
   paddingFactor: 0.8,
-  // `stroke` applies to the box outline
   stroke: 'none',
   strokeMedian: '#ffffff88',
   strokeWhisker: dataVizColors['tropical-indigo'],
   strokeWidth: 2,
   sx: {},
-};
+}
 ```
 
 ### Circle
@@ -212,7 +289,7 @@ data: {
   stroke: 'none',
   radius: 4,
   sx: {},
-};
+}
 ```
 
 ### Line
@@ -225,40 +302,39 @@ data: {
   stroke: dataVizColors['tropical-indigo'],
   strokeWidth: 2,
   sx: {},
-};
+}
 ```
-
-<br>
 
 ## Axis Configuration
 
-Axis information is necessary for the x and y axis. Should be structured as:
+At minimum, configure `axes.x` and `axes.y`:
 
 ```js
 axes: { x: {}, y: {} }
 ```
 
-Here are the relevant options for a particular axis:
+Axis defaults:
 
 ```js
-// axis default options
 {
-
-  // NOTE: `time` scale type must be provided as a number or Date Object
-  type: 'linear', // band, linear, log, time
-  // default domain will compute max and min from data
-  domainMin: undefined, // optionally provide a min domain
-  domainMax: undefined, // optionally provide a max domain
-  label: { text: '', fontSize: 14, fontWeight: 700, fontFamily: 'sans-serif' },
-  hasAxisLine: true, // show axis
-  hasGridLines: false, // show grid
-  nice: false, // round the data to nice intervals
-  strokeAxis: '#404040', // color of the axis line
-  strokeGrid: '#404040', // color of the grid
-  strokeWidth: 1, // width of grid and axis lines
-  className: '', // styles can be defined by classes
-  sx: {}, // styles can be inlined
-  // tick props
+  // for `time`, values must be Date objects or numeric timestamps
+  type: 'linear', // 'band' | 'linear' | 'time' | 'threshold'
+  domainMin: undefined,
+  domainMax: undefined,
+  label: {
+    text: '',
+    fontSize: 14,
+    fontWeight: 700,
+    fontFamily: 'sans-serif',
+  },
+  hasAxisLine: true,
+  hasGridLines: false,
+  nice: false,
+  strokeAxis: '#404040',
+  strokeGrid: '#404040',
+  strokeWidth: 1,
+  className: '',
+  sx: {},
   ticks: {
     values: [],
     labels: [],
@@ -270,7 +346,97 @@ Here are the relevant options for a particular axis:
     fontSize: 12,
     fontWeight: 400,
     fontColor: 'currentColor',
-    formatter: null, // optional formatting function for ticks
+    formatter: null,
+  },
+}
+```
+
+## Utility Exports
+
+In addition to chart components, the package exports color tokens and tick-format helpers.
+
+### dataVizColors
+
+`dataVizColors` is an object of named hex values you can reuse across chart styles.
+
+```js
+import { dataVizColors } from '@noaa-gsl/wizard-charts';
+
+const options = {
+  series: [
+    {
+      type: 'line',
+      xKey: 'date',
+      yKey: 'temp.mean',
+      stroke: dataVizColors.azure,
+    },
+    {
+      type: 'line',
+      xKey: 'date',
+      yKey: 'temp.p90',
+      stroke: dataVizColors['tropical-indigo'],
+    },
+  ],
+};
+```
+
+Available keys:
+
+- `sea-green`
+- `palatinate-blue`
+- `tangerine`
+- `magenta`
+- `tropical-indigo`
+- `malachite`
+- `azure`
+- `violet`
+- `yellow`
+- `alloy-orange`
+- `green`
+- `lime`
+
+### Tick-Format Utilities
+
+Tick-format utilities are exported from the package root:
+
+```js
+import {
+  timeFormatter,
+  numberFormatter,
+  simpleDateHour,
+} from '@noaa-gsl/wizard-charts';
+```
+
+Helpers:
+
+- `timeFormatter(spec)` returns a D3 `timeFormat` formatter function.
+- `numberFormatter(specifier)` returns a D3 numeric formatter function.
+- `simpleDateHour()` returns a preset formatter using `%Y-%m-%d %H`.
+
+Example usage in axis config:
+
+```js
+const options = {
+  axes: {
+    x: {
+      type: 'time',
+      ticks: {
+        formatter: simpleDateHour(),
+      },
+    },
+    y: {
+      type: 'linear',
+      ticks: {
+        formatter: numberFormatter('.1f'),
+      },
+    },
   },
 };
 ```
+
+## Notes and Gotchas
+
+- For `type: 'time'`, provide `Date` instances or numeric timestamps.
+- Dot-notation keys are supported for nested values (for example `forecast.p50`).
+- If using per-series columnar `data`, keep all arrays the same length.
+- Set `animationDuration: 0` to disable animation.
