@@ -33,6 +33,26 @@ export function useChartHelpers() {
     return Array.isArray(seriesData) ? seriesData : chartValues.data || [];
   };
 
+  // resolve the effective scale/domain pair for a specific series
+  const getSeriesScales = (idOrIndex = 0) => {
+    const seriesAccessors = getAccessors(idOrIndex);
+    const seriesMeta = seriesAccessors?.meta || {};
+
+    const useSecondaryX = Boolean(seriesMeta.isSecondaryXAxis && x2Scale);
+    const useSecondaryY = Boolean(seriesMeta.isSecondaryYAxis && y2Scale);
+
+    return {
+      xScale: useSecondaryX ? x2Scale : xScale,
+      yScale: useSecondaryY ? y2Scale : yScale,
+      xDomain: useSecondaryX ? x2Domain : xDomain,
+      yDomain: useSecondaryY ? y2Domain : yDomain,
+      axisKeys: {
+        x: useSecondaryX ? 'x2' : 'x',
+        y: useSecondaryY ? 'y2' : 'y',
+      },
+    };
+  };
+
   return {
     chartValues,
     updateChartValues,
@@ -40,6 +60,7 @@ export function useChartHelpers() {
     accessorsBySeries,
     getAccessors,
     getSeriesData,
+    getSeriesScales,
     xScale,
     x2Scale,
     yScale,

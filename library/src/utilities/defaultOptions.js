@@ -1,14 +1,14 @@
 export const dataVizColors = {
-  'sea-green': '#0FB5AE',
-  'palatinate-blue': '#4046CA',
+  seaGreen: '#0FB5AE',
+  palatinateBlue: '#4046CA',
   tangerine: '#F68511',
   magenta: '#DE3D82',
-  'tropical-indigo': '#7E84FA',
+  tropicalIndigo: '#7E84FA',
   malachite: '#72E06A',
   azure: '#147AF3',
   violet: '#7326D3',
   yellow: '#E8C600',
-  'alloy-orange': '#CB5D00',
+  alloyOrange: '#CB5D00',
   green: '#008F5D',
   lime: '#BCE931',
 };
@@ -45,7 +45,12 @@ export const defaultAxisOptions = {
 
 export const defaultOptions = {
   series: [],
-  axes: { x: defaultAxisOptions, y: defaultAxisOptions },
+  axes: {
+    x: defaultAxisOptions,
+    y: defaultAxisOptions,
+    x2: defaultAxisOptions,
+    y2: defaultAxisOptions,
+  },
   readout: {
     hoverMode: 'local',
   },
@@ -84,7 +89,7 @@ export const defaultLineOptions = {
   className: '',
   fill: 'none',
   isVisible: true,
-  stroke: dataVizColors['tropical-indigo'],
+  stroke: dataVizColors.tropicalIndigo,
   strokeWidth: 2,
   sx: {},
 };
@@ -93,7 +98,7 @@ export const defaultBarOptions = {
   alignment: 'center',
   cornerRadius: 2,
   className: '',
-  fill: dataVizColors['tropical-indigo'],
+  fill: dataVizColors.tropicalIndigo,
   isVisible: true,
   paddingFactor: 0.8,
   // set true to stack bars that share the same x values
@@ -109,20 +114,20 @@ export const defaultBoxPlotOptions = {
   alignment: 'center',
   cornerRadius: 2,
   className: '',
-  fill: dataVizColors['tropical-indigo'],
+  fill: dataVizColors.tropicalIndigo,
   isVisible: true,
   paddingFactor: 0.8,
   // `stroke` applies to the box outline
   stroke: 'none',
   strokeMedian: '#ffffff88',
-  strokeWhisker: dataVizColors['tropical-indigo'],
+  strokeWhisker: dataVizColors.tropicalIndigo,
   strokeWidth: 2,
   sx: {},
 };
 
 export const defaultCircleOptions = {
   className: '',
-  fill: dataVizColors['tropical-indigo'],
+  fill: dataVizColors.tropicalIndigo,
   isVisible: true,
   stroke: 'none',
   radius: 4,
@@ -131,11 +136,11 @@ export const defaultCircleOptions = {
 
 export const defaultAreaOptions = {
   className: '',
-  fill: `${dataVizColors['tropical-indigo']}88`,
+  fill: `${dataVizColors.tropicalIndigo}88`,
   isVisible: true,
   // `stroke` applies to outline of area
   stroke: 'none',
-  strokeWhisker: dataVizColors['tropical-indigo'],
+  strokeWhisker: dataVizColors.tropicalIndigo,
   strokeWidth: 2,
   sx: {},
 };

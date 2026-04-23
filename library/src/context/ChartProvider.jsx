@@ -21,6 +21,22 @@ import {
 
 export const ChartContext = createContext();
 
+const SUPPORTED_AXIS_KEYS = new Set(['x', 'y', 'x2', 'y2']);
+const warnedUnsupportedAxisKeys = new Set();
+
+function warnUnsupportedAxisKey(axisKey) {
+  if (warnedUnsupportedAxisKeys.has(axisKey)) return;
+  warnedUnsupportedAxisKeys.add(axisKey);
+
+  if (typeof console === 'undefined' || typeof console.debug !== 'function') {
+    return;
+  }
+
+  console.debug(
+    `[wizard-charts] Unsupported axis key "${axisKey}" was ignored. Supported axis keys are: x, y, x2, y2.`,
+  );
+}
+
 // merge our default options and ensure that certain chart values are of the correct type
 function buildChartValues(chartValues) {
   const baseOptions = mergeDeep(defaultOptions, chartValues.options || {});
@@ -32,6 +48,11 @@ function buildChartValues(chartValues) {
     return merged;
   });
   const mergedAxes = Object.keys(baseOptions.axes || {}).reduce((acc, key) => {
+    if (!SUPPORTED_AXIS_KEYS.has(key)) {
+      warnUnsupportedAxisKey(key);
+      return acc;
+    }
+
     acc[key] = mergeDeep(defaultAxisOptions, baseOptions.axes[key] || {});
     return acc;
   }, {});

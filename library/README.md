@@ -10,8 +10,10 @@ WIZARD Charts is a React charting library built on top of D3 for weather and for
 - [Data Model](#data-model)
 - [Options Overview](#options-overview)
 - [Series Configuration](#series-configuration)
+- [Combining Multiple Plot Types](#combining-multiple-plot-types)
 - [Per-Plot Defaults](#per-plot-defaults)
 - [Axis Configuration](#axis-configuration)
+- [Secondary Axes](#secondary-axes)
 - [Utility Exports](#utility-exports)
 - [Notes and Gotchas](#notes-and-gotchas)
 
@@ -185,6 +187,7 @@ Each entry in `options.series` renders one plot layer.
   xKey: 'x',
   yKey: 'y',
   data: undefined, // optional per-series dataset
+  // set true to map this series to x2 / y2 instead of x / y
   isSecondaryYAxis: false,
   isSecondaryXAxis: false,
   isVisible: true,
@@ -213,6 +216,51 @@ For bar series:
 }
 ```
 
+## Combining Multiple Plot Types
+
+You can render multiple plot types in one chart by adding multiple entries to `options.series`.
+
+- Each series entry renders one layer.
+- You can mix `line`, `bar`, `boxPlot`, `area`, and `circle` in the same chart.
+- Render order follows array order: later series draw on top of earlier series.
+
+Example:
+
+```js
+const options = {
+  series: [
+    {
+      type: 'bar',
+      xKey: 'date',
+      yKey: 'hourlyPrecip.mean',
+      fill: '#72E06A88',
+      alignment: 'center',
+    },
+    {
+      type: 'line',
+      xKey: 'date',
+      yKey: 'accumulatedPrecip.mean',
+      fill: '#71da6e',
+      strokeWidth: 4,
+    },
+    {
+      type: 'circle',
+      xKey: 'date',
+      yKey: 'windDir.mean',
+      stroke: '#147AF3',
+      isSecondaryYAxis: true,
+    },
+  ],
+  axes: {
+    x: { type: 'time' },
+    y: { type: 'linear' },
+    y2: { type: 'linear' },
+  },
+};
+```
+
+Tip: if mixed series use very different units, map one group to `y2` using `isSecondaryYAxis: true`.
+
 ## Per-Plot Defaults
 
 Use these as references when building options.
@@ -228,10 +276,10 @@ Use these as references when building options.
   q3YKey: 'series1.p75',
   maxYKey: 'series1.p90',
   className: '',
-  fill: `${dataVizColors['tropical-indigo']}88`,
+  fill: `${dataVizColors.tropicalIndigo}88`,
   isVisible: true,
   stroke: 'none',
-  strokeWhisker: dataVizColors['tropical-indigo'],
+  strokeWhisker: dataVizColors.tropicalIndigo,
   strokeWidth: 2,
   sx: {},
 }
@@ -244,7 +292,7 @@ Use these as references when building options.
   alignment: 'center',
   cornerRadius: 2,
   className: '',
-  fill: dataVizColors['tropical-indigo'],
+  fill: dataVizColors.tropicalIndigo,
   isVisible: true,
   paddingFactor: 0.8,
   stacked: false,
@@ -268,12 +316,12 @@ Use these as references when building options.
   alignment: 'center',
   cornerRadius: 2,
   className: '',
-  fill: dataVizColors['tropical-indigo'],
+  fill: dataVizColors.tropicalIndigo,
   isVisible: true,
   paddingFactor: 0.8,
   stroke: 'none',
   strokeMedian: '#ffffff88',
-  strokeWhisker: dataVizColors['tropical-indigo'],
+  strokeWhisker: dataVizColors.tropicalIndigo,
   strokeWidth: 2,
   sx: {},
 }
@@ -284,7 +332,7 @@ Use these as references when building options.
 ```js
 {
   className: '',
-  fill: dataVizColors['tropical-indigo'],
+  fill: dataVizColors.tropicalIndigo,
   isVisible: true,
   stroke: 'none',
   radius: 4,
@@ -299,7 +347,7 @@ Use these as references when building options.
   className: '',
   fill: 'none',
   isVisible: true,
-  stroke: dataVizColors['tropical-indigo'],
+  stroke: dataVizColors.tropicalIndigo,
   strokeWidth: 2,
   sx: {},
 }
@@ -351,6 +399,70 @@ Axis defaults:
 }
 ```
 
+Supported axis keys are `x`, `y`, `x2`, and `y2`.
+
+If an unsupported axis key is provided (for example `y1`), it is ignored to avoid runtime crashes.
+
+## Secondary Axes
+
+Secondary axis usage is series-driven:
+
+- Set `isSecondaryXAxis: true` on a series to use `axes.x2`.
+- Set `isSecondaryYAxis: true` on a series to use `axes.y2`.
+- If these flags are `false`, the series uses primary `axes.x` and `axes.y`.
+
+All plot types support secondary-axis mapping:
+
+- `line`
+- `bar`
+- `boxPlot`
+- `area`
+- `circle`
+
+Axis rendering behavior:
+
+- An axis only renders if it exists in `options.axes` and has at least one series mapped to it.
+- Primary axis defaults: `x` renders on bottom, `y` renders on left.
+- Secondary axis defaults: `x2` renders on top, `y2` renders on right.
+
+You can override side placement using axis options:
+
+- `position` (for example `'left'`, `'right'`, `'top'`, `'bottom'`)
+- `isLeftLocation` on y-axes
+- `isTopLocation` on x-axes
+
+Example:
+
+```js
+const options = {
+  series: [
+    {
+      type: 'line',
+      xKey: 'date',
+      yKey: 'temperature.mean',
+      stroke: '#147AF3',
+    },
+    {
+      type: 'line',
+      xKey: 'date',
+      yKey: 'windspeed.mean',
+      stroke: '#CB5D00',
+      isSecondaryYAxis: true,
+    },
+  ],
+  axes: {
+    x: { type: 'time' },
+    y: { type: 'linear', label: { text: 'Temperature (F)' } },
+    y2: {
+      type: 'linear',
+      label: { text: 'Wind (mph)' },
+      // optional override; y2 defaults to right if not set
+      position: 'right',
+    },
+  },
+};
+```
+
 ## Utility Exports
 
 In addition to chart components, the package exports color tokens and tick-format helpers.
@@ -374,7 +486,7 @@ const options = {
       type: 'line',
       xKey: 'date',
       yKey: 'temp.p90',
-      stroke: dataVizColors['tropical-indigo'],
+      stroke: dataVizColors.tropicalIndigo,
     },
   ],
 };
@@ -382,16 +494,16 @@ const options = {
 
 Available keys:
 
-- `sea-green`
-- `palatinate-blue`
+- `seaGreen`
+- `palatinateBlue`
 - `tangerine`
 - `magenta`
-- `tropical-indigo`
+- `tropicalIndigo`
 - `malachite`
 - `azure`
 - `violet`
 - `yellow`
-- `alloy-orange`
+- `alloyOrange`
 - `green`
 - `lime`
 
@@ -439,4 +551,5 @@ const options = {
 - For `type: 'time'`, provide `Date` instances or numeric timestamps.
 - Dot-notation keys are supported for nested values (for example `forecast.p50`).
 - If using per-series columnar `data`, keep all arrays the same length.
+- Supported axis keys are `x`, `y`, `x2`, and `y2`; unknown keys are ignored.
 - Set `animationDuration: 0` to disable animation.

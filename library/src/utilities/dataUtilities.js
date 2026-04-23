@@ -32,8 +32,10 @@ export function getRange(axis, chartValues) {
   const { margin, innerWidth, innerHeight } = chartValues;
   switch (axis) {
     case 'x':
+    case 'x2':
       return [margin.left, innerWidth + margin.left];
     case 'y':
+    case 'y2':
       return [innerHeight + margin.top, margin.top];
     default:
       throw new Error(`Unknown axis: ${axis}`);
@@ -281,10 +283,14 @@ export const computeScales = (chartValues, axisConfig) => {
   const series = chartValues.options?.series || [];
   const data = chartValues.data || [];
   const rootData = Array.isArray(data) ? data : [];
+  const validAxisKeys = new Set(['x', 'x2', 'y', 'y2']);
 
   // loop through each axis in the config and compute the corresponding scale
   Object.entries(axisConfig).forEach(([axisKey, config]) => {
-    const { type, domainMin, domainMax, nice } = config;
+    if (!validAxisKeys.has(axisKey)) return;
+
+    const axisOptions = config && typeof config === 'object' ? config : {};
+    const { type, domainMin, domainMax, nice } = axisOptions;
     // determine whether this is an x or y axis
     const isX = axisKey === 'x' || axisKey === 'x2';
 

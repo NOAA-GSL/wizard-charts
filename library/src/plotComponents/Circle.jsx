@@ -8,10 +8,11 @@ function Circle({ seriesIndex = 0, options = {} }) {
   const finalOptions = mergeDeep(defaultCircleOptions, options);
   const { fill, stroke, radius, className, sx } = finalOptions;
 
-  const { xScale, yScale, getAccessors, getSeriesData } = useChartHelpers();
+  const { getAccessors, getSeriesData, getSeriesScales } = useChartHelpers();
 
   const accessors = getAccessors(seriesIndex);
   const seriesData = getSeriesData(seriesIndex);
+  const { xScale, yScale } = getSeriesScales(seriesIndex);
 
   const groupRef = useRef(null);
 
@@ -20,6 +21,8 @@ function Circle({ seriesIndex = 0, options = {} }) {
     ref: groupRef,
     trigger: seriesData,
   });
+
+  if (!xScale || !yScale) return null;
 
   return (
     <g ref={groupRef} className={`${className}`} style={sx}>

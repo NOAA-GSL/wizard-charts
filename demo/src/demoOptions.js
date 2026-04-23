@@ -7,10 +7,18 @@ export const demoOptions = {
         type: 'bar',
         xKey: 'date',
         yKey: 'series1.mean',
-        fill: dataVizColors['tropical-indigo'],
-        alignment: 'right', // 'left', 'right' or 'center'
+        fill: dataVizColors.tropicalIndigo,
+        alignment: 'left', // 'left', 'right' or 'center'
         paddingFactor: 0.8, // how much of the band to fill with the bar (0-1)
         cornerRadius: 2, // for rounded corners, in pixels
+      },
+      {
+        type: 'line',
+        xKey: 'date',
+        yKey: 'series2.mean',
+        stroke: dataVizColors.tangerine,
+        isSecondaryYAxis: true,
+        strokeWidth: 5,
       },
     ],
     axes: {
@@ -26,11 +34,16 @@ export const demoOptions = {
         title: { text: 'Temperature (F)' },
         ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
         // default domain will compute max and min from data
-        domainMin: 0, // optional
-        domainMax: 100, // optional
+        // domainMin: 0, // optional
+        // domainMax: 100, // optional
         hasAxisLine: false,
         hasGridLines: true,
         sx: {},
+      },
+      y2: {
+        type: 'linear',
+        nice: true,
+        hasAxisLine: false,
       },
     },
     readout: {
@@ -45,7 +58,7 @@ export const demoOptions = {
         xKey: 'date',
         yKey: 'series1.p90',
         yName: 'Series 1',
-        fill: dataVizColors['sea-green'],
+        fill: dataVizColors.seaGreen,
         stacked: true,
         isCumulative: false,
         alignment: 'right',
@@ -182,6 +195,14 @@ export const demoOptions = {
         fill: `${dataVizColors.lime}88`, // with some transparency
         stroke: dataVizColors.yellow,
         radius: 4,
+        isSecondaryYAxis: true,
+      },
+      {
+        type: 'line',
+        xKey: 'date',
+        yKey: 'series2.p90',
+        yName: 'Temperature',
+        stroke: dataVizColors.violet,
       },
     ],
     axes: {
@@ -198,6 +219,11 @@ export const demoOptions = {
         nice: true,
         hasAxisLine: false,
         hasGridLines: true,
+      },
+      y2: {
+        type: 'linear',
+        nice: true,
+        hasAxisLine: false,
       },
     },
     readout: {

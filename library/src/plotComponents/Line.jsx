@@ -9,10 +9,11 @@ function Line({ seriesIndex = 0, options = {} }) {
   const finalOptions = mergeDeep(defaultLineOptions, options);
   const { isVisible, stroke, strokeWidth, fill, className, sx } = finalOptions;
 
-  const { xScale, yScale, getAccessors, getSeriesData } = useChartHelpers();
+  const { getAccessors, getSeriesData, getSeriesScales } = useChartHelpers();
 
   const accessors = getAccessors(seriesIndex);
   const seriesData = getSeriesData(seriesIndex);
+  const { xScale, yScale } = getSeriesScales(seriesIndex);
   const lineData = seriesData.filter((d) => {
     const xValue = accessors.x(d);
     const yValue = accessors.y(d);
@@ -26,6 +27,8 @@ function Line({ seriesIndex = 0, options = {} }) {
     ref: pathRef,
     trigger: seriesData,
   });
+
+  if (!xScale || !yScale) return null;
 
   return (
     <path

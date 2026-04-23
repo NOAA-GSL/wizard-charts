@@ -60,6 +60,20 @@ function ChartContainer({
     }
   });
 
+  const axes = initialValues.options.axes || {};
+  const series = initialValues.options.series || [];
+
+  const hasSeriesForAxis = (axisKey) => {
+    const isX = axisKey === 'x' || axisKey === 'x2';
+    const isSecondary = axisKey === 'x2' || axisKey === 'y2';
+
+    return series.some((s) => {
+      if (!s) return false;
+      const usesSecondary = isX ? !!s.isSecondaryXAxis : !!s.isSecondaryYAxis;
+      return usesSecondary === isSecondary;
+    });
+  };
+
   return (
     <ChartProvider initialValues={initialValues}>
       <ErrorBoundary>
@@ -72,8 +86,18 @@ function ChartContainer({
           //   updateHoverPoint(pointer(e, svgReadoutRef.current))
           // }
         >
-          <XAxis options={initialValues.options.axes.x} />
-          <YAxis options={initialValues.options.axes.y} />
+          {axes.x && hasSeriesForAxis('x') && (
+            <XAxis options={axes.x} axisKey="x" />
+          )}
+          {axes.x2 && hasSeriesForAxis('x2') && (
+            <XAxis options={axes.x2} axisKey="x2" />
+          )}
+          {axes.y && hasSeriesForAxis('y') && (
+            <YAxis options={axes.y} axisKey="y" />
+          )}
+          {axes.y2 && hasSeriesForAxis('y2') && (
+            <YAxis options={axes.y2} axisKey="y2" />
+          )}
           {seriesNodes}
           {children}
         </svg>

@@ -20,11 +20,12 @@ function Bar({ seriesIndex = 0, options = {} }) {
     sx,
   } = finalOptions;
 
-  const { chartValues, xScale, yScale, yDomain, getAccessors, getSeriesData } =
+  const { chartValues, getAccessors, getSeriesData, getSeriesScales } =
     useChartHelpers();
 
   const accessors = getAccessors(seriesIndex);
   const seriesData = getSeriesData(seriesIndex);
+  const { xScale, yScale, yDomain } = getSeriesScales(seriesIndex);
   const series = chartValues.options?.series || [];
   const currentSeries = series[seriesIndex] || {};
 
@@ -98,6 +99,8 @@ function Bar({ seriesIndex = 0, options = {} }) {
     ref: rectGroupRef,
     trigger: seriesData,
   });
+
+  if (!xScale || !yScale || !yDomain) return null;
 
   return (
     <g

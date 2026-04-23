@@ -10,10 +10,11 @@ function Area({ seriesIndex = 0, options = {} }) {
   const { fill, isVisible, stroke, strokeWhisker, strokeWidth, className, sx } =
     finalOptions;
 
-  const { chartValues, xScale, yScale, getAccessors, getSeriesData } =
+  const { chartValues, getAccessors, getSeriesData, getSeriesScales } =
     useChartHelpers();
   const accessors = getAccessors(seriesIndex);
   const data = getSeriesData(seriesIndex);
+  const { xScale, yScale } = getSeriesScales(seriesIndex);
 
   const isFiniteNumber = (value) => Number.isFinite(Number(value));
   const getLowerY = (d) =>
@@ -54,6 +55,8 @@ function Area({ seriesIndex = 0, options = {} }) {
     ref: whiskerRef,
     trigger: data,
   });
+
+  if (!xScale || !yScale) return null;
 
   return (
     <g

@@ -20,11 +20,12 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
     sx,
   } = finalOptions;
 
-  const { chartValues, xScale, yScale, getAccessors, getSeriesData } =
+  const { chartValues, getAccessors, getSeriesData, getSeriesScales } =
     useChartHelpers();
 
   const accessors = getAccessors(seriesIndex);
   const seriesData = getSeriesData(seriesIndex);
+  const { xScale, yScale } = getSeriesScales(seriesIndex);
 
   const rectGroupRef = useRef(null);
   const medianGroupRef = useRef(null);
@@ -68,6 +69,8 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
     ref: rectGroupRef,
     trigger: seriesData,
   });
+
+  if (!xScale || !yScale) return null;
 
   return (
     <g style={{ visibility: isVisible ? 'visible' : 'hidden' }}>
