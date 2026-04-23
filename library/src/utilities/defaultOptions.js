@@ -56,6 +56,8 @@ export const defaultSeriesOptions = {
   type: 'line', // 'bar' or 'boxPlot'
   xKey: 'x',
   yKey: 'y',
+  // optional per-series dataset; falls back to root-level data when omitted
+  data: undefined,
   // if these are true, it will pull from the secondary x2 or y2 axis options
   // instead of the primary x and y
   isSecondaryYAxis: false,

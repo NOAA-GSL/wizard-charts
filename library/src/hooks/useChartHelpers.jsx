@@ -27,12 +27,19 @@ export function useChartHelpers() {
     return accessorsBySeries[idOrIndex] || accessorsBySeries[0];
   };
 
+  const getSeriesData = (idOrIndex = 0) => {
+    const seriesAccessors = getAccessors(idOrIndex);
+    const seriesData = seriesAccessors?.meta?.data;
+    return Array.isArray(seriesData) ? seriesData : chartValues.data || [];
+  };
+
   return {
     chartValues,
     updateChartValues,
     computedScales,
     accessorsBySeries,
     getAccessors,
+    getSeriesData,
     xScale,
     x2Scale,
     yScale,

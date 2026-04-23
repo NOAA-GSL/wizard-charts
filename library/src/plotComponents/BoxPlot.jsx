@@ -20,15 +20,17 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
     sx,
   } = finalOptions;
 
-  const { chartValues, xScale, yScale, getAccessors } = useChartHelpers();
+  const { chartValues, xScale, yScale, getAccessors, getSeriesData } =
+    useChartHelpers();
 
   const accessors = getAccessors(seriesIndex);
+  const seriesData = getSeriesData(seriesIndex);
 
   const rectGroupRef = useRef(null);
   const medianGroupRef = useRef(null);
 
   // get x positions in pixels of all bars to calculate step and bar width
-  const positions = chartValues.data
+  const positions = seriesData
     .map((d) => xScale(accessors.x(d)))
     .filter((p) => Number.isFinite(p))
     .sort((a, b) => a - b);
@@ -44,34 +46,34 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
   }
   // if step fails, use this fallback that divides the width by the number of points
   const fallback =
-    chartValues.innerWidth / Math.max(1, chartValues.data.length);
+    chartValues.innerWidth / Math.max(1, seriesData.length);
   // barWidth is shrunk by a padding factor to create space between bars
   const barWidth = (step || fallback) * paddingFactor;
 
   useAnimation({
     type: 'growBox',
     ref: rectGroupRef,
-    trigger: chartValues.data,
+    trigger: seriesData,
   });
 
   // animate median lines separately (scale from center + fade)
   useAnimation({
     type: 'growMedian',
     ref: medianGroupRef,
-    trigger: chartValues.data,
+    trigger: seriesData,
   });
 
   // animate whisker lines (min/max) using stroke-dashoffset drawing
   useAnimation({
     type: 'drawLines',
     ref: rectGroupRef,
-    trigger: chartValues.data,
+    trigger: seriesData,
   });
 
   return (
     <g style={{ visibility: isVisible ? 'visible' : 'hidden' }}>
       <g className={className} style={sx} ref={rectGroupRef}>
-        {chartValues.data.map((dataPoint) => {
+        {seriesData.map((dataPoint) => {
           const cx = xScale(accessors.x(dataPoint));
           let x;
           if (alignment === 'right') x = cx;
@@ -160,7 +162,7 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
 
       {/* median line moved to separate group to avoid drawLines animation */}
       <g ref={medianGroupRef}>
-        {chartValues.data.map((dataPoint) => {
+        {seriesData.map((dataPoint) => {
           const cx = xScale(accessors.x(dataPoint));
           let xPos;
           if (alignment === 'right') xPos = cx;

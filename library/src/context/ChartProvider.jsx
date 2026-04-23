@@ -10,6 +10,7 @@ import {
   computeScales,
   mergeDeep,
   createAccessor,
+  normalizeDataShape,
 } from '../utilities/dataUtilities';
 import {
   defaultOptions,
@@ -23,9 +24,13 @@ export const ChartContext = createContext();
 // merge our default options and ensure that certain chart values are of the correct type
 function buildChartValues(chartValues) {
   const baseOptions = mergeDeep(defaultOptions, chartValues.options || {});
-  const mergedSeries = (baseOptions.series || []).map((series) =>
-    mergeDeep(defaultSeriesOptions, series),
-  );
+  const mergedSeries = (baseOptions.series || []).map((series) => {
+    const merged = mergeDeep(defaultSeriesOptions, series);
+    if (merged.data != null) {
+      merged.data = normalizeDataShape(merged.data);
+    }
+    return merged;
+  });
   const mergedAxes = Object.keys(baseOptions.axes || {}).reduce((acc, key) => {
     acc[key] = mergeDeep(defaultAxisOptions, baseOptions.axes[key] || {});
     return acc;
@@ -45,9 +50,11 @@ function buildChartValues(chartValues) {
   const innerWidth = Math.max(0, width - margin.left - margin.right);
 
   const options = { ...baseOptions, series: mergedSeries, axes: mergedAxes };
+  const data = normalizeDataShape(chartValues.data);
 
   return {
     ...chartValues,
+    data,
     options,
     height,
     width,

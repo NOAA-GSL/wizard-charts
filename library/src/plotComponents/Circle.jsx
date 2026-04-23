@@ -8,21 +8,22 @@ function Circle({ seriesIndex = 0, options = {} }) {
   const finalOptions = mergeDeep(defaultCircleOptions, options);
   const { fill, stroke, radius, className, sx } = finalOptions;
 
-  const { chartValues, xScale, yScale, getAccessors } = useChartHelpers();
+  const { xScale, yScale, getAccessors, getSeriesData } = useChartHelpers();
 
   const accessors = getAccessors(seriesIndex);
+  const seriesData = getSeriesData(seriesIndex);
 
   const groupRef = useRef(null);
 
   useAnimation({
     type: 'growCircle',
     ref: groupRef,
-    trigger: chartValues.data,
+    trigger: seriesData,
   });
 
   return (
     <g ref={groupRef} className={`${className}`} style={sx}>
-      {chartValues.data.map((d) => (
+      {seriesData.map((d) => (
         <circle
           key={xScale(accessors.x(d))}
           cx={xScale(accessors.x(d))}

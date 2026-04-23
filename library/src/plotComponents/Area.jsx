@@ -10,9 +10,10 @@ function Area({ seriesIndex = 0, options = {} }) {
   const { fill, isVisible, stroke, strokeWhisker, strokeWidth, className, sx } =
     finalOptions;
 
-  const { chartValues, xScale, yScale, getAccessors } = useChartHelpers();
+  const { chartValues, xScale, yScale, getAccessors, getSeriesData } =
+    useChartHelpers();
   const accessors = getAccessors(seriesIndex);
-  const data = chartValues.data || [];
+  const data = getSeriesData(seriesIndex);
 
   const isFiniteNumber = (value) => Number.isFinite(Number(value));
   const getLowerY = (d) =>

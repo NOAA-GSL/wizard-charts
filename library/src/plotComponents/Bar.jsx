@@ -20,16 +20,17 @@ function Bar({ seriesIndex = 0, options = {} }) {
     sx,
   } = finalOptions;
 
-  const { chartValues, xScale, yScale, yDomain, getAccessors } =
+  const { chartValues, xScale, yScale, yDomain, getAccessors, getSeriesData } =
     useChartHelpers();
 
   const accessors = getAccessors(seriesIndex);
+  const seriesData = getSeriesData(seriesIndex);
   const series = chartValues.options?.series || [];
   const currentSeries = series[seriesIndex] || {};
 
   const rectGroupRef = useRef(null);
 
-  const stackedPredecessorAccessors = stacked
+  const stackedPredecessorSeries = stacked
     ? series
         .map((s, i) => ({ s, i }))
         .filter(
@@ -42,7 +43,10 @@ function Bar({ seriesIndex = 0, options = {} }) {
             !!s?.isSecondaryXAxis === !!currentSeries.isSecondaryXAxis &&
             !!s?.isSecondaryYAxis === !!currentSeries.isSecondaryYAxis,
         )
-        .map(({ i }) => getAccessors(i))
+        .map(({ i }) => ({
+          accessors: getAccessors(i),
+          data: getSeriesData(i),
+        }))
     : [];
 
   const toNumberOrZero = (value) => {
@@ -50,8 +54,27 @@ function Bar({ seriesIndex = 0, options = {} }) {
     return Number.isFinite(numeric) ? numeric : 0;
   };
 
+  const toXKey = (value) => {
+    if (value instanceof Date) return value.getTime();
+    return value;
+  };
+
+  const predecessorSumsByX = stackedPredecessorSeries.map(
+    ({ accessors: prevAccessors, data }) => {
+      const sums = new Map();
+      data.forEach((d) => {
+        const xValue = prevAccessors.x(d);
+        if (xValue == null) return;
+        const key = toXKey(xValue);
+        const next = (sums.get(key) || 0) + toNumberOrZero(prevAccessors.y(d));
+        sums.set(key, next);
+      });
+      return sums;
+    },
+  );
+
   // get x positions in pixels of all bars to calculate step and bar width
-  const positions = chartValues.data
+  const positions = seriesData
     .map((d) => xScale(accessors.x(d)))
     .filter((p) => Number.isFinite(p))
     .sort((a, b) => a - b);
@@ -66,15 +89,14 @@ function Bar({ seriesIndex = 0, options = {} }) {
     step = Math.max(0, Math.min(...diffs));
   }
   // if step fails, use this fallback that divides the width by the number of points
-  const fallback =
-    chartValues.innerWidth / Math.max(1, chartValues.data.length);
+  const fallback = chartValues.innerWidth / Math.max(1, seriesData.length);
   // barWidth is shrunk by a padding factor to create space between bars
   const barWidth = (step || fallback) * paddingFactor;
 
   useAnimation({
     type: 'growBar',
     ref: rectGroupRef,
-    trigger: chartValues.data,
+    trigger: seriesData,
   });
 
   return (
@@ -83,7 +105,7 @@ function Bar({ seriesIndex = 0, options = {} }) {
       style={{ ...sx, visibility: isVisible ? 'visible' : 'hidden' }}
       ref={rectGroupRef}
     >
-      {chartValues.data.map((dataPoint) => {
+      {seriesData.map((dataPoint) => {
         const cx = xScale(accessors.x(dataPoint));
         const axisBaselineY = yScale(yDomain[0]);
         // default width uses computed barWidth; for band scales use bandwidth
@@ -115,9 +137,10 @@ function Bar({ seriesIndex = 0, options = {} }) {
         let baseline;
 
         if (stacked && isCumulative) {
-          const start = stackedPredecessorAccessors.reduce(
-            (sum, prevAccessors) =>
-              sum + toNumberOrZero(prevAccessors.y(dataPoint)),
+          const xValue = accessors.x(dataPoint);
+          const xKey = toXKey(xValue);
+          const start = predecessorSumsByX.reduce(
+            (sum, sums) => sum + toNumberOrZero(sums.get(xKey)),
             0,
           );
           const end = start + yValue;

@@ -68,6 +68,45 @@ function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function isArrayLike(value) {
+  return Array.isArray(value) || ArrayBuffer.isView(value);
+}
+
+/**
+ * Normalize supported input data shapes into an array-of-rows shape.
+ *
+ * Supported:
+ * - Row shape: [{ x: 1, y: 2 }, ...]
+ * - Column shape: { x: [...], y: [...], q1: [...] }
+ */
+export function normalizeDataShape(inputData) {
+  if (Array.isArray(inputData)) return inputData;
+  if (!isPlainObject(inputData)) return [];
+
+  const keys = Object.keys(inputData).filter((key) =>
+    isArrayLike(inputData[key]),
+  );
+  if (keys.length === 0) return [];
+
+  const length = inputData[keys[0]].length;
+  const hasMismatchedLengths = keys.some(
+    (key) => inputData[key].length !== length,
+  );
+  if (hasMismatchedLengths) {
+    throw new Error(
+      'Columnar data arrays must all be the same length for conversion.',
+    );
+  }
+
+  return Array.from({ length }, (_, i) => {
+    const row = {};
+    keys.forEach((key) => {
+      row[key] = inputData[key][i];
+    });
+    return row;
+  });
+}
+
 /**
  * Deeply merges two objects or arrays.
  * @param {*} target - The target object or array.
@@ -119,7 +158,12 @@ export const combineNumericExtent = (data = [], accessorKeys = []) => {
         }
         v = v[path[i]];
       }
-      if (v != null && !Number.isNaN(v)) values.push(v);
+      if (v instanceof Date) {
+        values.push(v);
+      } else {
+        const numeric = Number(v);
+        if (Number.isFinite(numeric)) values.push(numeric);
+      }
     });
   });
 
@@ -143,10 +187,11 @@ function computeStackedExtent(data = [], series = []) {
   const sumByX = new Map();
 
   stackedBarSeries.forEach((s) => {
+    const seriesData = Array.isArray(s?.data) ? s.data : data;
     const getX = createAccessor(s.xKey);
     const getY = createAccessor(s.yKey);
 
-    data.forEach((d) => {
+    seriesData.forEach((d) => {
       const rawX = getX(d);
       const yValue = Number(getY(d));
       if (rawX == null || !Number.isFinite(yValue)) return;
@@ -190,30 +235,68 @@ export const computeScales = (chartValues, axisConfig) => {
       return isSecondaryAxis ? isSecondaryFlag : !isSecondaryFlag;
     });
 
+    const getSeriesData = (s) => (Array.isArray(s?.data) ? s.data : data);
+
     // collect accessor keys for this axis. support boxplot-style multi-value keys
     const valueProps = isX ? seriesAccessorProps.x : seriesAccessorProps.y;
-
-    const accessorKeys = matchingSeries.flatMap((s) =>
-      valueProps.map((p) => s?.[p]).filter(Boolean),
-    );
 
     let domain;
     const scaleType = type || 'linear';
 
+    const toComparableNumber = (value) => {
+      if (value instanceof Date) return value.getTime();
+      const numeric = Number(value);
+      return Number.isFinite(numeric) ? numeric : null;
+    };
+
     if (scaleType === 'band') {
       // For band scales we need an array of categorical values (preserve order, unique)
       const vals = [];
-      accessorKeys.forEach((key) => {
-        if (!key) return;
-        const accessor = createAccessor(key);
-        data.forEach((d) => {
-          const v = accessor(d);
-          if (v != null && !vals.includes(v)) vals.push(v);
+      matchingSeries.forEach((s) => {
+        const seriesData = getSeriesData(s);
+        const accessorKeys = valueProps.map((p) => s?.[p]).filter(Boolean);
+        accessorKeys.forEach((key) => {
+          if (!key) return;
+          const accessor = createAccessor(key);
+          seriesData.forEach((d) => {
+            const v = accessor(d);
+            if (v != null && !vals.includes(v)) vals.push(v);
+          });
         });
       });
       domain = vals.length ? vals : [];
     } else {
-      domain = combineNumericExtent(data, accessorKeys);
+      let minComparable = Infinity;
+      let maxComparable = -Infinity;
+      let minValue;
+      let maxValue;
+
+      matchingSeries.forEach((s) => {
+        const seriesData = getSeriesData(s);
+        const accessorKeys = valueProps.map((p) => s?.[p]).filter(Boolean);
+        if (accessorKeys.length === 0) return;
+        const [seriesMin, seriesMax] = combineNumericExtent(
+          seriesData,
+          accessorKeys,
+        );
+        const seriesMinComparable = toComparableNumber(seriesMin);
+        const seriesMaxComparable = toComparableNumber(seriesMax);
+        if (seriesMinComparable == null || seriesMaxComparable == null) return;
+
+        if (seriesMinComparable < minComparable) {
+          minComparable = seriesMinComparable;
+          minValue = seriesMin;
+        }
+        if (seriesMaxComparable > maxComparable) {
+          maxComparable = seriesMaxComparable;
+          maxValue = seriesMax;
+        }
+      });
+
+      domain =
+        Number.isFinite(minComparable) && Number.isFinite(maxComparable)
+          ? [minValue, maxValue]
+          : [0, 1];
 
       // include cumulative totals for stacked bars so bars are not clipped
       if (!isX) {
