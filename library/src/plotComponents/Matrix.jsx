@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useRef } from 'react';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
 import { mergeDeep } from '../utilities/dataUtilities';
@@ -85,22 +85,29 @@ function buildContinuousXMap(seriesData, xAccessor, xScale) {
   ordered.forEach((entry, index) => {
     const prev = ordered[index - 1]?.center;
     const next = ordered[index + 1]?.center;
+    const prevGap = Number.isFinite(prev) ? Math.abs(entry.center - prev) : NaN;
+    const nextGap = Number.isFinite(next) ? Math.abs(next - entry.center) : NaN;
 
-    let width;
-    if (Number.isFinite(prev) && Number.isFinite(next)) {
-      width =
-        (Math.abs(entry.center - prev) + Math.abs(next - entry.center)) / 2;
-    } else if (Number.isFinite(prev)) {
-      width = Math.abs(entry.center - prev);
-    } else if (Number.isFinite(next)) {
-      width = Math.abs(next - entry.center);
-    } else {
-      width = fallbackWidth;
-    }
+    let fallbackGap = fallbackWidth;
+    if (Number.isFinite(nextGap)) fallbackGap = nextGap;
+    else if (Number.isFinite(prevGap)) fallbackGap = prevGap;
+
+    const leftBound = Number.isFinite(prev)
+      ? (prev + entry.center) / 2
+      : entry.center - fallbackGap / 2;
+    const rightBound = Number.isFinite(next)
+      ? (entry.center + next) / 2
+      : entry.center + fallbackGap / 2;
 
     lookup.set(entry.comparable, {
       center: entry.center,
-      width: Math.max(1, width),
+      prevCenter: prev,
+      nextCenter: next,
+      prevGap,
+      nextGap,
+      fallbackGap,
+      leftBound,
+      rightBound,
     });
   });
 
@@ -133,21 +140,18 @@ function Matrix({ seriesIndex = 0, options = {} }) {
   const seriesData = getSeriesData(seriesIndex);
   const { xScale, yScale } = getSeriesScales(seriesIndex);
 
-  const thresholdValues = useMemo(
-    () => normalizeThresholds(finalOptions.thresholds),
-    [finalOptions.thresholds],
-  );
+  const thresholdValues = normalizeThresholds(finalOptions.thresholds);
 
   const yIsBand = typeof yScale?.bandwidth === 'function';
   const xIsBand = typeof xScale?.bandwidth === 'function';
   const useContinuousX = !xIsBand;
 
-  const continuousXMap = useMemo(() => {
+  const continuousXMap = (() => {
     if (!useContinuousX || !xScale || typeof accessors?.x !== 'function') {
       return new Map();
     }
     return buildContinuousXMap(seriesData, accessors.x, xScale);
-  }, [accessors, seriesData, useContinuousX, xScale]);
+  })();
 
   const groupRef = useRef(null);
 
@@ -165,7 +169,7 @@ function Matrix({ seriesIndex = 0, options = {} }) {
       className={className}
       style={{ ...sx, visibility: isVisible ? 'visible' : 'hidden' }}
     >
-      {seriesData.map((d, idx) => {
+      {seriesData.map((d) => {
         const xValue = accessors.x(d);
         const yValue = accessors.y(d);
         const value = accessors.valueKey?.(d);
@@ -182,23 +186,69 @@ function Matrix({ seriesIndex = 0, options = {} }) {
           const comparable = toComparable(xValue);
           if (comparable == null) return null;
 
-          const centerAndWidth = continuousXMap.get(comparable);
-          if (!centerAndWidth) return null;
+          const centerInfo = continuousXMap.get(comparable);
+          if (!centerInfo) return null;
 
-          const width = Math.max(
-            0,
-            centerAndWidth.width * Math.max(0.05, Number(cellWidthFactor) || 1),
+          const anchor =
+            timeAnchor === 'left'
+              ? 'start'
+              : timeAnchor === 'right'
+                ? 'end'
+                : timeAnchor;
+
+          const xRange =
+            typeof xScale.range === 'function' ? xScale.range() : [0, 0];
+          const xMin = Math.min(...xRange);
+          const xMax = Math.max(...xRange);
+
+          let baseWidth;
+          if (anchor === 'start') {
+            baseWidth = Number.isFinite(centerInfo.nextGap)
+              ? centerInfo.nextGap
+              : centerInfo.fallbackGap;
+          } else if (anchor === 'end') {
+            baseWidth = Number.isFinite(centerInfo.prevGap)
+              ? centerInfo.prevGap
+              : centerInfo.fallbackGap;
+          } else {
+            const leftHalf = Number.isFinite(centerInfo.prevGap)
+              ? centerInfo.prevGap / 2
+              : centerInfo.fallbackGap / 2;
+            const rightHalf = Number.isFinite(centerInfo.nextGap)
+              ? centerInfo.nextGap / 2
+              : centerInfo.fallbackGap / 2;
+            baseWidth = leftHalf + rightHalf;
+          }
+
+          if (!Number.isFinite(baseWidth) || baseWidth <= 0) return null;
+
+          const factor = Math.max(
+            0.05,
+            Math.min(1, Number(cellWidthFactor) || 1),
           );
+          const width = Math.max(0, baseWidth * factor);
           const pad = Math.max(0, Number(cellPadding) || 0);
 
           let xStart;
-          if (timeAnchor === 'start') xStart = centerAndWidth.center;
-          else if (timeAnchor === 'end') xStart = centerAndWidth.center - width;
-          else xStart = centerAndWidth.center - width / 2;
+          let xEnd;
+
+          if (anchor === 'start') {
+            xStart = centerInfo.center;
+            xEnd = centerInfo.center + width;
+          } else if (anchor === 'end') {
+            xEnd = centerInfo.center;
+            xStart = centerInfo.center - width;
+          } else {
+            xStart = centerInfo.center - width / 2;
+            xEnd = centerInfo.center + width / 2;
+          }
+
+          xStart = Math.max(xMin, xStart);
+          xEnd = Math.min(xMax, xEnd);
 
           xRect = {
             start: xStart + pad,
-            size: Math.max(0, width - 2 * pad),
+            size: Math.max(0, xEnd - xStart - 2 * pad),
           };
         } else {
           return null;
@@ -215,7 +265,9 @@ function Matrix({ seriesIndex = 0, options = {} }) {
         const labelValue = accessors.labelKey ? accessors.labelKey(d) : value;
 
         return (
-          <g key={`${seriesIndex}-${idx}-${String(xValue)}-${String(yValue)}`}>
+          <g
+            key={`${seriesIndex}-${String(xValue)}-${String(yValue)}-${String(value)}`}
+          >
             <rect
               x={xRect.start}
               y={yRect.start}

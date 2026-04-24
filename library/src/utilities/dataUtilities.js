@@ -230,10 +230,8 @@ function getContinuousXDomainPadding(series = [], domain = []) {
     return { start: 0, end: 0 };
   }
 
-  let minStep = Infinity;
-  series.forEach((s) => {
-    if (!s || (s.type !== 'bar' && s.type !== 'boxPlot') || !s.xKey) return;
-
+  const getSortedUniqueXValues = (s) => {
+    if (!s?.xKey) return [];
     const getX = createAccessor(s.xKey);
     const seriesData = Array.isArray(s?.data) ? s.data : [];
     const xs = seriesData
@@ -241,9 +239,43 @@ function getContinuousXDomainPadding(series = [], domain = []) {
       .filter((v) => v != null)
       .sort((a, b) => a - b);
 
+    return xs.filter((v, i) => i === 0 || v !== xs[i - 1]);
+  };
+
+  const getEdgeGaps = (xs) => {
+    if (!Array.isArray(xs) || xs.length < 2) {
+      return { firstGap: null, lastGap: null, minGap: null };
+    }
+
+    let minGap = Infinity;
     for (let i = 1; i < xs.length; i += 1) {
       const step = xs[i] - xs[i - 1];
-      if (step > 0 && step < minStep) minStep = step;
+      if (step > 0 && step < minGap) minGap = step;
+    }
+
+    const firstGapRaw = xs[1] - xs[0];
+    const lastGapRaw = xs[xs.length - 1] - xs[xs.length - 2];
+
+    return {
+      firstGap: firstGapRaw > 0 ? firstGapRaw : null,
+      lastGap: lastGapRaw > 0 ? lastGapRaw : null,
+      minGap: Number.isFinite(minGap) ? minGap : null,
+    };
+  };
+
+  let minStep = Infinity;
+  series.forEach((s) => {
+    if (
+      !s ||
+      (s.type !== 'bar' && s.type !== 'boxPlot' && s.type !== 'matrix')
+    ) {
+      return;
+    }
+
+    const xs = getSortedUniqueXValues(s);
+    const { minGap } = getEdgeGaps(xs);
+    if (Number.isFinite(minGap) && minGap > 0 && minGap < minStep) {
+      minStep = minGap;
     }
   });
 
@@ -256,7 +288,41 @@ function getContinuousXDomainPadding(series = [], domain = []) {
   let padEnd = 0;
 
   series.forEach((s) => {
-    if (!s || (s.type !== 'bar' && s.type !== 'boxPlot')) return;
+    if (!s) return;
+
+    if (s.type === 'matrix') {
+      const xs = getSortedUniqueXValues(s);
+      const { firstGap, lastGap } = getEdgeGaps(xs);
+
+      const gapStart = Number.isFinite(firstGap) ? firstGap : minStep;
+      const gapEnd = Number.isFinite(lastGap) ? lastGap : minStep;
+
+      const factorRaw = Number(s.cellWidthFactor);
+      const factor = Number.isFinite(factorRaw)
+        ? Math.max(0.05, Math.min(1, factorRaw))
+        : 0.95;
+
+      const anchorRaw = s.timeAnchor || 'center';
+      const anchor =
+        anchorRaw === 'left'
+          ? 'start'
+          : anchorRaw === 'right'
+            ? 'end'
+            : anchorRaw;
+
+      if (anchor === 'start') {
+        padEnd = Math.max(padEnd, gapEnd * factor);
+      } else if (anchor === 'end') {
+        padStart = Math.max(padStart, gapStart * factor);
+      } else {
+        padStart = Math.max(padStart, (gapStart * factor) / 2);
+        padEnd = Math.max(padEnd, (gapEnd * factor) / 2);
+      }
+
+      return;
+    }
+
+    if (s.type !== 'bar' && s.type !== 'boxPlot') return;
 
     const alignment = s.alignment || 'center';
     const paddingFactor = Number.isFinite(Number(s.paddingFactor))

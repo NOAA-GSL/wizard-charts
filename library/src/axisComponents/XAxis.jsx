@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
-import { mergeDeep } from '../utilities/dataUtilities';
+import { createAccessor, mergeDeep } from '../utilities/dataUtilities';
 import { defaultAxisOptions } from '../utilities/defaultOptions';
 
 function XAxis({ options = {}, axisKey = 'x' }) {
@@ -43,6 +43,14 @@ function XAxis({ options = {}, axisKey = 'x' }) {
   const tickFontWeight = ticksOpts.fontWeight;
   const tickFontColor = ticksOpts.fontColor;
   const tickFormatter = ticksOpts.formatter;
+  const explicitTickValues =
+    Array.isArray(ticksOpts.values) && ticksOpts.values.length > 0
+      ? ticksOpts.values
+      : null;
+  const explicitTickLabels =
+    Array.isArray(ticksOpts.labels) && ticksOpts.labels.length > 0
+      ? ticksOpts.labels
+      : null;
 
   const isXBandScale = typeof xScaleToUse?.bandwidth === 'function';
   const xRange =
@@ -55,15 +63,52 @@ function XAxis({ options = {}, axisKey = 'x' }) {
   const yTop = Math.min(...yRange);
   const yBottom = Math.max(...yRange);
 
-  const tickValues = isXBandScale
-    ? xDomainToUse || []
-    : typeof xScaleToUse?.ticks === 'function'
-      ? xScaleToUse.ticks()
-      : [];
+  const series = chartValues.options?.series || [];
+  const rootData = Array.isArray(chartValues.data) ? chartValues.data : [];
+  const isSecondaryXAxis = axisKey === 'x2';
 
-  const ticks = tickValues.map((value) => ({
+  const matrixTimeTickValues = [];
+  if (
+    !explicitTickValues &&
+    (finalOptions.type === 'time' || finalOptions.type === 'linear')
+  ) {
+    const seen = new Set();
+    series.forEach((s) => {
+      if (!s || s.type !== 'matrix') return;
+
+      const usesSecondary = Boolean(s.isSecondaryXAxis);
+      if (usesSecondary !== isSecondaryXAxis) return;
+
+      const getX = createAccessor(s.xKey);
+      const seriesData = Array.isArray(s?.data) ? s.data : rootData;
+
+      seriesData.forEach((d) => {
+        const v = getX(d);
+        if (v == null) return;
+
+        const key = v instanceof Date ? `d:${v.getTime()}` : `v:${String(v)}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        matrixTimeTickValues.push(v);
+      });
+    });
+  }
+
+  const generatedTickValues = isXBandScale
+    ? xDomainToUse || []
+    : matrixTimeTickValues.length > 0
+      ? matrixTimeTickValues
+      : typeof xScaleToUse?.ticks === 'function'
+        ? xScaleToUse.ticks()
+        : [];
+
+  const tickValues = explicitTickValues || generatedTickValues;
+
+  const ticks = tickValues.map((value, index) => ({
     value,
-    label: tickFormatter ? tickFormatter(value) : String(value),
+    label:
+      explicitTickLabels?.[index] ??
+      (tickFormatter ? tickFormatter(value) : String(value)),
   }));
 
   const textStyle = {
