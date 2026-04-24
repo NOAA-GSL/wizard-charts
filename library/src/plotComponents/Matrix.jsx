@@ -116,7 +116,6 @@ function Matrix({ seriesIndex = 0, options = {} }) {
     isVisible,
     cellPadding,
     cellWidthFactor,
-    xPositionMode,
     timeAnchor,
     stroke,
     strokeWidth,
@@ -141,7 +140,7 @@ function Matrix({ seriesIndex = 0, options = {} }) {
 
   const yIsBand = typeof yScale?.bandwidth === 'function';
   const xIsBand = typeof xScale?.bandwidth === 'function';
-  const useContinuousX = xPositionMode === 'time' && !xIsBand;
+  const useContinuousX = !xIsBand;
 
   const continuousXMap = useMemo(() => {
     if (!useContinuousX || !xScale || typeof accessors?.x !== 'function') {

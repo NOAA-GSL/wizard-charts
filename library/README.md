@@ -378,7 +378,6 @@ Use these as references when building options.
   labelKey: undefined,
   thresholds: [0.2, 0.4, 0.6, 0.8],
   colors: ['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c'],
-  xPositionMode: 'band', // 'band' | 'time'
   timeAnchor: 'center', // 'start' | 'center' | 'end'
   cellPadding: 1,
   cellWidthFactor: 0.95,
@@ -395,6 +394,11 @@ Use these as references when building options.
   sx: {},
 }
 ```
+
+Matrix placement is inferred from the resolved x-scale:
+
+- `axes.x.type: 'band'` => band cells
+- non-band x scales (`time`, `linear`) => continuous placement
 
 ### Line
 
