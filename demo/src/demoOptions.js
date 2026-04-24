@@ -302,7 +302,7 @@ export const demoOptions = {
         thresholds: [50, 58, 66, 74],
         colors: ['#1f3b66', '#245f8f', '#2c8f9f', '#5ac18e', '#d4e77a'],
         xPositionMode: 'band',
-        timeAnchor: 'center',
+        timeAnchor: 'end',
         cellPadding: 1,
         stroke: '#ffffff1a',
         strokeWidth: 1,

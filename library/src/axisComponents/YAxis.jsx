@@ -39,23 +39,33 @@ function YAxis({ options = {}, axisKey = 'y' }) {
   const tickFontSize = ticksOpts.fontSize;
   const tickFontWeight = ticksOpts.fontWeight;
   const tickFontColor = ticksOpts.fontColor;
+  const tickFormatter = ticksOpts.formatter;
+
+  const isYBandScale = typeof yScaleToUse?.bandwidth === 'function';
+  const xRange =
+    typeof xScaleToUse?.range === 'function' ? xScaleToUse.range() : [0, 0];
+  const yRange =
+    typeof yScaleToUse?.range === 'function' ? yScaleToUse.range() : [0, 0];
+
+  const xStart = Math.min(...xRange);
+  const xEnd = Math.max(...xRange);
+  const yTop = Math.min(...yRange);
+  const yBottom = Math.max(...yRange);
 
   const { data, margin } = chartValues;
 
-  const ticks = (
-    typeof yScaleToUse?.ticks === 'function' ? yScaleToUse.ticks() : []
-  ).map((value) => ({ value, label: String(value) }));
+  const tickValues = isYBandScale
+    ? yDomainToUse || []
+    : typeof yScaleToUse?.ticks === 'function'
+      ? yScaleToUse.ticks()
+      : [];
 
-  const xDomainFinal =
-    xDomainToUse ||
-    (typeof xScaleToUse?.domain === 'function' ? xScaleToUse.domain() : []);
-  const yDomainFinal =
-    yDomainToUse ||
-    (typeof yScaleToUse?.domain === 'function' ? yScaleToUse.domain() : []);
+  const ticks = tickValues.map((value) => ({
+    value,
+    label: tickFormatter ? tickFormatter(value) : String(value),
+  }));
 
-  const yMiddle =
-    yScaleToUse(yDomainFinal[0]) +
-    (yScaleToUse(yDomainFinal[1]) - yScaleToUse(yDomainFinal[0])) / 2;
+  const yMiddle = (yTop + yBottom) / 2;
 
   // if there is no axis line, then there should be no tick length
   const finalTickLength = hasAxisLine ? tickLength : 0;
@@ -67,8 +77,7 @@ function YAxis({ options = {}, axisKey = 'y' }) {
   // not enough padding on right side, so add 2 to the right side
   const legendTickOffset = isLeftLocation ? margin.left : -margin.right + 2;
 
-  // this determines whether the x value is the left or right side of the chart
-  const xDomainPosition = isLeftLocation ? 0 : 1;
+  const xAxisLinePosition = isLeftLocation ? xStart : xEnd;
 
   const textStyle = {
     alignmentBaseline: 'central', // central looks better than middle
@@ -87,7 +96,7 @@ function YAxis({ options = {}, axisKey = 'y' }) {
   });
 
   // prevent rendering if scales aren't ready yet
-  if (!xScaleToUse || !yScaleToUse || !xDomainFinal || !yDomainFinal) {
+  if (!xScaleToUse || !yScaleToUse || !xDomainToUse || !yDomainToUse) {
     return null;
   }
 
@@ -96,10 +105,10 @@ function YAxis({ options = {}, axisKey = 'y' }) {
       {/* vertical line for y-axis, `location` will set the x values */}
       {hasAxisLine && (
         <line
-          x1={xScaleToUse(xDomainFinal[xDomainPosition])}
-          x2={xScaleToUse(xDomainFinal[xDomainPosition])}
-          y1={yScaleToUse(yDomainFinal[0])}
-          y2={yScaleToUse(yDomainFinal[1])}
+          x1={xAxisLinePosition}
+          x2={xAxisLinePosition}
+          y1={yBottom}
+          y2={yTop}
           stroke={strokeAxis}
           strokeWidth={strokeWidth}
         />
@@ -109,50 +118,49 @@ function YAxis({ options = {}, axisKey = 'y' }) {
         className="gsl-chart-axis-label"
         alignmentBaseline={`${isLeftLocation ? 'before-edge' : 'after-edge'}`}
         textAnchor="middle"
-        transform={`translate(${xScaleToUse(xDomainFinal[xDomainPosition]) - legendTickOffset}, ${yMiddle}) rotate(-90)`}
+        transform={`translate(${xAxisLinePosition - legendTickOffset}, ${yMiddle}) rotate(-90)`}
       >
         {data.ylegend}
       </text>
       <g ref={ticksGroupRef}>
-        {ticks.map((tick) => (
-          <g
-            key={String(tick.value)}
-            transform={`translate(0, ${yScaleToUse(tick.value)})`}
-          >
-            {/* Horizontal grid line */}
-            {hasGridLines && (
-              <line
-                x1={xScaleToUse(xDomainFinal[0])}
-                x2={xScaleToUse(xDomainFinal[1])}
-                stroke={strokeGrid}
-                strokeWidth={strokeWidth}
-              />
-            )}
-            {/* Tick Mark */}
-            {hasAxisLine && (
-              <line
-                // todo: well, this isn't using the tickLength prop...
-                x1={
-                  xScaleToUse(xDomainFinal[xDomainPosition]) -
-                  locationTickOffset / 2
-                }
-                x2={xScaleToUse(xDomainFinal[xDomainPosition])}
-                stroke={strokeAxis}
-                strokeWidth={strokeWidth}
-              />
-            )}
-            {/* Tick Label */}
-            <text
-              style={textStyle}
-              className="gsl-chart-tick-label"
-              x={
-                xScaleToUse(xDomainFinal[xDomainPosition]) - locationTickOffset
-              }
-            >
-              {tick.label === '' ? tick.value : tick.label}
-            </text>
-          </g>
-        ))}
+        {ticks.map((tick) => {
+          const tickY = isYBandScale
+            ? yScaleToUse(tick.value) + yScaleToUse.bandwidth() / 2
+            : yScaleToUse(tick.value);
+          if (!Number.isFinite(tickY)) return null;
+
+          return (
+            <g key={String(tick.value)} transform={`translate(0, ${tickY})`}>
+              {/* Horizontal grid line */}
+              {hasGridLines && (
+                <line
+                  x1={xStart}
+                  x2={xEnd}
+                  stroke={strokeGrid}
+                  strokeWidth={strokeWidth}
+                />
+              )}
+              {/* Tick Mark */}
+              {hasAxisLine && (
+                <line
+                  // todo: well, this isn't using the tickLength prop...
+                  x1={xAxisLinePosition - locationTickOffset / 2}
+                  x2={xAxisLinePosition}
+                  stroke={strokeAxis}
+                  strokeWidth={strokeWidth}
+                />
+              )}
+              {/* Tick Label */}
+              <text
+                style={textStyle}
+                className="gsl-chart-tick-label"
+                x={xAxisLinePosition - locationTickOffset}
+              >
+                {tick.label === '' ? tick.value : tick.label}
+              </text>
+            </g>
+          );
+        })}
       </g>
     </g>
   );
