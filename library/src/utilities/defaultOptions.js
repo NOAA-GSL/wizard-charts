@@ -79,6 +79,7 @@ export const defaultSeriesOptions = {
 export const seriesAccessorProps = {
   x: ['xKey', 'minXKey', 'q1XKey', 'medianXKey', 'q3XKey', 'maxXKey'],
   y: ['yKey', 'minYKey', 'q1YKey', 'medianYKey', 'q3YKey', 'maxYKey'],
+  value: ['valueKey', 'labelKey'],
 };
 
 /**
@@ -142,5 +143,31 @@ export const defaultAreaOptions = {
   stroke: 'none',
   strokeWhisker: dataVizColors.tropicalIndigo,
   strokeWidth: 2,
+  sx: {},
+};
+
+export const defaultMatrixOptions = {
+  className: '',
+  xKey: 'x',
+  yKey: 'y',
+  valueKey: 'value',
+  labelKey: undefined,
+  thresholds: [0.2, 0.4, 0.6, 0.8],
+  colors: ['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c'],
+  // when x scale is not band, place each cell relative to x using this mode
+  xPositionMode: 'band', // 'band' | 'time'
+  timeAnchor: 'center', // 'start' | 'center' | 'end'
+  cellPadding: 1,
+  cellWidthFactor: 0.95,
+  fill: dataVizColors.tropicalIndigo,
+  stroke: '#20202055',
+  strokeWidth: 0,
+  showLabels: false,
+  labelFormatter: null,
+  labelColor: '#f2f2f2',
+  labelFontSize: 10,
+  labelFontWeight: 600,
+  missingCellMode: 'sparse',
+  isVisible: true,
   sx: {},
 };

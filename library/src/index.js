@@ -4,6 +4,7 @@ import YAxis from './axisComponents/YAxis';
 import Line from './plotComponents/Line';
 import Bar from './plotComponents/Bar';
 import BoxPlot from './plotComponents/BoxPlot';
+import Matrix from './plotComponents/Matrix';
 import { HoverPointProvider } from './context/HoverPointProvider';
 import { dataVizColors } from './utilities/defaultOptions';
 
@@ -16,6 +17,7 @@ export {
   Line,
   Bar,
   BoxPlot,
+  Matrix,
   HoverPointProvider,
   dataVizColors,
 };

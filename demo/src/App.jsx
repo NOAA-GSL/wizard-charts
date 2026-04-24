@@ -14,6 +14,8 @@ const chartTypes = [
   'boxPlot',
   'circle',
   'area',
+  'matrix',
+  'matrixTime',
 ];
 
 // use generateRandomData to create an array of objects

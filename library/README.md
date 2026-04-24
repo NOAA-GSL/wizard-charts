@@ -183,7 +183,7 @@ Each entry in `options.series` renders one plot layer.
 
 ```js
 {
-  type: 'line', // 'line' | 'bar' | 'boxPlot' | 'circle' | 'area'
+  type: 'line', // 'line' | 'bar' | 'boxPlot' | 'circle' | 'area' | 'matrix'
   xKey: 'x',
   yKey: 'y',
   data: undefined, // optional per-series dataset
@@ -197,6 +197,34 @@ Each entry in `options.series` renders one plot layer.
   sx: {},
 }
 ```
+
+### Matrix Data Shape (Long Form)
+
+Use one row per cell for matrix charts.
+
+```js
+[
+  { date: new Date('2026-01-01'), category: 'model1', value: 62.3 },
+  { date: new Date('2026-01-01'), category: 'model2', value: 58.1 },
+  { date: new Date('2026-01-02'), category: 'model1', value: 64.8 },
+];
+```
+
+Suggested matrix series config:
+
+```js
+{
+  type: 'matrix',
+  xKey: 'date',
+  yKey: 'category',
+  valueKey: 'value',
+  thresholds: [50, 58, 66, 74],
+  colors: ['#1f3b66', '#245f8f', '#2c8f9f', '#5ac18e', '#d4e77a'],
+}
+```
+
+Threshold bins are applied in ascending order using `value <= threshold`.
+The color array should usually contain `thresholds.length + 1` colors.
 
 ### Stacked Bar Behavior
 
@@ -221,7 +249,7 @@ For bar series:
 You can render multiple plot types in one chart by adding multiple entries to `options.series`.
 
 - Each series entry renders one layer.
-- You can mix `line`, `bar`, `boxPlot`, `area`, and `circle` in the same chart.
+- You can mix `line`, `bar`, `boxPlot`, `area`, `circle`, and `matrix` in the same chart.
 - Render order follows array order: later series draw on top of earlier series.
 
 Example:
@@ -340,6 +368,34 @@ Use these as references when building options.
 }
 ```
 
+### Matrix
+
+```js
+{
+  xKey: 'x',
+  yKey: 'y',
+  valueKey: 'value',
+  labelKey: undefined,
+  thresholds: [0.2, 0.4, 0.6, 0.8],
+  colors: ['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c'],
+  xPositionMode: 'band', // 'band' | 'time'
+  timeAnchor: 'center', // 'start' | 'center' | 'end'
+  cellPadding: 1,
+  cellWidthFactor: 0.95,
+  fill: dataVizColors.tropicalIndigo,
+  stroke: '#20202055',
+  strokeWidth: 0,
+  showLabels: false,
+  labelFormatter: null,
+  labelColor: '#f2f2f2',
+  labelFontSize: 10,
+  labelFontWeight: 600,
+  missingCellMode: 'sparse',
+  isVisible: true,
+  sx: {},
+}
+```
+
 ### Line
 
 ```js
@@ -418,6 +474,7 @@ All plot types support secondary-axis mapping:
 - `boxPlot`
 - `area`
 - `circle`
+- `matrix`
 
 Axis rendering behavior:
 

@@ -1,5 +1,26 @@
 import { timeFormatter, dataVizColors } from '@noaa-gsl/wizard-charts';
 
+const matrixCategories = ['model1', 'model2', 'model3', 'model4'];
+const matrixStartDate = new Date('2026-01-01T00:00:00Z');
+const matrixDates = Array.from(
+  { length: 12 },
+  (_, i) => new Date(matrixStartDate.getTime() + i * 24 * 3600_000),
+);
+
+const matrixData = matrixDates.flatMap((date, dateIndex) =>
+  matrixCategories.map((category, categoryIndex) => {
+    const base = 45 + dateIndex * 1.8 + categoryIndex * 5.5;
+    const wave = Math.sin((dateIndex + categoryIndex) / 2) * 7;
+    const value = Math.round((base + wave) * 10) / 10;
+    return {
+      date,
+      category,
+      value,
+      label: `${value.toFixed(1)}F`,
+    };
+  }),
+);
+
 export const demoOptions = {
   bar: {
     series: [
@@ -267,5 +288,64 @@ export const demoOptions = {
       hoverMode: 'local', // or 'global'
     },
     animationDuration: 1000, // in ms
+  },
+  matrix: {
+    series: [
+      {
+        type: 'matrix',
+        data: matrixData,
+        xKey: 'date',
+        yKey: 'category',
+        valueKey: 'value',
+        labelKey: 'label',
+        showLabels: false,
+        thresholds: [50, 58, 66, 74],
+        colors: ['#1f3b66', '#245f8f', '#2c8f9f', '#5ac18e', '#d4e77a'],
+        xPositionMode: 'band',
+        timeAnchor: 'center',
+        cellPadding: 1,
+        stroke: '#ffffff1a',
+        strokeWidth: 1,
+      },
+    ],
+    axes: {
+      x: {
+        type: 'band',
+        ticks: { formatter: timeFormatter('%m-%d') },
+      },
+      y: {
+        type: 'band',
+      },
+    },
+    animationDuration: 750,
+  },
+  matrixTime: {
+    series: [
+      {
+        type: 'matrix',
+        data: matrixData,
+        xKey: 'date',
+        yKey: 'category',
+        valueKey: 'value',
+        thresholds: [50, 58, 66, 74],
+        colors: ['#1f3b66', '#245f8f', '#2c8f9f', '#5ac18e', '#d4e77a'],
+        xPositionMode: 'time',
+        timeAnchor: 'start',
+        cellWidthFactor: 0.92,
+        cellPadding: 1,
+        stroke: '#ffffff1a',
+        strokeWidth: 1,
+      },
+    ],
+    axes: {
+      x: {
+        type: 'time',
+        ticks: { formatter: timeFormatter('%m-%d') },
+      },
+      y: {
+        type: 'band',
+      },
+    },
+    animationDuration: 750,
   },
 };
