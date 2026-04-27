@@ -376,7 +376,8 @@ Use these as references when building options.
   yKey: 'y',
   valueKey: 'value',
   labelKey: undefined,
-  thresholds: [0.2, 0.4, 0.6, 0.8],
+  // optional; auto-generated from data range and colors.length when omitted
+  thresholds: undefined,
   colors: ['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c'],
   timeAnchor: 'center', // 'start' | 'center' | 'end'
   cellPadding: 1,
@@ -408,7 +409,7 @@ Matrix option details:
 | `yKey`            | `string \| (row) => any`       | `'y'`                                                     | Accessor for matrix row/category. Use categorical values when `axes.y.type` is `band`.                                                                           |
 | `valueKey`        | `string \| (row) => number`    | `'value'`                                                 | Numeric value used for threshold binning and color selection.                                                                                                    |
 | `labelKey`        | `string \| (row) => any`       | `undefined`                                               | Optional accessor for label text. Falls back to `valueKey` when omitted.                                                                                         |
-| `thresholds`      | `number[]`                     | `[0.2, 0.4, 0.6, 0.8]`                                    | Ascending threshold breakpoints. Values are normalized and sorted internally. Color bins use `value <= threshold`.                                               |
+| `thresholds`      | `number[] \| undefined`        | `undefined`                                               | Optional threshold breakpoints. If omitted, thresholds are auto-generated from the matrix value extent using `colors.length - 1` evenly spaced breaks.           |
 | `colors`          | `string[]`                     | `['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c']` | Fill colors for threshold bins. Recommended length is `thresholds.length + 1`.                                                                                   |
 | `fill`            | `string`                       | `dataVizColors.tropicalIndigo`                            | Fallback fill color when value is non-numeric or colors/thresholds are not usable.                                                                               |
 | `timeAnchor`      | `'start' \| 'center' \| 'end'` | `'center'`                                                | Anchor for non-band x scales. `start`: tick at left edge of cell. `center`: tick at center. `end`: tick at right edge. Aliases `left`/`right` are also accepted. |
@@ -431,6 +432,7 @@ Additional notes:
 - Matrix currently requires a band y-axis (`axes.y.type: 'band'`) for uniform row heights.
 - For non-band x scales, cell widths are based on local spacing between neighboring x-values and then adjusted by `timeAnchor` and `cellWidthFactor`.
 - Matrix x-axis ticks for `time` and `linear` scales use matrix data x-values by default unless `axes.x.ticks.values` is explicitly provided.
+- When `thresholds` is omitted, matrix computes evenly spaced thresholds across the data value range based on `colors.length - 1`.
 
 ### Heatmap
 
@@ -462,27 +464,27 @@ Heatmap renders continuous contour bands plus optional contour lines from scatte
 
 Heatmap option details:
 
-| Property              | Type                        | Default                                                   | Description                                                                              |
-| --------------------- | --------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `xKey`                | `string \| (row) => any`    | `'x'`                                                     | Accessor for x coordinates. Supports dot notation.                                       |
-| `yKey`                | `string \| (row) => any`    | `'y'`                                                     | Accessor for y coordinates. Supports dot notation.                                       |
-| `valueKey`            | `string \| (row) => number` | `'value'`                                                 | Numeric value used for interpolation and contour thresholds.                             |
+| Property              | Type                        | Default                                                   | Description                                                                                                                              |
+| --------------------- | --------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `xKey`                | `string \| (row) => any`    | `'x'`                                                     | Accessor for x coordinates. Supports dot notation.                                                                                       |
+| `yKey`                | `string \| (row) => any`    | `'y'`                                                     | Accessor for y coordinates. Supports dot notation.                                                                                       |
+| `valueKey`            | `string \| (row) => number` | `'value'`                                                 | Numeric value used for interpolation and contour thresholds.                                                                             |
 | `thresholds`          | `number[] \| undefined`     | `undefined`                                               | Optional contour levels. If omitted, thresholds are auto-generated from the value extent using `colors.length - 1` evenly spaced breaks. |
-| `colors`              | `string[]`                  | `['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c']` | Color bins for threshold bands. Recommended length is `thresholds.length + 1`.           |
-| `fill`                | `string`                    | `'#d6e6f2'`                                               | Fallback base fill color when bins/colors are insufficient.                              |
-| `resolution`          | `number`                    | `16`                                                      | Interpolation grid resolution. Higher values produce smoother contours with higher cost. |
-| `interpolationMethod` | `'idw'`                     | `'idw'`                                                   | Scattered-point interpolation method used before contour extraction.                     |
-| `idwPower`            | `number`                    | `2`                                                       | IDW distance exponent. Larger values emphasize nearby points.                            |
-| `idwNeighbors`        | `number`                    | `8`                                                       | Number of nearest points sampled for each interpolated grid node.                        |
-| `showContourFill`     | `boolean`                   | `true`                                                    | Render filled contour bands.                                                             |
-| `fillOpacity`         | `number`                    | `0.85`                                                    | Opacity applied to filled contour bands.                                                 |
-| `showContourLines`    | `boolean`                   | `true`                                                    | Render contour line overlays on top of fills.                                            |
-| `contourLineColor`    | `string \| null`            | `null`                                                    | Line color override. When null, each line uses its threshold-bin color.                  |
-| `contourLineWidth`    | `number`                    | `1`                                                       | Contour line width in pixels.                                                            |
-| `contourLineOpacity`  | `number`                    | `0.85`                                                    | Contour line opacity.                                                                    |
-| `className`           | `string`                    | `''`                                                      | Class applied to the heatmap container `<g>`.                                            |
-| `sx`                  | `object`                    | `{}`                                                      | Inline style object applied to the heatmap container `<g>`.                              |
-| `isVisible`           | `boolean`                   | `true`                                                    | Toggles heatmap visibility while preserving layout/scales.                               |
+| `colors`              | `string[]`                  | `['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c']` | Color bins for threshold bands. Recommended length is `thresholds.length + 1`.                                                           |
+| `fill`                | `string`                    | `'#d6e6f2'`                                               | Fallback base fill color when bins/colors are insufficient.                                                                              |
+| `resolution`          | `number`                    | `16`                                                      | Interpolation grid resolution. Higher values produce smoother contours with higher cost.                                                 |
+| `interpolationMethod` | `'idw'`                     | `'idw'`                                                   | Scattered-point interpolation method used before contour extraction.                                                                     |
+| `idwPower`            | `number`                    | `2`                                                       | IDW distance exponent. Larger values emphasize nearby points.                                                                            |
+| `idwNeighbors`        | `number`                    | `8`                                                       | Number of nearest points sampled for each interpolated grid node.                                                                        |
+| `showContourFill`     | `boolean`                   | `true`                                                    | Render filled contour bands.                                                                                                             |
+| `fillOpacity`         | `number`                    | `0.85`                                                    | Opacity applied to filled contour bands.                                                                                                 |
+| `showContourLines`    | `boolean`                   | `true`                                                    | Render contour line overlays on top of fills.                                                                                            |
+| `contourLineColor`    | `string \| null`            | `null`                                                    | Line color override. When null, each line uses its threshold-bin color.                                                                  |
+| `contourLineWidth`    | `number`                    | `1`                                                       | Contour line width in pixels.                                                                                                            |
+| `contourLineOpacity`  | `number`                    | `0.85`                                                    | Contour line opacity.                                                                                                                    |
+| `className`           | `string`                    | `''`                                                      | Class applied to the heatmap container `<g>`.                                                                                            |
+| `sx`                  | `object`                    | `{}`                                                      | Inline style object applied to the heatmap container `<g>`.                                                                              |
+| `isVisible`           | `boolean`                   | `true`                                                    | Toggles heatmap visibility while preserving layout/scales.                                                                               |
 
 Heatmap notes:
 

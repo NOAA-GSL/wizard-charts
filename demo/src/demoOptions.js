@@ -345,7 +345,7 @@ export const demoOptions = {
         type: 'band',
       },
     },
-    animationDuration: 750,
+    animationDuration: 1000,
   },
   matrixTime: {
     series: [
@@ -370,7 +370,7 @@ export const demoOptions = {
         type: 'band',
       },
     },
-    animationDuration: 750,
+    animationDuration: 1000,
   },
   heatmap: {
     series: [
@@ -403,7 +403,7 @@ export const demoOptions = {
         type: 'linear',
       },
     },
-    animationDuration: 600,
+    animationDuration: 1000,
   },
   heatmapTime: {
     series: [
@@ -435,6 +435,6 @@ export const demoOptions = {
         type: 'linear',
       },
     },
-    animationDuration: 600,
+    animationDuration: 1000,
   },
 };

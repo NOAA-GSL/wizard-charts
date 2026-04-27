@@ -152,7 +152,7 @@ export const defaultMatrixOptions = {
   yKey: 'y',
   valueKey: 'value',
   labelKey: undefined,
-  thresholds: [0.2, 0.4, 0.6, 0.8],
+  thresholds: undefined,
   colors: ['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c'],
   timeAnchor: 'center', // 'start' | 'center' | 'end'
   cellPadding: 1,

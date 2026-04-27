@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { extent } from 'd3';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
 import { mergeDeep } from '../utilities/dataUtilities';
@@ -16,6 +17,25 @@ function normalizeThresholds(thresholds) {
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value))
     .sort((a, b) => a - b);
+}
+
+function resolveThresholds(inputThresholds, values, colors) {
+  const normalized = normalizeThresholds(inputThresholds);
+  if (normalized.length > 0) return normalized;
+
+  const colorCount = Array.isArray(colors) ? colors.length : 0;
+  const thresholdCount = Math.max(0, colorCount - 1);
+  if (thresholdCount === 0) return [];
+
+  const [minValue, maxValue] = extent(values);
+  const min = Number(minValue);
+  const max = Number(maxValue);
+
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return [];
+  if (max <= min) return [min];
+
+  const step = (max - min) / colorCount;
+  return Array.from({ length: thresholdCount }, (_, i) => min + step * (i + 1));
 }
 
 function getColorForValue(value, thresholds, colors, fallbackFill) {
@@ -140,7 +160,13 @@ function Matrix({ seriesIndex = 0, options = {} }) {
   const seriesData = getSeriesData(seriesIndex);
   const { xScale, yScale } = getSeriesScales(seriesIndex);
 
-  const thresholdValues = normalizeThresholds(finalOptions.thresholds);
+  const thresholdValues = resolveThresholds(
+    finalOptions.thresholds,
+    seriesData
+      .map((d) => Number(accessors.valueKey?.(d)))
+      .filter(Number.isFinite),
+    colors,
+  );
 
   const yIsBand = typeof yScale?.bandwidth === 'function';
   const xIsBand = typeof xScale?.bandwidth === 'function';
