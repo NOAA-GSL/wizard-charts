@@ -156,7 +156,7 @@ export const defaultMatrixOptions = {
   colors: ['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c'],
   timeAnchor: 'center', // 'start' | 'center' | 'end'
   cellPadding: 1,
-  cellWidthFactor: 0.95,
+  cellWidthFactor: 1,
   fill: dataVizColors.tropicalIndigo,
   stroke: '#20202055',
   strokeWidth: 0,

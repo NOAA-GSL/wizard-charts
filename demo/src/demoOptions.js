@@ -327,9 +327,6 @@ export const demoOptions = {
         colors: ['#1f3b66', '#245f8f', '#2c8f9f', '#5ac18e', '#d4e77a'],
         timeAnchor: 'end',
         cellWidthFactor: 1,
-        // cellPadding: 1,
-        // stroke: '#ffffff1a',
-        // strokeWidth: 1,
       },
     ],
     axes: {

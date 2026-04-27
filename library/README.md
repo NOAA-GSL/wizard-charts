@@ -378,10 +378,9 @@ Use these as references when building options.
   labelKey: undefined,
   thresholds: [0.2, 0.4, 0.6, 0.8],
   colors: ['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c'],
-  // timeAnchor only applies to scales of type 'time' or 'linear'
   timeAnchor: 'center', // 'start' | 'center' | 'end'
   cellPadding: 1,
-  cellWidthFactor: 0.95,
+  cellWidthFactor: 1,
   fill: dataVizColors.tropicalIndigo,
   stroke: '#20202055',
   strokeWidth: 0,
@@ -400,6 +399,38 @@ Matrix placement is inferred from the resolved x-scale:
 
 - `axes.x.type: 'band'` => band cells
 - non-band x scales (`time`, `linear`) => continuous placement
+
+Matrix option details:
+
+| Property          | Type                           | Default                                                   | Description                                                                                                                                                      |
+| ----------------- | ------------------------------ | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `xKey`            | `string \| (row) => any`       | `'x'`                                                     | Accessor for x position. Supports dot notation (for example `forecast.validTime`).                                                                               |
+| `yKey`            | `string \| (row) => any`       | `'y'`                                                     | Accessor for matrix row/category. Use categorical values when `axes.y.type` is `band`.                                                                           |
+| `valueKey`        | `string \| (row) => number`    | `'value'`                                                 | Numeric value used for threshold binning and color selection.                                                                                                    |
+| `labelKey`        | `string \| (row) => any`       | `undefined`                                               | Optional accessor for label text. Falls back to `valueKey` when omitted.                                                                                         |
+| `thresholds`      | `number[]`                     | `[0.2, 0.4, 0.6, 0.8]`                                    | Ascending threshold breakpoints. Values are normalized and sorted internally. Color bins use `value <= threshold`.                                               |
+| `colors`          | `string[]`                     | `['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c']` | Fill colors for threshold bins. Recommended length is `thresholds.length + 1`.                                                                                   |
+| `fill`            | `string`                       | `dataVizColors.tropicalIndigo`                            | Fallback fill color when value is non-numeric or colors/thresholds are not usable.                                                                               |
+| `timeAnchor`      | `'start' \| 'center' \| 'end'` | `'center'`                                                | Anchor for non-band x scales. `start`: tick at left edge of cell. `center`: tick at center. `end`: tick at right edge. Aliases `left`/`right` are also accepted. |
+| `cellPadding`     | `number`                       | `1`                                                       | Inner pixel padding on each side of each cell. Larger values create visible gaps between cells.                                                                  |
+| `cellWidthFactor` | `number`                       | `1`                                                       | Width multiplier for non-band x cells. Effective range is clamped to `0.05..1`.                                                                                  |
+| `stroke`          | `string`                       | `'#20202055'`                                             | Cell border color.                                                                                                                                               |
+| `strokeWidth`     | `number`                       | `0`                                                       | Cell border width in pixels.                                                                                                                                     |
+| `showLabels`      | `boolean`                      | `false`                                                   | Whether to render text labels centered in each cell.                                                                                                             |
+| `labelFormatter`  | `(labelValue, row) => string`  | `null`                                                    | Optional formatter for label text. Ignored when `showLabels` is `false`.                                                                                         |
+| `labelColor`      | `string`                       | `'#f2f2f2'`                                               | Label text color.                                                                                                                                                |
+| `labelFontSize`   | `number`                       | `10`                                                      | Label text size in pixels.                                                                                                                                       |
+| `labelFontWeight` | `number \| string`             | `600`                                                     | Label text weight.                                                                                                                                               |
+| `className`       | `string`                       | `''`                                                      | Class applied to the matrix `<g>` container.                                                                                                                     |
+| `sx`              | `object`                       | `{}`                                                      | Inline style object applied to the matrix `<g>` container.                                                                                                       |
+| `isVisible`       | `boolean`                      | `true`                                                    | Toggles matrix visibility while preserving layout/scales.                                                                                                        |
+| `missingCellMode` | `string`                       | `'sparse'`                                                | Reserved for future behavior. Current implementation renders only cells present in data.                                                                         |
+
+Additional notes:
+
+- Matrix currently requires a band y-axis (`axes.y.type: 'band'`) for uniform row heights.
+- For non-band x scales, cell widths are based on local spacing between neighboring x-values and then adjusted by `timeAnchor` and `cellWidthFactor`.
+- Matrix x-axis ticks for `time` and `linear` scales use matrix data x-values by default unless `axes.x.ticks.values` is explicitly provided.
 
 ### Line
 
