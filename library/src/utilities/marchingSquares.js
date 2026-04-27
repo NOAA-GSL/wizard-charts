@@ -149,7 +149,6 @@ export function buildContourModel({
   yScale,
   thresholds,
   resolution,
-  gridSize,
   interpolationMethod = 'idw',
   idwPower = 2,
   idwNeighbors = 16,
@@ -177,7 +176,7 @@ export function buildContourModel({
     return null;
   }
 
-  const finalResolution = resolveResolution(resolution ?? gridSize);
+  const finalResolution = resolveResolution(resolution);
   const nx = finalResolution;
   const ny = finalResolution;
   const gridXs = Array.from(
