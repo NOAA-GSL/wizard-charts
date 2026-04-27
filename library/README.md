@@ -469,9 +469,9 @@ Heatmap option details:
 | `thresholds`          | `number[]`                  | `[0.2, 0.4, 0.6, 0.8]`                                    | Ascending contour levels. Values are normalized/sorted internally.                       |
 | `colors`              | `string[]`                  | `['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c']` | Color bins for threshold bands. Recommended length is `thresholds.length + 1`.           |
 | `fill`                | `string`                    | `'#d6e6f2'`                                               | Fallback base fill color when bins/colors are insufficient.                              |
-| `resolution`          | `number`                    | `64`                                                      | Interpolation grid resolution. Higher values produce smoother contours with higher cost. |
+| `resolution`          | `number`                    | `16`                                                      | Interpolation grid resolution. Higher values produce smoother contours with higher cost. |
 | `interpolationMethod` | `'idw'`                     | `'idw'`                                                   | Scattered-point interpolation method used before contour extraction.                     |
-| `idwPower`            | `number`                    | `1.5`                                                     | IDW distance exponent. Larger values emphasize nearby points.                            |
+| `idwPower`            | `number`                    | `2`                                                       | IDW distance exponent. Larger values emphasize nearby points.                            |
 | `idwNeighbors`        | `number`                    | `8`                                                       | Number of nearest points sampled for each interpolated grid node.                        |
 | `showContourFill`     | `boolean`                   | `true`                                                    | Render filled contour bands.                                                             |
 | `fillOpacity`         | `number`                    | `0.85`                                                    | Opacity applied to filled contour bands.                                                 |
@@ -487,7 +487,7 @@ Heatmap notes:
 
 - Heatmap requires continuous x/y scales. Use `axes.x.type` of `linear` or `time`, and `axes.y.type` of `linear` (log may work if your data domain is strictly positive).
 - Threshold color semantics match matrix: bins are interpreted in ascending order with `value <= threshold` for boundary inclusion.
-- For large datasets, start with moderate resolution values (for example `64`) and increase only when you need smoother contours.
+- For large datasets, start with moderate resolution values (for example `16`) and increase only when you need smoother contours.
 
 ### Line
 
