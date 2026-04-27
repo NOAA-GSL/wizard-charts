@@ -389,11 +389,9 @@ export const demoOptions = {
           '#b7d77a',
           '#f2de85',
         ],
-        showContourFill: true,
+        showContourFill: false,
         showContourLines: true,
-        contourLineWidth: 0.9,
-        idwPower: 1.5,
-        idwNeighbors: 8,
+        contourLineWidth: 2,
       },
     ],
     axes: {
@@ -425,8 +423,7 @@ export const demoOptions = {
           '#f2de85',
         ],
         showContourFill: true,
-        showContourLines: true,
-        contourLineWidth: 0.9,
+        showContourLines: false,
       },
     ],
     axes: {

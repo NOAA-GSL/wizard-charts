@@ -130,6 +130,7 @@ function Heatmap({ seriesIndex = 0, options = {} }) {
   const yMin = Math.min(...yRange);
   const plotWidth = Math.max(0, Math.abs(xRange[1] - xRange[0]));
   const plotHeight = Math.max(0, Math.abs(yRange[1] - yRange[0]));
+  const clipPathId = `heatmap-clip-${seriesIndex}`;
 
   return (
     <g
@@ -137,60 +138,73 @@ function Heatmap({ seriesIndex = 0, options = {} }) {
       className={className}
       style={{ ...sx, visibility: isVisible ? 'visible' : 'hidden' }}
     >
-      {showContourFill && plotWidth > 0 && plotHeight > 0 && (
-        <rect
-          x={xMin}
-          y={yMin}
-          width={plotWidth}
-          height={plotHeight}
-          fill={getColorForThresholdIndex(0, thresholds, colors, fill)}
-          fillOpacity={fillOpacity}
-        />
-      )}
+      <defs>
+        <clipPath id={clipPathId}>
+          <rect x={xMin} y={yMin} width={plotWidth} height={plotHeight} />
+        </clipPath>
+      </defs>
 
-      {showContourFill &&
-        contourModel.features.map((feature, index) => {
-          const path = contourModel.pathForFeature(feature);
-          if (!path) return null;
+      <g clipPath={`url(#${clipPathId})`}>
+        {showContourFill && plotWidth > 0 && plotHeight > 0 && (
+          <rect
+            x={xMin}
+            y={yMin}
+            width={plotWidth}
+            height={plotHeight}
+            fill={getColorForThresholdIndex(0, thresholds, colors, fill)}
+            fillOpacity={fillOpacity}
+          />
+        )}
 
-          return (
-            <path
-              key={`${seriesIndex}-fill-${String(feature.value)}`}
-              d={path}
-              fill={getColorForThresholdIndex(
+        {showContourFill &&
+          contourModel.features.map((feature, index) => {
+            const path = contourModel.pathForFeature(feature);
+            if (!path) return null;
+
+            return (
+              <path
+                key={`${seriesIndex}-fill-${String(feature.value)}`}
+                d={path}
+                fill={getColorForThresholdIndex(
+                  index + 1,
+                  thresholds,
+                  colors,
+                  fill,
+                )}
+                fillOpacity={fillOpacity}
+                stroke="none"
+              />
+            );
+          })}
+
+        {showContourLines &&
+          contourModel.features.map((feature, index) => {
+            const path = contourModel.pathForFeature(feature);
+            if (!path) return null;
+
+            const lineColor =
+              contourLineColor ||
+              getColorForThresholdIndex(
                 index + 1,
                 thresholds,
                 colors,
-                fill,
-              )}
-              fillOpacity={fillOpacity}
-              stroke="none"
-            />
-          );
-        })}
+                '#111111',
+              );
 
-      {showContourLines &&
-        contourModel.features.map((feature, index) => {
-          const path = contourModel.pathForFeature(feature);
-          if (!path) return null;
-
-          const lineColor =
-            contourLineColor ||
-            getColorForThresholdIndex(index + 1, thresholds, colors, '#111111');
-
-          return (
-            <path
-              key={`${seriesIndex}-line-${String(feature.value)}`}
-              d={path}
-              fill="none"
-              stroke={lineColor}
-              strokeWidth={contourLineWidth}
-              strokeOpacity={contourLineOpacity}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          );
-        })}
+            return (
+              <path
+                key={`${seriesIndex}-line-${String(feature.value)}`}
+                d={path}
+                fill="none"
+                stroke={lineColor}
+                strokeWidth={contourLineWidth}
+                strokeOpacity={contourLineOpacity}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            );
+          })}
+      </g>
     </g>
   );
 }
