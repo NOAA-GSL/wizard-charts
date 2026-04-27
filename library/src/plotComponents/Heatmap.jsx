@@ -50,6 +50,7 @@ function Heatmap({ seriesIndex = 0, options = {} }) {
     contourLineOpacity,
     showContourFill,
     showContourLines,
+    resolution,
     gridSize,
     interpolationMethod,
     idwPower,
@@ -100,16 +101,12 @@ function Heatmap({ seriesIndex = 0, options = {} }) {
       .filter(Boolean);
   }, [accessors, seriesData, xScale, yScale]);
 
-  const thresholds = useMemo(
-    () =>
-      resolveThresholds(
-        finalOptions.thresholds,
-        preparedPoints.map((p) => p.value),
-      ),
-    [finalOptions.thresholds, preparedPoints],
+  const thresholds = resolveThresholds(
+    finalOptions.thresholds,
+    preparedPoints.map((p) => p.value),
   );
 
-  const contourModel = useMemo(() => {
+  const contourModel = (() => {
     if (!xScale || !yScale || xIsBand || yIsBand || preparedPoints.length < 3) {
       return null;
     }
@@ -119,23 +116,12 @@ function Heatmap({ seriesIndex = 0, options = {} }) {
       xScale,
       yScale,
       thresholds,
-      gridSize,
+      resolution: resolution ?? gridSize,
       interpolationMethod,
       idwPower,
       idwNeighbors,
     });
-  }, [
-    xScale,
-    yScale,
-    xIsBand,
-    yIsBand,
-    preparedPoints,
-    thresholds,
-    gridSize,
-    interpolationMethod,
-    idwPower,
-    idwNeighbors,
-  ]);
+  })();
 
   if (!xScale || !yScale || xIsBand || yIsBand || !contourModel) return null;
 
@@ -170,7 +156,7 @@ function Heatmap({ seriesIndex = 0, options = {} }) {
 
           return (
             <path
-              key={`${seriesIndex}-fill-${String(feature.value)}-${index}`}
+              key={`${seriesIndex}-fill-${String(feature.value)}`}
               d={path}
               fill={getColorForThresholdIndex(
                 index + 1,
@@ -195,7 +181,7 @@ function Heatmap({ seriesIndex = 0, options = {} }) {
 
           return (
             <path
-              key={`${seriesIndex}-line-${String(feature.value)}-${index}`}
+              key={`${seriesIndex}-line-${String(feature.value)}`}
               d={path}
               fill="none"
               stroke={lineColor}

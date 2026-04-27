@@ -178,10 +178,10 @@ export const defaultHeatmapOptions = {
   thresholds: [0.2, 0.4, 0.6, 0.8],
   colors: ['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c'],
   fill: '#d6e6f2',
-  gridSize: [64, 32], // [xResolution, yResolution]
+  resolution: 64,
   interpolationMethod: 'idw',
-  idwPower: 2,
-  idwNeighbors: 16,
+  idwPower: 1.5,
+  idwNeighbors: 8,
   showContourFill: true,
   fillOpacity: 0.85,
   showContourLines: true,

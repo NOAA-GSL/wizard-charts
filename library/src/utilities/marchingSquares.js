@@ -21,18 +21,25 @@ export function normalizeThresholds(thresholds) {
   return sorted.filter((d, i) => i === 0 || d !== sorted[i - 1]);
 }
 
-function resolveGridSize(gridSize) {
-  if (Array.isArray(gridSize) && gridSize.length === 2) {
-    const nx = Math.max(4, Math.round(Number(gridSize[0]) || 0));
-    const ny = Math.max(4, Math.round(Number(gridSize[1]) || 0));
-    return [nx, ny];
+function resolveResolution(resolution) {
+  if (Array.isArray(resolution) && resolution.length > 0) {
+    const fallback = Math.max(4, Math.round(Number(resolution[0]) || 0));
+    return fallback || 64;
   }
 
-  const size = Math.max(4, Math.round(Number(gridSize) || 0));
-  return [size || 64, Math.max(4, Math.round((size || 64) * 0.5))];
+  const size = Math.max(4, Math.round(Number(resolution) || 0));
+  return size || 64;
 }
 
-function interpolateIdw(points, gridXs, gridYs, power = 2, neighbors = 16) {
+function interpolateIdw(
+  points,
+  gridXs,
+  gridYs,
+  xSpan,
+  ySpan,
+  power = 2,
+  neighbors = 16,
+) {
   const nx = gridXs.length;
   const ny = gridYs.length;
   const values = new Array(nx * ny).fill(NaN);
@@ -40,6 +47,10 @@ function interpolateIdw(points, gridXs, gridYs, power = 2, neighbors = 16) {
   const k = Number.isFinite(Number(neighbors))
     ? Math.max(1, Math.round(Number(neighbors)))
     : 16;
+  const safeXSpan =
+    Number.isFinite(Number(xSpan)) && Number(xSpan) > 0 ? Number(xSpan) : 1;
+  const safeYSpan =
+    Number.isFinite(Number(ySpan)) && Number(ySpan) > 0 ? Number(ySpan) : 1;
 
   for (let j = 0; j < ny; j += 1) {
     const y = gridYs[j];
@@ -50,8 +61,10 @@ function interpolateIdw(points, gridXs, gridYs, power = 2, neighbors = 16) {
 
       for (let n = 0; n < points.length; n += 1) {
         const point = points[n];
-        const dx = point.x - x;
-        const dy = point.y - y;
+        // Normalize by axis spans so mixed units (e.g., ms on x and meters on y)
+        // contribute proportionally during IDW distance calculation.
+        const dx = (point.x - x) / safeXSpan;
+        const dy = (point.y - y) / safeYSpan;
         const d2 = dx * dx + dy * dy;
 
         if (d2 === 0) {
@@ -135,6 +148,7 @@ export function buildContourModel({
   xScale,
   yScale,
   thresholds,
+  resolution,
   gridSize,
   interpolationMethod = 'idw',
   idwPower = 2,
@@ -163,15 +177,39 @@ export function buildContourModel({
     return null;
   }
 
-  const [nx, ny] = resolveGridSize(gridSize);
-  const gridXs = Array.from({ length: nx }, (_, i) => xMin + (i / (nx - 1)) * (xMax - xMin));
-  const gridYs = Array.from({ length: ny }, (_, j) => yMax - (j / (ny - 1)) * (yMax - yMin));
+  const finalResolution = resolveResolution(resolution ?? gridSize);
+  const nx = finalResolution;
+  const ny = finalResolution;
+  const gridXs = Array.from(
+    { length: nx },
+    (_, i) => xMin + (i / (nx - 1)) * (xMax - xMin),
+  );
+  const gridYs = Array.from(
+    { length: ny },
+    (_, j) => yMax - (j / (ny - 1)) * (yMax - yMin),
+  );
 
   let values;
   if (interpolationMethod === 'idw') {
-    values = interpolateIdw(points, gridXs, gridYs, idwPower, idwNeighbors);
+    values = interpolateIdw(
+      points,
+      gridXs,
+      gridYs,
+      xMax - xMin,
+      yMax - yMin,
+      idwPower,
+      idwNeighbors,
+    );
   } else {
-    values = interpolateIdw(points, gridXs, gridYs, idwPower, idwNeighbors);
+    values = interpolateIdw(
+      points,
+      gridXs,
+      gridYs,
+      xMax - xMin,
+      yMax - yMin,
+      idwPower,
+      idwNeighbors,
+    );
   }
 
   const safeValues = values.map((v) => (Number.isFinite(v) ? v : -Infinity));
