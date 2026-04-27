@@ -175,7 +175,7 @@ export const defaultHeatmapOptions = {
   xKey: 'x',
   yKey: 'y',
   valueKey: 'value',
-  thresholds: [0.2, 0.4, 0.6, 0.8],
+  thresholds: undefined,
   colors: ['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c'],
   fill: '#d6e6f2',
   resolution: 16,

@@ -441,7 +441,8 @@ Heatmap renders continuous contour bands plus optional contour lines from scatte
   xKey: 'x',
   yKey: 'y',
   valueKey: 'value',
-  thresholds: [0.2, 0.4, 0.6, 0.8],
+  // optional; auto-generated from data range and colors.length when omitted
+  thresholds: undefined,
   colors: ['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c'],
   fill: '#d6e6f2',
   resolution: 64,
@@ -466,7 +467,7 @@ Heatmap option details:
 | `xKey`                | `string \| (row) => any`    | `'x'`                                                     | Accessor for x coordinates. Supports dot notation.                                       |
 | `yKey`                | `string \| (row) => any`    | `'y'`                                                     | Accessor for y coordinates. Supports dot notation.                                       |
 | `valueKey`            | `string \| (row) => number` | `'value'`                                                 | Numeric value used for interpolation and contour thresholds.                             |
-| `thresholds`          | `number[]`                  | `[0.2, 0.4, 0.6, 0.8]`                                    | Ascending contour levels. Values are normalized/sorted internally.                       |
+| `thresholds`          | `number[] \| undefined`     | `undefined`                                               | Optional contour levels. If omitted, thresholds are auto-generated from the value extent using `colors.length - 1` evenly spaced breaks. |
 | `colors`              | `string[]`                  | `['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c']` | Color bins for threshold bands. Recommended length is `thresholds.length + 1`.           |
 | `fill`                | `string`                    | `'#d6e6f2'`                                               | Fallback base fill color when bins/colors are insufficient.                              |
 | `resolution`          | `number`                    | `16`                                                      | Interpolation grid resolution. Higher values produce smoother contours with higher cost. |
@@ -487,6 +488,7 @@ Heatmap notes:
 
 - Heatmap requires continuous x/y scales. Use `axes.x.type` of `linear` or `time`, and `axes.y.type` of `linear` (log may work if your data domain is strictly positive).
 - Threshold color semantics match matrix: bins are interpreted in ascending order with `value <= threshold` for boundary inclusion.
+- When `thresholds` is omitted, heatmap computes evenly spaced thresholds across the data value range based on `colors.length - 1`.
 - For large datasets, start with moderate resolution values (for example `16`) and increase only when you need smoother contours.
 
 ### Line

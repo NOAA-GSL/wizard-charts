@@ -21,19 +21,23 @@ function getColorForThresholdIndex(index, thresholds, colors, fallbackFill) {
   return colors[colorIndex] ?? colors[colors.length - 1] ?? fallbackFill;
 }
 
-function resolveThresholds(inputThresholds, values) {
+function resolveThresholds(inputThresholds, values, colors) {
   const normalized = normalizeThresholds(inputThresholds);
   if (normalized.length > 0) return normalized;
+
+  const colorCount = Array.isArray(colors) ? colors.length : 0;
+  const thresholdCount = Math.max(0, colorCount - 1);
+  if (thresholdCount === 0) return [];
 
   const [minValue, maxValue] = extent(values);
   const min = Number(minValue);
   const max = Number(maxValue);
 
-  if (!Number.isFinite(min) || !Number.isFinite(max)) return [0.25, 0.5, 0.75];
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return [];
   if (max <= min) return [min];
 
-  const step = (max - min) / 4;
-  return [min + step, min + step * 2, min + step * 3];
+  const step = (max - min) / colorCount;
+  return Array.from({ length: thresholdCount }, (_, i) => min + step * (i + 1));
 }
 
 function Heatmap({ seriesIndex = 0, options = {} }) {
@@ -103,6 +107,7 @@ function Heatmap({ seriesIndex = 0, options = {} }) {
   const thresholds = resolveThresholds(
     finalOptions.thresholds,
     preparedPoints.map((p) => p.value),
+    colors,
   );
 
   const contourModel = (() => {
