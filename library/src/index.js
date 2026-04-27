@@ -5,6 +5,7 @@ import Line from './plotComponents/Line';
 import Bar from './plotComponents/Bar';
 import BoxPlot from './plotComponents/BoxPlot';
 import Matrix from './plotComponents/Matrix';
+import Heatmap from './plotComponents/Heatmap';
 import { HoverPointProvider } from './context/HoverPointProvider';
 import { dataVizColors } from './utilities/defaultOptions';
 
@@ -18,6 +19,7 @@ export {
   Bar,
   BoxPlot,
   Matrix,
+  Heatmap,
   HoverPointProvider,
   dataVizColors,
 };

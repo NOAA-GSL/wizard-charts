@@ -21,6 +21,53 @@ const matrixData = matrixDates.flatMap((date, dateIndex) =>
   }),
 );
 
+const heatmapLevels = Array.from({ length: 16 }, (_, i) => i * 400);
+const heatmapLinearSteps = Array.from({ length: 42 }, (_, i) => i);
+const heatmapTimeSteps = Array.from(
+  { length: 42 },
+  (_, i) => new Date(matrixStartDate.getTime() + i * 6 * 3600_000),
+);
+
+function makeHeatValue(xNorm, yNorm) {
+  const ridgeA = Math.exp(
+    -((xNorm - 0.32) ** 2 / 0.018 + (yNorm - 0.55) ** 2 / 0.06),
+  );
+  const ridgeB = Math.exp(
+    -((xNorm - 0.72) ** 2 / 0.03 + (yNorm - 0.28) ** 2 / 0.03),
+  );
+  const wave =
+    0.4 * Math.sin(xNorm * Math.PI * 5.5) * Math.cos(yNorm * Math.PI * 2.2);
+  return 15 + ridgeA * 32 + ridgeB * 22 + wave * 8;
+}
+
+const heatmapLinearData = heatmapLinearSteps.flatMap((xStep, xi) => {
+  const xNorm =
+    heatmapLinearSteps.length > 1 ? xi / (heatmapLinearSteps.length - 1) : 0;
+  return heatmapLevels.map((level, yi) => {
+    const yNorm =
+      heatmapLevels.length > 1 ? yi / (heatmapLevels.length - 1) : 0;
+    return {
+      step: xStep,
+      level,
+      value: Math.round(makeHeatValue(xNorm, yNorm) * 10) / 10,
+    };
+  });
+});
+
+const heatmapTimeData = heatmapTimeSteps.flatMap((timestamp, xi) => {
+  const xNorm =
+    heatmapTimeSteps.length > 1 ? xi / (heatmapTimeSteps.length - 1) : 0;
+  return heatmapLevels.map((level, yi) => {
+    const yNorm =
+      heatmapLevels.length > 1 ? yi / (heatmapLevels.length - 1) : 0;
+    return {
+      time: timestamp,
+      level,
+      value: Math.round(makeHeatValue(xNorm, yNorm) * 10) / 10,
+    };
+  });
+});
+
 export const demoOptions = {
   bar: {
     series: [
@@ -339,5 +386,72 @@ export const demoOptions = {
       },
     },
     animationDuration: 750,
+  },
+  heatmap: {
+    series: [
+      {
+        type: 'heatmap',
+        data: heatmapLinearData,
+        xKey: 'step',
+        yKey: 'level',
+        valueKey: 'value',
+        thresholds: [20, 26, 32, 38, 44],
+        colors: [
+          '#17324f',
+          '#1f5f82',
+          '#2f8f9d',
+          '#5ebf9a',
+          '#b7d77a',
+          '#f2de85',
+        ],
+        gridSize: [88, 44],
+        showContourFill: true,
+        showContourLines: true,
+        contourLineWidth: 0.9,
+      },
+    ],
+    axes: {
+      x: {
+        type: 'linear',
+      },
+      y: {
+        type: 'linear',
+      },
+    },
+    animationDuration: 600,
+  },
+  heatmapTime: {
+    series: [
+      {
+        type: 'heatmap',
+        data: heatmapTimeData,
+        xKey: 'time',
+        yKey: 'level',
+        valueKey: 'value',
+        thresholds: [20, 26, 32, 38, 44],
+        colors: [
+          '#17324f',
+          '#1f5f82',
+          '#2f8f9d',
+          '#5ebf9a',
+          '#b7d77a',
+          '#f2de85',
+        ],
+        gridSize: [88, 44],
+        showContourFill: true,
+        showContourLines: true,
+        contourLineWidth: 0.9,
+      },
+    ],
+    axes: {
+      x: {
+        type: 'time',
+        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+      },
+      y: {
+        type: 'linear',
+      },
+    },
+    animationDuration: 600,
   },
 };

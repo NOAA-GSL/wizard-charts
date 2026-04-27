@@ -58,7 +58,7 @@ export const defaultOptions = {
 };
 
 export const defaultSeriesOptions = {
-  type: 'line', // 'bar' or 'boxPlot'
+  type: 'line', // line, bar, boxPlot, circle, area, matrix, heatmap
   xKey: 'x',
   yKey: 'y',
   // optional per-series dataset; falls back to root-level data when omitted
@@ -166,6 +166,28 @@ export const defaultMatrixOptions = {
   labelFontSize: 10,
   labelFontWeight: 600,
   missingCellMode: 'sparse',
+  isVisible: true,
+  sx: {},
+};
+
+export const defaultHeatmapOptions = {
+  className: '',
+  xKey: 'x',
+  yKey: 'y',
+  valueKey: 'value',
+  thresholds: [0.2, 0.4, 0.6, 0.8],
+  colors: ['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c'],
+  fill: '#d6e6f2',
+  gridSize: [64, 32], // [xResolution, yResolution]
+  interpolationMethod: 'idw',
+  idwPower: 2,
+  idwNeighbors: 16,
+  showContourFill: true,
+  fillOpacity: 0.85,
+  showContourLines: true,
+  contourLineColor: null,
+  contourLineWidth: 1,
+  contourLineOpacity: 0.85,
   isVisible: true,
   sx: {},
 };

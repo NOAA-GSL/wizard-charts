@@ -1,4 +1,11 @@
-import { scaleLinear, scaleBand, scaleTime, scaleThreshold, extent } from 'd3';
+import {
+  scaleLinear,
+  scaleBand,
+  scaleTime,
+  scaleThreshold,
+  scaleLog,
+  extent,
+} from 'd3';
 import { seriesAccessorProps } from './defaultOptions';
 
 export function getDomain(data, accessor) {
@@ -47,6 +54,9 @@ export function getScale(type, domain, range, isNice = false) {
   switch (type) {
     case 'linear':
       scale = scaleLinear().domain(domain).range(range);
+      break;
+    case 'log':
+      scale = scaleLog().domain(domain).range(range);
       break;
     case 'band':
       scale = scaleBand().domain(domain).range(range);
@@ -474,6 +484,19 @@ export const computeScales = (chartValues, axisConfig) => {
 
       if (domainMin != null) domain[0] = domainMin;
       if (domainMax != null) domain[1] = domainMax;
+
+      if (scaleType === 'log') {
+        const minValue = Number(domain[0]);
+        const maxValue = Number(domain[1]);
+        const safeMin =
+          Number.isFinite(minValue) && minValue > 0 ? minValue : 1;
+        const safeMax =
+          Number.isFinite(maxValue) && maxValue > safeMin
+            ? maxValue
+            : safeMin * 10;
+
+        domain = [safeMin, safeMax];
+      }
     }
     const scale = getScale(
       scaleType,

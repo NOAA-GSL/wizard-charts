@@ -16,6 +16,7 @@ import BoxPlot from './plotComponents/BoxPlot';
 import Circle from './plotComponents/Circle';
 import Area from './plotComponents/Area';
 import Matrix from './plotComponents/Matrix';
+import Heatmap from './plotComponents/Heatmap';
 
 function ChartContainer({
   height = 600,
@@ -58,6 +59,8 @@ function ChartContainer({
         return <Line key={s.id ?? i} seriesIndex={i} options={s} />;
       case 'matrix':
         return <Matrix key={s.id ?? i} seriesIndex={i} options={s} />;
+      case 'heatmap':
+        return <Heatmap key={s.id ?? i} seriesIndex={i} options={s} />;
       default:
         return null;
     }

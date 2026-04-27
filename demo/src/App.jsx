@@ -16,6 +16,8 @@ const chartTypes = [
   'area',
   'matrix',
   'matrixTime',
+  'heatmap',
+  'heatmapTime',
 ];
 
 // use generateRandomData to create an array of objects
