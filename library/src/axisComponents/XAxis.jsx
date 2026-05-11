@@ -151,7 +151,10 @@ function XAxis({ options = {}, axisKey = 'x' }) {
   }
 
   return (
-    <g className={`gsl-chart-axis ${finalOptions.className}`}>
+    <g
+      ref={ticksGroupRef}
+      className={`gsl-chart-axis ${finalOptions.className}`}
+    >
       {/* horizontal line above the text for the x axis */}
       {hasAxisLine && (
         <line
@@ -163,49 +166,47 @@ function XAxis({ options = {}, axisKey = 'x' }) {
           strokeWidth={strokeWidth}
         />
       )}
-      <g ref={ticksGroupRef}>
-        {ticks.map((tick) => {
-          // Place band ticks at the center of each band.
-          // Continuous scales keep the native coordinate.
-          const tickX = isXBandScale
-            ? xScaleToUse(tick.value) + xScaleToUse.bandwidth() / 2
-            : xScaleToUse(tick.value);
-          if (!Number.isFinite(tickX)) return null;
+      {ticks.map((tick) => {
+        // Place band ticks at the center of each band.
+        // Continuous scales keep the native coordinate.
+        const tickX = isXBandScale
+          ? xScaleToUse(tick.value) + xScaleToUse.bandwidth() / 2
+          : xScaleToUse(tick.value);
+        if (!Number.isFinite(tickX)) return null;
 
-          return (
-            <g key={String(tick.value)} transform={`translate(${tickX},0)`}>
-              {/* Vertical grid line */}
-              {hasGridLines && (
-                <line
-                  y1={yBottom}
-                  y2={yTop}
-                  stroke={strokeGrid}
-                  strokeWidth={strokeWidth}
-                />
-              )}
-              {/* Tick Mark */}
-              {hasAxisLine && (
-                <line
-                  className="gsl-chart-tick-line"
-                  y1={baselineY}
-                  y2={baselineY + tickDirection * finalTickLength}
-                  stroke={strokeAxis}
-                  strokeWidth={strokeWidth}
-                />
-              )}
-              {/* Tick Label */}
-              <text
-                className="gsl-chart-tick-label"
-                style={textStyle}
-                y={textY}
-                transform={textTransform}
-              >
-                {tick.label}
-              </text>
-            </g>
-          );
-        })}
-      </g>
+        return (
+          <g key={String(tick.value)} transform={`translate(${tickX},0)`}>
+            {/* Vertical grid line */}
+            {hasGridLines && (
+              <line
+                y1={yBottom}
+                y2={yTop}
+                stroke={strokeGrid}
+                strokeWidth={strokeWidth}
+              />
+            )}
+            {/* Tick Mark */}
+            {hasAxisLine && (
+              <line
+                className="gsl-chart-tick-line"
+                y1={baselineY}
+                y2={baselineY + tickDirection * finalTickLength}
+                stroke={strokeAxis}
+                strokeWidth={strokeWidth}
+              />
+            )}
+            {/* Tick Label */}
+            <text
+              className="gsl-chart-tick-label"
+              style={textStyle}
+              y={textY}
+              transform={textTransform}
+            >
+              {tick.label}
+            </text>
+          </g>
+        );
+      })}
     </g>
   );
 }

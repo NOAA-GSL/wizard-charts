@@ -102,17 +102,6 @@ function YAxis({ options = {}, axisKey = 'y' }) {
 
   return (
     <g className={finalOptions.className}>
-      {/* vertical line for y-axis, `location` will set the x values */}
-      {hasAxisLine && (
-        <line
-          x1={xAxisLinePosition}
-          x2={xAxisLinePosition}
-          y1={yBottom}
-          y2={yTop}
-          stroke={strokeAxis}
-          strokeWidth={strokeWidth}
-        />
-      )}
       {/* legend */}
       <text
         className="gsl-chart-axis-label"
@@ -123,6 +112,17 @@ function YAxis({ options = {}, axisKey = 'y' }) {
         {data.ylegend}
       </text>
       <g ref={ticksGroupRef}>
+        {/* vertical line for y-axis, `location` will set the x values */}
+        {hasAxisLine && (
+          <line
+            x1={xAxisLinePosition}
+            x2={xAxisLinePosition}
+            y1={yBottom}
+            y2={yTop}
+            stroke={strokeAxis}
+            strokeWidth={strokeWidth}
+          />
+        )}
         {ticks.map((tick) => {
           const tickY = isYBandScale
             ? yScaleToUse(tick.value) + yScaleToUse.bandwidth() / 2
