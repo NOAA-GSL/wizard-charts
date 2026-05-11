@@ -78,6 +78,7 @@ export const demoOptions = {
       // can also use the default x and y
       x: {
         type: 'linear', // band, linear, log, time
+        label: { text: 'Date' },
         ticks: { formatter: timeFormatter('%m-%d %Hz'), amount: 4 }, // optional formatting function for ticks
         nice: false,
         sx: {},

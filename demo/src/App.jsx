@@ -6,7 +6,7 @@ import '@noaa-gsl/wizard-charts/styles.css';
 // import InputColor from './InputColor';
 import { demoOptions } from './demoOptions';
 
-const margin = { top: 25, right: 50, bottom: 50, left: 50 };
+// const margin = { top: 25, right: 50, bottom: 50, left: 50 };
 const chartTypes = [
   'bar',
   'stackedBar',
@@ -98,7 +98,7 @@ function App() {
             key={type}
             height={dimensions.height}
             width={dimensions.width}
-            margin={margin}
+            // margin={margin}
             data={data}
             options={demoOptions[type]}
             sx={{

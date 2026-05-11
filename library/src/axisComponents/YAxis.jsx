@@ -32,6 +32,9 @@ function YAxis({ options = {}, axisKey = 'y' }) {
   const axisLabelOffset =
     layout?.axisLabelOffset ??
     Math.max(0, tickLength) + Math.max(0, tickLabelPadding) + 6;
+  const axisLabelOutsideSize = layout?.axisLabel?.outsideSize ?? 0;
+  const axisLabelCenterOffset =
+    layout?.axisLabelCenterOffset ?? axisLabelOffset + axisLabelOutsideSize / 2;
 
   const tickFontFamily =
     layout?.tickFontFamily ?? finalOptions.ticks.fontFamily;
@@ -61,7 +64,7 @@ function YAxis({ options = {}, axisKey = 'y' }) {
   const yMiddle = (yTop + yBottom) / 2;
 
   const xAxisLinePosition = isSecondaryAxis ? xEnd : xStart;
-  const axisLabelX = xAxisLinePosition + tickDirection * axisLabelOffset;
+  const axisLabelX = xAxisLinePosition + tickDirection * axisLabelCenterOffset;
 
   const textStyle = {
     alignmentBaseline: 'central', // central looks better than middle

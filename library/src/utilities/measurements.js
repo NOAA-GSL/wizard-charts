@@ -8,6 +8,7 @@ import {
 const AXIS_KEYS = ['x', 'x2', 'y', 'y2'];
 const DEFAULT_AUTO_MARGIN = 'auto';
 const AXIS_LABEL_GAP = 6;
+const AXIS_MEASUREMENT_BUFFER = 2;
 
 // setting up canvas outside of function to prevent repeated creation
 const canvas =
@@ -23,10 +24,21 @@ function toNonNegativeNumber(value, fallback = 0) {
   return Math.max(0, toNumber(value, fallback));
 }
 
+function normalizeFontFamily(fontFamily, fallbackFamily) {
+  if (typeof fontFamily !== 'string') return fallbackFamily;
+
+  const trimmedFamily = fontFamily.trim();
+  if (!trimmedFamily || trimmedFamily.toLowerCase() === 'inherit') {
+    return fallbackFamily;
+  }
+
+  return trimmedFamily;
+}
+
 function toFontString(fontWeight, fontSize, fontFamily, fallbackFamily) {
   const safeWeight = fontWeight ?? 400;
   const safeSize = toNonNegativeNumber(fontSize, 12) || 12;
-  const safeFamily = fontFamily || fallbackFamily;
+  const safeFamily = normalizeFontFamily(fontFamily, fallbackFamily);
   return `${safeWeight} ${safeSize}px ${safeFamily}`;
 }
 
@@ -235,7 +247,7 @@ export function buildAxisLayout({ chartValues, computedScales = {} }) {
       ticksOpts.fontWeight,
       ticksOpts.fontSize,
       ticksOpts.fontFamily,
-      'inherit',
+      'sans-serif',
     );
 
     const isAngledTicks = isXAxis && Boolean(ticksOpts.isAngled);
@@ -280,6 +292,8 @@ export function buildAxisLayout({ chartValues, computedScales = {} }) {
 
     const axisLabelOffset =
       outwardTickLength + tickLabelPadding + tickTextOutsideSize + axisLabelGap;
+    const axisLabelCenterOffset =
+      axisLabelOffset + (isXAxis ? 0 : axisLabelOutsideSize / 2);
 
     const requiredOutsideSpace =
       axisStrokeOutside +
@@ -287,7 +301,8 @@ export function buildAxisLayout({ chartValues, computedScales = {} }) {
       tickLabelPadding +
       tickTextOutsideSize +
       axisLabelGap +
-      axisLabelOutsideSize;
+      axisLabelOutsideSize +
+      AXIS_MEASUREMENT_BUFFER;
 
     axisLayout[axisKey] = {
       axisKey,
@@ -317,6 +332,7 @@ export function buildAxisLayout({ chartValues, computedScales = {} }) {
         outsideSize: axisLabelOutsideSize,
       },
       axisLabelOffset,
+      axisLabelCenterOffset,
       requiredOutsideSpace,
     };
   });
