@@ -580,12 +580,6 @@ Axis rendering behavior:
 - Primary axis defaults: `x` renders on bottom, `y` renders on left.
 - Secondary axis defaults: `x2` renders on top, `y2` renders on right.
 
-You can override side placement using axis options:
-
-- `position` (for example `'left'`, `'right'`, `'top'`, `'bottom'`)
-- `isLeftLocation` on y-axes
-- `isTopLocation` on x-axes
-
 Example:
 
 ```js

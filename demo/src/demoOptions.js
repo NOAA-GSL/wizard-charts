@@ -85,7 +85,10 @@ export const demoOptions = {
       y: {
         type: 'linear',
         title: { text: 'Temperature (F)' },
-        ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
+        ticks: {
+          values: [0, 10, 20, 30, 40],
+          labels: ['hi', 'there', 'how', 'are', 'you'],
+        }, // default will print values, then labels if provided
         // default domain will compute max and min from data
         // domainMin: 0, // optional
         // domainMax: 100, // optional

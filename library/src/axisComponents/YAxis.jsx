@@ -28,11 +28,6 @@ function YAxis({ options = {}, axisKey = 'y' }) {
   const { hasAxisLine, hasGridLines, strokeAxis, strokeGrid, strokeWidth } =
     finalOptions;
   const ticksOpts = finalOptions.ticks;
-  const hasExplicitSide =
-    finalOptions.isLeftLocation != null || finalOptions.position != null;
-  const isLeftLocation = hasExplicitSide
-    ? (finalOptions.isLeftLocation ?? finalOptions.position === 'left')
-    : !isSecondaryAxis;
   const tickLength = ticksOpts.length;
   const tickLabelPadding = ticksOpts.labelPadding;
   const tickFontFamily = ticksOpts.fontFamily;
@@ -71,17 +66,17 @@ function YAxis({ options = {}, axisKey = 'y' }) {
   const finalTickLength = hasAxisLine ? tickLength : 0;
 
   // tick marks, labels and legend are offset in different directions based on location
-  const locationTickOffset = isLeftLocation
-    ? finalTickLength + tickLabelPadding
-    : -finalTickLength - tickLabelPadding;
+  const locationTickOffset = isSecondaryAxis
+    ? -finalTickLength - tickLabelPadding
+    : finalTickLength + tickLabelPadding;
   // not enough padding on right side, so add 2 to the right side
-  const legendTickOffset = isLeftLocation ? margin.left : -margin.right + 2;
+  const legendTickOffset = isSecondaryAxis ? -margin.right + 2 : margin.left;
 
-  const xAxisLinePosition = isLeftLocation ? xStart : xEnd;
+  const xAxisLinePosition = isSecondaryAxis ? xEnd : xStart;
 
   const textStyle = {
     alignmentBaseline: 'central', // central looks better than middle
-    textAnchor: `${isLeftLocation ? 'end' : 'start'}`,
+    textAnchor: `${isSecondaryAxis ? 'start' : 'end'}`,
     fill: tickFontColor,
     fontFamily: tickFontFamily,
     fontSize: `${tickFontSize}px`,
@@ -105,7 +100,7 @@ function YAxis({ options = {}, axisKey = 'y' }) {
       {/* legend */}
       <text
         className="gsl-chart-axis-label"
-        alignmentBaseline={`${isLeftLocation ? 'before-edge' : 'after-edge'}`}
+        alignmentBaseline={`${isSecondaryAxis ? 'after-edge' : 'before-edge'}`}
         textAnchor="middle"
         transform={`translate(${xAxisLinePosition - legendTickOffset}, ${yMiddle}) rotate(-90)`}
       >

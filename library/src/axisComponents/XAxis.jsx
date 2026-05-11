@@ -30,11 +30,7 @@ function XAxis({ options = {}, axisKey = 'x' }) {
   const ticksOpts = finalOptions.ticks;
   const { hasAxisLine, hasGridLines, strokeAxis, strokeGrid, strokeWidth } =
     finalOptions;
-  const hasExplicitVerticalSide =
-    finalOptions.isTopLocation != null || finalOptions.position != null;
-  const isTopLocation = hasExplicitVerticalSide
-    ? (finalOptions.isTopLocation ?? finalOptions.position === 'top')
-    : isSecondaryAxis;
+
   const isAngledTicks = ticksOpts.isAngled;
   const tickLength = ticksOpts.length;
   const tickLabelPadding = ticksOpts.labelPadding;
@@ -125,8 +121,8 @@ function XAxis({ options = {}, axisKey = 'x' }) {
   let textY;
   // if there is no axis line, then there should be no tick length
   const finalTickLength = hasAxisLine ? tickLength : 0;
-  const baselineY = isTopLocation ? yTop : yBottom;
-  const tickDirection = isTopLocation ? -1 : 1;
+  const baselineY = isSecondaryAxis ? yTop : yBottom;
+  const tickDirection = isSecondaryAxis ? -1 : 1;
 
   if (isAngledTicks) {
     textStyle.textAnchor = 'end';
@@ -134,7 +130,7 @@ function XAxis({ options = {}, axisKey = 'x' }) {
     textY = null;
     textTransform = `translate(0, ${baselineY + tickDirection * (finalTickLength + tickLabelPadding)}) rotate(-45)`;
   } else {
-    textStyle.alignmentBaseline = isTopLocation ? 'auto' : 'hanging';
+    textStyle.alignmentBaseline = isSecondaryAxis ? 'auto' : 'hanging';
     textStyle.textAnchor = 'middle';
     textY = baselineY + tickDirection * (finalTickLength + tickLabelPadding);
   }
