@@ -7,46 +7,45 @@ import { defaultAxisOptions } from '../utilities/defaultOptions';
 function YAxis({ options = {}, axisKey = 'y' }) {
   const ticksGroupRef = useRef(null);
 
-  const {
-    chartValues,
-    xScale,
-    x2Scale,
-    yScale,
-    y2Scale,
-    xDomain,
-    x2Domain,
-    yDomain,
-    y2Domain,
-  } = useChartHelpers();
+  const { chartValues, xScale, x2Scale, yScale, y2Scale } = useChartHelpers();
   const isSecondaryAxis = axisKey === 'y2';
   const xScaleToUse = isSecondaryAxis ? x2Scale || xScale : xScale;
   const yScaleToUse = isSecondaryAxis ? y2Scale || yScale : yScale;
-  const xDomainToUse = isSecondaryAxis ? x2Domain || xDomain : xDomain;
-  const yDomainToUse = isSecondaryAxis ? y2Domain || yDomain : yDomain;
+
   // map nested axisOptions to local variables with sensible defaults
   const finalOptions = mergeDeep(defaultAxisOptions, options);
-  const { hasAxisLine, hasGridLines, strokeAxis, strokeGrid, strokeWidth } =
-    finalOptions;
-  const ticksOpts = finalOptions.ticks;
-  const tickLength = ticksOpts.length;
-  const tickLabelPadding = ticksOpts.labelPadding;
-  const tickFontFamily = ticksOpts.fontFamily;
-  const tickFontSize = ticksOpts.fontSize;
-  const tickFontWeight = ticksOpts.fontWeight;
-  const tickFontColor = ticksOpts.fontColor;
-  const tickFormatter = ticksOpts.formatter;
-  const tickAmount =
-    Number.isFinite(ticksOpts.amount) && ticksOpts.amount > 0
-      ? ticksOpts.amount
-      : null;
-  const explicitTickValues =
-    Array.isArray(ticksOpts.values) && ticksOpts.values.length > 0
-      ? ticksOpts.values
-      : null;
-  const explicitTickLabels =
-    Array.isArray(ticksOpts.labels) && ticksOpts.labels.length > 0
-      ? ticksOpts.labels
-      : null;
+  const layout = chartValues.axisLayout?.[axisKey];
+
+  const hasAxisLine = layout?.hasAxisLine ?? finalOptions.hasAxisLine;
+  const hasGridLines = layout?.hasGridLines ?? finalOptions.hasGridLines;
+  const strokeAxis = layout?.strokeAxis ?? finalOptions.strokeAxis;
+  const strokeGrid = layout?.strokeGrid ?? finalOptions.strokeGrid;
+  const strokeWidth = layout?.strokeWidth ?? finalOptions.strokeWidth;
+
+  const ticks = layout?.ticks || [];
+  const tickDirection = layout?.tickDirection ?? (isSecondaryAxis ? 1 : -1);
+  const tickLength =
+    layout?.tickLength ?? (hasAxisLine ? finalOptions.ticks.length : 0);
+  const tickLabelPadding =
+    layout?.tickLabelPadding ?? finalOptions.ticks.labelPadding;
+  const axisLabelText = layout?.axisLabel?.text || '';
+  const axisLabelOffset =
+    layout?.axisLabelOffset ??
+    Math.max(0, tickLength) + Math.max(0, tickLabelPadding) + 6;
+
+  const tickFontFamily =
+    layout?.tickFontFamily ?? finalOptions.ticks.fontFamily;
+  const tickFontSize = layout?.tickFontSize ?? finalOptions.ticks.fontSize;
+  const tickFontWeight =
+    layout?.tickFontWeight ?? finalOptions.ticks.fontWeight;
+  const tickFontColor = layout?.tickFontColor ?? finalOptions.ticks.fontColor;
+
+  const labelFontFamily =
+    layout?.axisLabel?.fontFamily ?? finalOptions.label?.fontFamily;
+  const labelFontSize =
+    layout?.axisLabel?.fontSize ?? finalOptions.label?.fontSize;
+  const labelFontWeight =
+    layout?.axisLabel?.fontWeight ?? finalOptions.label?.fontWeight;
 
   const isYBandScale = typeof yScaleToUse?.bandwidth === 'function';
   const xRange =
@@ -59,38 +58,10 @@ function YAxis({ options = {}, axisKey = 'y' }) {
   const yTop = Math.min(...yRange);
   const yBottom = Math.max(...yRange);
 
-  const { data, margin } = chartValues;
-
-  const generatedTickValues = isYBandScale
-    ? yDomainToUse || []
-    : typeof yScaleToUse?.ticks === 'function'
-      ? tickAmount != null
-        ? yScaleToUse.ticks(tickAmount)
-        : yScaleToUse.ticks()
-      : [];
-
-  const tickValues = explicitTickValues || generatedTickValues;
-
-  const ticks = tickValues.map((value, index) => ({
-    value,
-    label:
-      explicitTickLabels?.[index] ??
-      (tickFormatter ? tickFormatter(value) : String(value)),
-  }));
-
   const yMiddle = (yTop + yBottom) / 2;
 
-  // if there is no axis line, then there should be no tick length
-  const finalTickLength = hasAxisLine ? tickLength : 0;
-
-  // tick marks, labels and legend are offset in different directions based on location
-  const locationTickOffset = isSecondaryAxis
-    ? -finalTickLength - tickLabelPadding
-    : finalTickLength + tickLabelPadding;
-  // not enough padding on right side, so add 2 to the right side
-  const legendTickOffset = isSecondaryAxis ? -margin.right + 2 : margin.left;
-
   const xAxisLinePosition = isSecondaryAxis ? xEnd : xStart;
+  const axisLabelX = xAxisLinePosition + tickDirection * axisLabelOffset;
 
   const textStyle = {
     alignmentBaseline: 'central', // central looks better than middle
@@ -109,21 +80,29 @@ function YAxis({ options = {}, axisKey = 'y' }) {
   });
 
   // prevent rendering if scales aren't ready yet
-  if (!xScaleToUse || !yScaleToUse || !xDomainToUse || !yDomainToUse) {
+  if (!xScaleToUse || !yScaleToUse) {
     return null;
   }
 
   return (
     <g className={finalOptions.className}>
-      {/* legend */}
-      <text
-        className="gsl-chart-axis-label"
-        alignmentBaseline={`${isSecondaryAxis ? 'after-edge' : 'before-edge'}`}
-        textAnchor="middle"
-        transform={`translate(${xAxisLinePosition - legendTickOffset}, ${yMiddle}) rotate(-90)`}
-      >
-        {data.ylegend}
-      </text>
+      {axisLabelText && (
+        <text
+          className="gsl-chart-axis-label"
+          textAnchor="middle"
+          alignmentBaseline="central"
+          transform={`translate(${axisLabelX}, ${yMiddle}) rotate(-90)`}
+          style={{
+            fill: tickFontColor,
+            fontFamily: labelFontFamily,
+            fontSize: `${labelFontSize}px`,
+            fontWeight: labelFontWeight,
+            color: tickFontColor,
+          }}
+        >
+          {axisLabelText}
+        </text>
+      )}
       <g ref={ticksGroupRef}>
         {/* vertical line for y-axis, `location` will set the x values */}
         {hasAxisLine && (
@@ -156,9 +135,8 @@ function YAxis({ options = {}, axisKey = 'y' }) {
               {/* Tick Mark */}
               {hasAxisLine && (
                 <line
-                  // todo: well, this isn't using the tickLength prop...
-                  x1={xAxisLinePosition - locationTickOffset / 2}
-                  x2={xAxisLinePosition}
+                  x1={xAxisLinePosition}
+                  x2={xAxisLinePosition + tickDirection * tickLength}
                   stroke={strokeAxis}
                   strokeWidth={strokeWidth}
                 />
@@ -167,9 +145,12 @@ function YAxis({ options = {}, axisKey = 'y' }) {
               <text
                 style={textStyle}
                 className="gsl-chart-tick-label"
-                x={xAxisLinePosition - locationTickOffset}
+                x={
+                  xAxisLinePosition +
+                  tickDirection * (tickLength + tickLabelPadding)
+                }
               >
-                {tick.label === '' ? tick.value : tick.label}
+                {tick.label}
               </text>
             </g>
           );

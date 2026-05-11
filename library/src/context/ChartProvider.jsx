@@ -13,6 +13,13 @@ import {
   normalizeDataShape,
 } from '../utilities/dataUtilities';
 import {
+  buildAxisLayout,
+  getAutoMarginFromAxisLayout,
+  getProvisionalNumericMargin,
+  normalizeMarginInput,
+  resolveMargin,
+} from '../utilities/measurements';
+import {
   defaultOptions,
   defaultSeriesOptions,
   defaultAxisOptions,
@@ -35,6 +42,15 @@ function warnUnsupportedAxisKey(axisKey) {
   console.debug(
     `[wizard-charts] Unsupported axis key "${axisKey}" was ignored. Supported axis keys are: x, y, x2, y2.`,
   );
+}
+
+function computeChartScales(chartValues, axisConfig) {
+  const series = chartValues.options?.series || [];
+  const hasX = Boolean(axisConfig.x || axisConfig.x2);
+  const hasY = Boolean(axisConfig.y || axisConfig.y2);
+
+  if (series.length === 0 || !hasX || !hasY) return {};
+  return computeScales(chartValues, axisConfig);
 }
 
 // merge our default options and ensure that certain chart values are of the correct type
@@ -60,28 +76,54 @@ function buildChartValues(chartValues) {
   // prefer explicit top-level values (chartValues.height) but fall back to options
   const height = Number(chartValues.height ?? baseOptions.height) || 0;
   const width = Number(chartValues.width ?? baseOptions.width) || 0;
-  const margin = {
-    top: Number(chartValues.margin?.top ?? baseOptions.margin?.top) || 0,
-    right: Number(chartValues.margin?.right ?? baseOptions.margin?.right) || 0,
-    bottom:
-      Number(chartValues.margin?.bottom ?? baseOptions.margin?.bottom) || 0,
-    left: Number(chartValues.margin?.left ?? baseOptions.margin?.left) || 0,
-  };
-  const innerHeight = Math.max(0, height - margin.top - margin.bottom);
-  const innerWidth = Math.max(0, width - margin.left - margin.right);
-
   const options = { ...baseOptions, series: mergedSeries, axes: mergedAxes };
   const data = normalizeDataShape(chartValues.data);
 
+  const baseMarginInput =
+    chartValues.baseMargin ?? chartValues.margin ?? baseOptions.margin ?? {};
+  const baseMargin = normalizeMarginInput(baseMarginInput);
+
+  const makeChartValues = (margin) => {
+    const innerHeight = Math.max(0, height - margin.top - margin.bottom);
+    const innerWidth = Math.max(0, width - margin.left - margin.right);
+
+    return {
+      ...chartValues,
+      data,
+      options,
+      height,
+      width,
+      baseMargin,
+      margin,
+      innerHeight,
+      innerWidth,
+    };
+  };
+
+  const provisionalMargin = getProvisionalNumericMargin(baseMargin);
+  const provisionalValues = makeChartValues(provisionalMargin);
+  const provisionalScales = computeChartScales(provisionalValues, mergedAxes);
+  const provisionalAxisLayout = buildAxisLayout({
+    chartValues: provisionalValues,
+    computedScales: provisionalScales,
+  });
+
+  const measuredAutoMargin = getAutoMarginFromAxisLayout(provisionalAxisLayout);
+  const resolvedMargin = resolveMargin(baseMargin, measuredAutoMargin);
+
+  const finalValues = makeChartValues(resolvedMargin);
+  const computedScales = computeChartScales(finalValues, mergedAxes);
+  const axisLayout = buildAxisLayout({
+    chartValues: finalValues,
+    computedScales,
+  });
+  const autoMargin = getAutoMarginFromAxisLayout(axisLayout);
+
   return {
-    ...chartValues,
-    data,
-    options,
-    height,
-    width,
-    margin,
-    innerHeight,
-    innerWidth,
+    ...finalValues,
+    autoMargin,
+    computedScales,
+    axisLayout,
   };
 }
 
@@ -98,27 +140,26 @@ export function ChartProvider({ children, initialValues = {} }) {
     buildChartValues(initialValues),
   );
 
+  const computedScales = useMemo(
+    () => chartValues.computedScales || {},
+    [chartValues.computedScales],
+  );
+
   // update function
   const updateChartValues = useCallback((updates) => {
-    setChartValues((prev) => buildChartValues({ ...prev, ...updates }));
+    setChartValues((prev) => {
+      const nextValues = { ...prev, ...updates };
+
+      if (
+        Object.prototype.hasOwnProperty.call(updates, 'margin') &&
+        !Object.prototype.hasOwnProperty.call(updates, 'baseMargin')
+      ) {
+        nextValues.baseMargin = updates.margin;
+      }
+
+      return buildChartValues(nextValues);
+    });
   }, []);
-
-  // compute derived values like scales here if needed, and include them in the context value
-  const computedScales = useMemo(() => {
-    const series = chartValues.options?.series || [];
-    // grab all axis information from options
-    const axisConfig = chartValues.options?.axes || {};
-
-    // we need one x (x or x2) and one y (y or y2) axis present
-    const hasX = Boolean(axisConfig.x || axisConfig.x2);
-    const hasY = Boolean(axisConfig.y || axisConfig.y2);
-    if (series.length === 0 || !hasX || !hasY) return {};
-
-    // helper function to get scales for each axis based on the data and options
-    const scales = computeScales(chartValues, axisConfig);
-
-    return scales;
-  }, [chartValues]);
 
   // this helps consumers get the correct x and y accessors for each series
   const accessorsBySeries = useMemo(() => {
@@ -164,7 +205,13 @@ export function ChartProvider({ children, initialValues = {} }) {
     // I can assume that this setState call is safe because initialValues is a
     // a stable object created with useMemo in ChartContainer.jsx
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setChartValues((prev) => buildChartValues({ ...prev, ...initialValues }));
+    setChartValues((prev) =>
+      buildChartValues({
+        ...prev,
+        ...initialValues,
+        baseMargin: initialValues.baseMargin ?? initialValues.margin,
+      }),
+    );
   }, [initialValues]);
 
   return (

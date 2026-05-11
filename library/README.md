@@ -7,6 +7,7 @@ WIZARD Charts is a React charting library built on top of D3 for weather and for
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [ChartContainer Props](#chartcontainer-props)
+- [Dynamic Margins](#dynamic-margins)
 - [Data Model](#data-model)
 - [Options Overview](#options-overview)
 - [Series Configuration](#series-configuration)
@@ -67,7 +68,7 @@ const options = {
 <ChartContainer
   height={600}
   width={800}
-  margin={{ left: 40, right: 40, top: 20, bottom: 20 }}
+  margin={{ left: 40, top: 'auto', right: 'auto', bottom: 'auto' }}
   data={data}
   options={options}
   sx={{ border: '1px solid #737373' }}
@@ -80,13 +81,55 @@ const options = {
 type ChartContainerProps = {
   height: number;
   width: number;
-  margin: { top: number; right: number; bottom: number; left: number };
+  margin?: {
+    top?: number | 'auto';
+    right?: number | 'auto';
+    bottom?: number | 'auto';
+    left?: number | 'auto';
+  };
   data: unknown[] | Record<string, unknown[]>;
   options: ChartOptions;
   children?: React.ReactNode;
   className?: string;
   sx?: React.CSSProperties;
 };
+```
+
+`margin` defaults to `{ top: 'auto', right: 'auto', bottom: 'auto', left: 'auto' }`.
+
+## Dynamic Margins
+
+Each margin side can be either:
+
+- a number: fixed pixel margin for that side
+- `'auto'`: measured from axis rendering requirements
+
+Auto margins are computed independently per side (`top`, `right`, `bottom`, `left`) using the axis mapped to that side:
+
+- axis line width (when `hasAxisLine` is enabled)
+- outward tick length (negative tick length is treated as inward and does not add outside space)
+- tick label padding
+- measured tick label text bounds
+- measured axis label text bounds from `axes.*.label`
+
+Axis labels are sourced from `axes.x.label`, `axes.x2.label`, `axes.y.label`, and `axes.y2.label`.
+
+Default behavior (all auto):
+
+```jsx
+<ChartContainer height={600} width={800} data={data} options={options} />
+```
+
+Mixed overrides (fixed left margin, other sides auto):
+
+```jsx
+<ChartContainer
+  height={600}
+  width={800}
+  margin={{ left: 48, top: 'auto', right: 'auto', bottom: 'auto' }}
+  data={data}
+  options={options}
+/>
 ```
 
 ## Data Model
@@ -551,6 +594,12 @@ Axis defaults:
   },
 }
 ```
+
+Label behavior:
+
+- Use `axes.*.label` for axis label text and font settings.
+- `label.text` is rendered on all supported axes (`x`, `x2`, `y`, `y2`) when non-empty.
+- Legacy `axes.*.title` is not used by axis rendering.
 
 Tick behavior:
 

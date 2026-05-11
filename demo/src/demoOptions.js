@@ -84,7 +84,7 @@ export const demoOptions = {
       },
       y: {
         type: 'linear',
-        title: { text: 'Temperature (F)' },
+        label: { text: 'Temperature (F)' },
         nice: true,
         ticks: {
           values: [],
@@ -149,7 +149,7 @@ export const demoOptions = {
       },
       y: {
         type: 'linear',
-        title: { text: 'Temperature (F)' },
+        label: { text: 'Temperature (F)' },
         ticks: { values: [], labels: [], amount: 10 },
         hasAxisLine: false,
         hasGridLines: true,
@@ -193,7 +193,7 @@ export const demoOptions = {
       },
       y: {
         type: 'linear',
-        title: { text: 'Temperature (F)' },
+        label: { text: 'Temperature (F)' },
         ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
         nice: true,
         hasAxisLine: false,
@@ -230,7 +230,7 @@ export const demoOptions = {
       },
       y: {
         type: 'linear',
-        title: { text: 'Temperature (F)' },
+        label: { text: 'Temperature (F)' },
         ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
         nice: true,
         hasAxisLine: false,
@@ -271,7 +271,7 @@ export const demoOptions = {
       },
       y: {
         type: 'linear',
-        title: { text: 'Temperature (F)' },
+        label: { text: 'Temperature (F)' },
         ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
         nice: true,
         hasAxisLine: false,
@@ -313,7 +313,7 @@ export const demoOptions = {
       },
       y: {
         type: 'linear',
-        title: { text: 'Temperature (F)' },
+        label: { text: 'Temperature (F)' },
         ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
         nice: true,
         hasAxisLine: false,

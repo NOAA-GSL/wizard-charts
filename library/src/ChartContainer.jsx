@@ -7,7 +7,7 @@ import { ChartProvider } from './context/ChartProvider';
 import ErrorBoundary from './ErrorBoundary';
 // import { pointer } from 'd3';
 import { defaultOptions } from './utilities/defaultOptions';
-import { mergeDeep } from './utilities/dataUtilities';
+import { axisHasMappedSeries, mergeDeep } from './utilities/dataUtilities';
 import XAxis from './axisComponents/XAxis';
 import YAxis from './axisComponents/YAxis';
 import Line from './plotComponents/Line';
@@ -21,7 +21,7 @@ import Heatmap from './plotComponents/Heatmap';
 function ChartContainer({
   height = 600,
   width = 800,
-  margin = { top: 0, right: 0, bottom: 0, left: 0 },
+  margin = { top: 'auto', right: 'auto', bottom: 'auto', left: 'auto' },
   data = [],
   options = {},
   children,
@@ -37,7 +37,7 @@ function ChartContainer({
     () => ({
       height,
       width,
-      margin,
+      baseMargin: margin,
       data,
       options: mergeDeep(defaultOptions, options),
     }),
@@ -69,17 +69,6 @@ function ChartContainer({
   const axes = initialValues.options.axes || {};
   const series = initialValues.options.series || [];
 
-  const hasSeriesForAxis = (axisKey) => {
-    const isX = axisKey === 'x' || axisKey === 'x2';
-    const isSecondary = axisKey === 'x2' || axisKey === 'y2';
-
-    return series.some((s) => {
-      if (!s) return false;
-      const usesSecondary = isX ? !!s.isSecondaryXAxis : !!s.isSecondaryYAxis;
-      return usesSecondary === isSecondary;
-    });
-  };
-
   return (
     <ChartProvider initialValues={initialValues}>
       <ErrorBoundary>
@@ -92,16 +81,16 @@ function ChartContainer({
           //   updateHoverPoint(pointer(e, svgReadoutRef.current))
           // }
         >
-          {axes.x && hasSeriesForAxis('x') && (
+          {axes.x && axisHasMappedSeries(series, 'x') && (
             <XAxis options={axes.x} axisKey="x" />
           )}
-          {axes.x2 && hasSeriesForAxis('x2') && (
+          {axes.x2 && axisHasMappedSeries(series, 'x2') && (
             <XAxis options={axes.x2} axisKey="x2" />
           )}
-          {axes.y && hasSeriesForAxis('y') && (
+          {axes.y && axisHasMappedSeries(series, 'y') && (
             <YAxis options={axes.y} axisKey="y" />
           )}
-          {axes.y2 && hasSeriesForAxis('y2') && (
+          {axes.y2 && axisHasMappedSeries(series, 'y2') && (
             <YAxis options={axes.y2} axisKey="y2" />
           )}
           {seriesNodes}

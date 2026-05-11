@@ -8,6 +8,33 @@ import {
 } from 'd3';
 import { seriesAccessorProps } from './defaultOptions';
 
+const VALID_AXIS_KEYS = new Set(['x', 'y', 'x2', 'y2']);
+
+export function isXValueAxis(axisKey) {
+  return axisKey === 'x' || axisKey === 'x2';
+}
+
+export function isSecondaryAxis(axisKey) {
+  return String(axisKey).endsWith('2');
+}
+
+export function getSeriesForAxis(series = [], axisKey) {
+  if (!VALID_AXIS_KEYS.has(axisKey)) return [];
+
+  const isX = isXValueAxis(axisKey);
+  const secondary = isSecondaryAxis(axisKey);
+
+  return (series || []).filter((s) => {
+    if (!s) return false;
+    const useSecondary = isX ? !!s.isSecondaryXAxis : !!s.isSecondaryYAxis;
+    return secondary ? useSecondary : !useSecondary;
+  });
+}
+
+export function axisHasMappedSeries(series = [], axisKey) {
+  return getSeriesForAxis(series, axisKey).length > 0;
+}
+
 export function getDomain(data, accessor) {
   return extent(data, accessor);
 }
@@ -359,26 +386,17 @@ export const computeScales = (chartValues, axisConfig) => {
   const series = chartValues.options?.series || [];
   const data = chartValues.data || [];
   const rootData = Array.isArray(data) ? data : [];
-  const validAxisKeys = new Set(['x', 'x2', 'y', 'y2']);
 
   // loop through each axis in the config and compute the corresponding scale
   Object.entries(axisConfig).forEach(([axisKey, config]) => {
-    if (!validAxisKeys.has(axisKey)) return;
+    if (!VALID_AXIS_KEYS.has(axisKey)) return;
 
     const axisOptions = config && typeof config === 'object' ? config : {};
     const { type, domainMin, domainMax, nice } = axisOptions;
     // determine whether this is an x or y axis
-    const isX = axisKey === 'x' || axisKey === 'x2';
+    const isX = isXValueAxis(axisKey);
 
-    // filter matching series that use this axis and return the objects
-    // only support the boolean flags `isSecondaryXAxis` / `isSecondaryYAxis`
-    // primary axes: axisKey without trailing '2' (e.g., 'x' or 'y')
-    const isSecondaryAxis = String(axisKey).endsWith('2');
-    const matchingSeries = series.filter((s) => {
-      if (!s) return false;
-      const isSecondaryFlag = isX ? !!s.isSecondaryXAxis : !!s.isSecondaryYAxis;
-      return isSecondaryAxis ? isSecondaryFlag : !isSecondaryFlag;
-    });
+    const matchingSeries = getSeriesForAxis(series, axisKey);
 
     const getSeriesData = (s) => (Array.isArray(s?.data) ? s.data : rootData);
 
