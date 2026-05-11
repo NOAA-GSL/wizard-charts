@@ -54,6 +54,125 @@ function getAxisLabelText(axisOptions = {}) {
   return text == null ? '' : String(text);
 }
 
+function getTextAnchorHorizontalExtents(textAnchor, width) {
+  if (textAnchor === 'end') {
+    return { left: width, right: 0 };
+  }
+
+  if (textAnchor === 'start') {
+    return { left: 0, right: width };
+  }
+
+  return { left: width / 2, right: width / 2 };
+}
+
+function getAxisEdgeOverflow({
+  axisKey,
+  axisScale,
+  ticks,
+  tickFont,
+  tickAngle,
+  isAngledTicks,
+  axisLabelText,
+  axisLabelDimensions,
+  chartWidth,
+  chartHeight,
+}) {
+  const overflow = { top: 0, right: 0, bottom: 0, left: 0 };
+
+  if (!axisScale || typeof axisScale.range !== 'function') {
+    return overflow;
+  }
+
+  const axisRange = axisScale.range();
+  const rangeStart = Math.min(...axisRange);
+  const rangeEnd = Math.max(...axisRange);
+  const isXAxis = isXValueAxis(axisKey);
+  const isBandScale = typeof axisScale.bandwidth === 'function';
+
+  const getTickPosition = (value) => {
+    const basePosition = axisScale(value);
+    if (!Number.isFinite(basePosition)) return null;
+
+    if (isBandScale) {
+      return basePosition + axisScale.bandwidth() / 2;
+    }
+
+    return basePosition;
+  };
+
+  ticks.forEach((tick) => {
+    const tickPosition = getTickPosition(tick.value);
+    if (!Number.isFinite(tickPosition)) return;
+
+    const labelText = String(tick.label ?? '');
+    const labelDimensions = getTextDimensions(
+      labelText,
+      tickFont,
+      isXAxis ? tickAngle : 0,
+    );
+
+    if (isXAxis) {
+      const textAnchor = isAngledTicks ? 'end' : 'middle';
+      const { left, right } = getTextAnchorHorizontalExtents(
+        textAnchor,
+        labelDimensions.width,
+      );
+
+      const labelLeft = tickPosition - left;
+      const labelRight = tickPosition + right;
+
+      overflow.left = Math.max(overflow.left, Math.max(0, -labelLeft));
+      overflow.right = Math.max(
+        overflow.right,
+        Math.max(0, labelRight - chartWidth),
+      );
+
+      return;
+    }
+
+    const halfLabelHeight = labelDimensions.height / 2;
+    const labelTop = tickPosition - halfLabelHeight;
+    const labelBottom = tickPosition + halfLabelHeight;
+
+    overflow.top = Math.max(overflow.top, Math.max(0, -labelTop));
+    overflow.bottom = Math.max(
+      overflow.bottom,
+      Math.max(0, labelBottom - chartHeight),
+    );
+  });
+
+  if (!axisLabelText) return overflow;
+
+  if (isXAxis) {
+    const axisLabelX = (rangeStart + rangeEnd) / 2;
+    const halfLabelWidth = axisLabelDimensions.width / 2;
+    const labelLeft = axisLabelX - halfLabelWidth;
+    const labelRight = axisLabelX + halfLabelWidth;
+
+    overflow.left = Math.max(overflow.left, Math.max(0, -labelLeft));
+    overflow.right = Math.max(
+      overflow.right,
+      Math.max(0, labelRight - chartWidth),
+    );
+
+    return overflow;
+  }
+
+  const axisLabelY = (rangeStart + rangeEnd) / 2;
+  const halfLabelHeight = axisLabelDimensions.height / 2;
+  const labelTop = axisLabelY - halfLabelHeight;
+  const labelBottom = axisLabelY + halfLabelHeight;
+
+  overflow.top = Math.max(overflow.top, Math.max(0, -labelTop));
+  overflow.bottom = Math.max(
+    overflow.bottom,
+    Math.max(0, labelBottom - chartHeight),
+  );
+
+  return overflow;
+}
+
 function getMatrixTickValues(chartValues, axisKey) {
   if (!isXValueAxis(axisKey)) return [];
 
@@ -295,6 +414,19 @@ export function buildAxisLayout({ chartValues, computedScales = {} }) {
     const axisLabelCenterOffset =
       axisLabelOffset + (isXAxis ? 0 : axisLabelOutsideSize / 2);
 
+    const edgeOverflow = getAxisEdgeOverflow({
+      axisKey,
+      axisScale,
+      ticks,
+      tickFont,
+      tickAngle,
+      isAngledTicks,
+      axisLabelText,
+      axisLabelDimensions,
+      chartWidth: chartValues.width,
+      chartHeight: chartValues.height,
+    });
+
     const requiredOutsideSpace =
       axisStrokeOutside +
       outwardTickLength +
@@ -333,6 +465,7 @@ export function buildAxisLayout({ chartValues, computedScales = {} }) {
       },
       axisLabelOffset,
       axisLabelCenterOffset,
+      edgeOverflow,
       requiredOutsideSpace,
     };
   });
@@ -341,15 +474,40 @@ export function buildAxisLayout({ chartValues, computedScales = {} }) {
 }
 
 export function getAutoMarginFromAxisLayout(axisLayout = {}) {
+  const baseMargin = {
+    top: toNonNegativeNumber(axisLayout.x2?.requiredOutsideSpace, 0),
+    right: toNonNegativeNumber(axisLayout.y2?.requiredOutsideSpace, 0),
+    bottom: toNonNegativeNumber(axisLayout.x?.requiredOutsideSpace, 0),
+    left: toNonNegativeNumber(axisLayout.y?.requiredOutsideSpace, 0),
+  };
+
+  const edgeOverflow = { top: 0, right: 0, bottom: 0, left: 0 };
+  Object.values(axisLayout).forEach((layout) => {
+    if (!layout?.edgeOverflow) return;
+
+    edgeOverflow.top = Math.max(
+      edgeOverflow.top,
+      toNonNegativeNumber(layout.edgeOverflow.top, 0),
+    );
+    edgeOverflow.right = Math.max(
+      edgeOverflow.right,
+      toNonNegativeNumber(layout.edgeOverflow.right, 0),
+    );
+    edgeOverflow.bottom = Math.max(
+      edgeOverflow.bottom,
+      toNonNegativeNumber(layout.edgeOverflow.bottom, 0),
+    );
+    edgeOverflow.left = Math.max(
+      edgeOverflow.left,
+      toNonNegativeNumber(layout.edgeOverflow.left, 0),
+    );
+  });
+
   return {
-    top: Math.ceil(toNonNegativeNumber(axisLayout.x2?.requiredOutsideSpace, 0)),
-    right: Math.ceil(
-      toNonNegativeNumber(axisLayout.y2?.requiredOutsideSpace, 0),
-    ),
-    bottom: Math.ceil(
-      toNonNegativeNumber(axisLayout.x?.requiredOutsideSpace, 0),
-    ),
-    left: Math.ceil(toNonNegativeNumber(axisLayout.y?.requiredOutsideSpace, 0)),
+    top: Math.ceil(baseMargin.top + edgeOverflow.top),
+    right: Math.ceil(baseMargin.right + edgeOverflow.right),
+    bottom: Math.ceil(baseMargin.bottom + edgeOverflow.bottom),
+    left: Math.ceil(baseMargin.left + edgeOverflow.left),
   };
 }
 
