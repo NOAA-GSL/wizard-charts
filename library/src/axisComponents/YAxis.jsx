@@ -35,6 +35,18 @@ function YAxis({ options = {}, axisKey = 'y' }) {
   const tickFontWeight = ticksOpts.fontWeight;
   const tickFontColor = ticksOpts.fontColor;
   const tickFormatter = ticksOpts.formatter;
+  const tickAmount =
+    Number.isFinite(ticksOpts.amount) && ticksOpts.amount > 0
+      ? ticksOpts.amount
+      : null;
+  const explicitTickValues =
+    Array.isArray(ticksOpts.values) && ticksOpts.values.length > 0
+      ? ticksOpts.values
+      : null;
+  const explicitTickLabels =
+    Array.isArray(ticksOpts.labels) && ticksOpts.labels.length > 0
+      ? ticksOpts.labels
+      : null;
 
   const isYBandScale = typeof yScaleToUse?.bandwidth === 'function';
   const xRange =
@@ -49,15 +61,21 @@ function YAxis({ options = {}, axisKey = 'y' }) {
 
   const { data, margin } = chartValues;
 
-  const tickValues = isYBandScale
+  const generatedTickValues = isYBandScale
     ? yDomainToUse || []
     : typeof yScaleToUse?.ticks === 'function'
-      ? yScaleToUse.ticks()
+      ? tickAmount != null
+        ? yScaleToUse.ticks(tickAmount)
+        : yScaleToUse.ticks()
       : [];
 
-  const ticks = tickValues.map((value) => ({
+  const tickValues = explicitTickValues || generatedTickValues;
+
+  const ticks = tickValues.map((value, index) => ({
     value,
-    label: tickFormatter ? tickFormatter(value) : String(value),
+    label:
+      explicitTickLabels?.[index] ??
+      (tickFormatter ? tickFormatter(value) : String(value)),
   }));
 
   const yMiddle = (yTop + yBottom) / 2;

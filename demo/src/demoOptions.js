@@ -78,16 +78,18 @@ export const demoOptions = {
       // can also use the default x and y
       x: {
         type: 'linear', // band, linear, log, time
-        ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
+        ticks: { formatter: timeFormatter('%m-%d %Hz'), amount: 4 }, // optional formatting function for ticks
         nice: false,
         sx: {},
       },
       y: {
         type: 'linear',
         title: { text: 'Temperature (F)' },
+        nice: true,
         ticks: {
-          values: [0, 10, 20, 30, 40],
-          labels: ['hi', 'there', 'how', 'are', 'you'],
+          values: [],
+          labels: [],
+          amount: 4,
         }, // default will print values, then labels if provided
         // default domain will compute max and min from data
         // domainMin: 0, // optional
@@ -98,7 +100,6 @@ export const demoOptions = {
       },
       y2: {
         type: 'linear',
-        nice: true,
         hasAxisLine: false,
       },
     },

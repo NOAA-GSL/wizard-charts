@@ -552,6 +552,27 @@ Axis defaults:
 }
 ```
 
+Tick behavior:
+
+- Leave `ticks.values` empty to use the axis' generated ticks. Continuous axes (`linear`, `time`) use D3 `scale.ticks(count)` generation, with `ticks.amount` as the count hint. Band axes use the resolved domain.
+- Provide `ticks.values` to render only those tick positions.
+- `ticks.amount` only affects generated continuous ticks. It is ignored when `ticks.values` is provided.
+- Provide `ticks.labels` to override labels by index. If a label is missing for a given tick value, the axis falls back to `ticks.formatter(value)`, then `String(value)`.
+
+Example:
+
+```js
+axes: {
+  y: {
+    type: 'linear',
+    ticks: {
+      values: [0, 15, 30],
+      labels: ['Calm', 'Breezy', 'Windy'],
+    },
+  },
+}
+```
+
 Supported axis keys are `x`, `y`, `x2`, and `y2`.
 
 If an unsupported axis key is provided (for example `y1`), it is ignored to avoid runtime crashes.
@@ -605,8 +626,6 @@ const options = {
     y2: {
       type: 'linear',
       label: { text: 'Wind (mph)' },
-      // optional override; y2 defaults to right if not set
-      position: 'right',
     },
   },
 };

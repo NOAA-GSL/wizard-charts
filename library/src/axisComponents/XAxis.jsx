@@ -39,6 +39,10 @@ function XAxis({ options = {}, axisKey = 'x' }) {
   const tickFontWeight = ticksOpts.fontWeight;
   const tickFontColor = ticksOpts.fontColor;
   const tickFormatter = ticksOpts.formatter;
+  const tickAmount =
+    Number.isFinite(ticksOpts.amount) && ticksOpts.amount > 0
+      ? ticksOpts.amount
+      : null;
   const explicitTickValues =
     Array.isArray(ticksOpts.values) && ticksOpts.values.length > 0
       ? ticksOpts.values
@@ -95,7 +99,9 @@ function XAxis({ options = {}, axisKey = 'x' }) {
     : matrixTimeTickValues.length > 0
       ? matrixTimeTickValues
       : typeof xScaleToUse?.ticks === 'function'
-        ? xScaleToUse.ticks()
+        ? tickAmount != null
+          ? xScaleToUse.ticks(tickAmount)
+          : xScaleToUse.ticks()
         : [];
 
   const tickValues = explicitTickValues || generatedTickValues;

@@ -31,7 +31,7 @@ export const defaultAxisOptions = {
   ticks: {
     values: [],
     labels: [],
-    amount: 10,
+    amount: 10, // hint for generated continuous tick count when values is empty
     isAngled: false,
     length: 5,
     labelPadding: 5,
