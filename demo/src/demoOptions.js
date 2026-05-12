@@ -91,10 +91,7 @@ export const demoOptions = {
           values: [],
           labels: [],
           amount: 4,
-        }, // default will print values, then labels if provided
-        // default domain will compute max and min from data
-        // domainMin: 0, // optional
-        // domainMax: 100, // optional
+        },
         hasAxisLine: false,
         hasGridLines: true,
         sx: {},
@@ -102,6 +99,7 @@ export const demoOptions = {
       y2: {
         type: 'linear',
         hasAxisLine: false,
+        label: { text: 'Wind Speed (mph)' },
       },
     },
     readout: {

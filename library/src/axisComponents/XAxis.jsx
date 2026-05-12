@@ -52,6 +52,10 @@ function XAxis({ options = {}, axisKey = 'x' }) {
     layout?.axisLabel?.fontSize ?? finalOptions.label?.fontSize;
   const labelFontWeight =
     layout?.axisLabel?.fontWeight ?? finalOptions.label?.fontWeight;
+  const labelFontColor =
+    layout?.axisLabel?.fontColor ??
+    finalOptions.label?.fontColor ??
+    tickFontColor;
 
   const isXBandScale = typeof xScaleToUse?.bandwidth === 'function';
   const xRange =
@@ -168,11 +172,11 @@ function XAxis({ options = {}, axisKey = 'x' }) {
           textAnchor="middle"
           alignmentBaseline={isSecondaryAxis ? 'auto' : 'hanging'}
           style={{
-            fill: tickFontColor,
+            fill: labelFontColor,
             fontFamily: labelFontFamily,
             fontSize: `${labelFontSize}px`,
             fontWeight: labelFontWeight,
-            color: tickFontColor,
+            color: labelFontColor,
           }}
         >
           {axisLabelText}

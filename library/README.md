@@ -570,6 +570,7 @@ Axis defaults:
     fontSize: 14,
     fontWeight: 700,
     fontFamily: 'sans-serif',
+    fontColor: 'currentColor',
   },
   hasAxisLine: true,
   hasGridLines: false,
@@ -599,6 +600,7 @@ Label behavior:
 
 - Use `axes.*.label` for axis label text and font settings.
 - `label.text` is rendered on all supported axes (`x`, `x2`, `y`, `y2`) when non-empty.
+- Use `label.fontColor` to control axis label color independently of tick label color.
 - Legacy `axes.*.title` is not used by axis rendering.
 
 Tick behavior:
@@ -612,8 +614,13 @@ Example:
 
 ```js
 axes: {
+  x: {
+    type: 'time',
+    label: { text: 'Date', fontColor: '#404040' },
+  },
   y: {
     type: 'linear',
+    label: { text: 'Temperature (F)', fontColor: '#147AF3' },
     ticks: {
       values: [0, 15, 30],
       labels: ['Calm', 'Breezy', 'Windy'],

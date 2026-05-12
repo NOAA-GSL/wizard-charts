@@ -18,7 +18,13 @@ export const defaultAxisOptions = {
   // default domain will compute max and min from data
   domainMin: undefined, // optionally provide a min domain
   domainMax: undefined, // optionally provide a max domain
-  label: { text: '', fontSize: 14, fontWeight: 700, fontFamily: 'sans-serif' },
+  label: {
+    text: '',
+    fontSize: 14,
+    fontWeight: 700,
+    fontFamily: 'sans-serif',
+    fontColor: 'currentColor',
+  },
   hasAxisLine: true,
   hasGridLines: false,
   nice: false,

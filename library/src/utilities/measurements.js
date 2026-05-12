@@ -461,6 +461,7 @@ export function buildAxisLayout({ chartValues, computedScales = {} }) {
         fontFamily: axisOptions.label?.fontFamily,
         fontSize: axisOptions.label?.fontSize,
         fontWeight: axisOptions.label?.fontWeight,
+        fontColor: axisOptions.label?.fontColor,
         outsideSize: axisLabelOutsideSize,
       },
       axisLabelOffset,

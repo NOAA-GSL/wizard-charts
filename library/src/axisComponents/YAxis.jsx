@@ -49,6 +49,10 @@ function YAxis({ options = {}, axisKey = 'y' }) {
     layout?.axisLabel?.fontSize ?? finalOptions.label?.fontSize;
   const labelFontWeight =
     layout?.axisLabel?.fontWeight ?? finalOptions.label?.fontWeight;
+  const labelFontColor =
+    layout?.axisLabel?.fontColor ??
+    finalOptions.label?.fontColor ??
+    tickFontColor;
 
   const isYBandScale = typeof yScaleToUse?.bandwidth === 'function';
   const xRange =
@@ -88,7 +92,7 @@ function YAxis({ options = {}, axisKey = 'y' }) {
   }
 
   return (
-    <g className={finalOptions.className}>
+    <g className={finalOptions.className} ref={ticksGroupRef}>
       {axisLabelText && (
         <text
           className="gsl-chart-axis-label"
@@ -96,69 +100,67 @@ function YAxis({ options = {}, axisKey = 'y' }) {
           alignmentBaseline="central"
           transform={`translate(${axisLabelX}, ${yMiddle}) rotate(-90)`}
           style={{
-            fill: tickFontColor,
+            fill: labelFontColor,
             fontFamily: labelFontFamily,
             fontSize: `${labelFontSize}px`,
             fontWeight: labelFontWeight,
-            color: tickFontColor,
+            color: labelFontColor,
           }}
         >
           {axisLabelText}
         </text>
       )}
-      <g ref={ticksGroupRef}>
-        {/* vertical line for y-axis, `location` will set the x values */}
-        {hasAxisLine && (
-          <line
-            x1={xAxisLinePosition}
-            x2={xAxisLinePosition}
-            y1={yBottom}
-            y2={yTop}
-            stroke={strokeAxis}
-            strokeWidth={strokeWidth}
-          />
-        )}
-        {ticks.map((tick) => {
-          const tickY = isYBandScale
-            ? yScaleToUse(tick.value) + yScaleToUse.bandwidth() / 2
-            : yScaleToUse(tick.value);
-          if (!Number.isFinite(tickY)) return null;
+      {/* vertical line for y-axis, `location` will set the x values */}
+      {hasAxisLine && (
+        <line
+          x1={xAxisLinePosition}
+          x2={xAxisLinePosition}
+          y1={yBottom}
+          y2={yTop}
+          stroke={strokeAxis}
+          strokeWidth={strokeWidth}
+        />
+      )}
+      {ticks.map((tick) => {
+        const tickY = isYBandScale
+          ? yScaleToUse(tick.value) + yScaleToUse.bandwidth() / 2
+          : yScaleToUse(tick.value);
+        if (!Number.isFinite(tickY)) return null;
 
-          return (
-            <g key={String(tick.value)} transform={`translate(0, ${tickY})`}>
-              {/* Horizontal grid line */}
-              {hasGridLines && (
-                <line
-                  x1={xStart}
-                  x2={xEnd}
-                  stroke={strokeGrid}
-                  strokeWidth={strokeWidth}
-                />
-              )}
-              {/* Tick Mark */}
-              {hasAxisLine && (
-                <line
-                  x1={xAxisLinePosition}
-                  x2={xAxisLinePosition + tickDirection * tickLength}
-                  stroke={strokeAxis}
-                  strokeWidth={strokeWidth}
-                />
-              )}
-              {/* Tick Label */}
-              <text
-                style={textStyle}
-                className="gsl-chart-tick-label"
-                x={
-                  xAxisLinePosition +
-                  tickDirection * (tickLength + tickLabelPadding)
-                }
-              >
-                {tick.label}
-              </text>
-            </g>
-          );
-        })}
-      </g>
+        return (
+          <g key={String(tick.value)} transform={`translate(0, ${tickY})`}>
+            {/* Horizontal grid line */}
+            {hasGridLines && (
+              <line
+                x1={xStart}
+                x2={xEnd}
+                stroke={strokeGrid}
+                strokeWidth={strokeWidth}
+              />
+            )}
+            {/* Tick Mark */}
+            {hasAxisLine && (
+              <line
+                x1={xAxisLinePosition}
+                x2={xAxisLinePosition + tickDirection * tickLength}
+                stroke={strokeAxis}
+                strokeWidth={strokeWidth}
+              />
+            )}
+            {/* Tick Label */}
+            <text
+              style={textStyle}
+              className="gsl-chart-tick-label"
+              x={
+                xAxisLinePosition +
+                tickDirection * (tickLength + tickLabelPadding)
+              }
+            >
+              {tick.label}
+            </text>
+          </g>
+        );
+      })}
     </g>
   );
 }
