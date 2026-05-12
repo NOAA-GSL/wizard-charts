@@ -113,7 +113,7 @@ export const demoOptions = {
         type: 'bar',
         xKey: 'date',
         yKey: 'series1.p90',
-        yName: 'Series 1',
+        name: 'Series 1',
         fill: dataVizColors.seaGreen,
         stacked: true,
         isCumulative: false,
@@ -123,7 +123,7 @@ export const demoOptions = {
         type: 'bar',
         xKey: 'date',
         yKey: 'series1.p50',
-        yName: 'Series 1',
+        name: 'Series 1',
         fill: dataVizColors.tangerine,
         stacked: true,
         isCumulative: false,
@@ -133,7 +133,7 @@ export const demoOptions = {
         type: 'bar',
         xKey: 'date',
         yKey: 'series1.p10',
-        yName: 'Series 1',
+        name: 'Series 1',
         fill: dataVizColors.violet,
         stacked: true,
         isCumulative: false,
@@ -165,21 +165,21 @@ export const demoOptions = {
         type: 'line', // or 'bar'
         xKey: 'date', // support dot notation
         yKey: 'series2.p10',
-        yName: 'Temperature',
+        name: 'Temperature',
         stroke: dataVizColors.violet,
       },
       {
         type: 'line', // or 'bar'
         xKey: 'date', // support dot notation
         yKey: 'series2.p50',
-        yName: 'Temperature',
+        name: 'Temperature',
         stroke: dataVizColors.green,
       },
       {
         type: 'line', // or 'bar'
         xKey: 'date', // support dot notation
         yKey: 'series2.p90',
-        yName: 'Temperature',
+        name: 'Temperature',
         stroke: dataVizColors.yellow,
       },
     ],
@@ -214,7 +214,7 @@ export const demoOptions = {
         medianYKey: 'series1.p50',
         q3YKey: 'series1.p75',
         maxYKey: 'series1.p90',
-        yName: 'Temperature',
+        name: 'Temperature',
         fill: dataVizColors.magenta,
         strokeWhisker: dataVizColors.magenta,
         alignment: 'right',
@@ -247,7 +247,7 @@ export const demoOptions = {
         type: 'circle',
         xKey: 'date',
         yKey: 'series1.p50',
-        yName: 'Temperature',
+        name: 'Temperature',
         fill: `${dataVizColors.lime}88`, // with some transparency
         stroke: dataVizColors.yellow,
         radius: 4,
@@ -257,7 +257,7 @@ export const demoOptions = {
         type: 'line',
         xKey: 'date',
         yKey: 'series2.p90',
-        yName: 'Temperature',
+        name: 'Temperature',
         stroke: dataVizColors.violet,
       },
     ],
@@ -297,7 +297,7 @@ export const demoOptions = {
         medianYKey: 'series1.p50',
         q3YKey: 'series1.p75',
         maxYKey: 'series1.p90',
-        yName: 'Temperature',
+        name: 'Temperature',
         fill: `${dataVizColors.green}88`,
         stroke: dataVizColors.green,
         strokeWhisker: dataVizColors.green,

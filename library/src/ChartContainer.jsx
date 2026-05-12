@@ -10,6 +10,7 @@ import { defaultOptions } from './utilities/defaultOptions';
 import { axisHasMappedSeries, mergeDeep } from './utilities/dataUtilities';
 import XAxis from './axisComponents/XAxis';
 import YAxis from './axisComponents/YAxis';
+import Legend from './axisComponents/Legend';
 import Line from './plotComponents/Line';
 import Bar from './plotComponents/Bar';
 import BoxPlot from './plotComponents/BoxPlot';
@@ -94,6 +95,7 @@ function ChartContainer({
             <YAxis options={axes.y2} axisKey="y2" />
           )}
           {seriesNodes}
+          <Legend />
           {children}
         </svg>
       </ErrorBoundary>

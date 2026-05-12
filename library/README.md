@@ -11,6 +11,7 @@ WIZARD Charts is a React charting library built on top of D3 for weather and for
 - [Data Model](#data-model)
 - [Options Overview](#options-overview)
 - [Series Configuration](#series-configuration)
+- [Legend](#legend)
 - [Combining Multiple Plot Types](#combining-multiple-plot-types)
 - [Per-Plot Defaults](#per-plot-defaults)
 - [Axis Configuration](#axis-configuration)
@@ -112,6 +113,8 @@ Auto margins are computed independently per side (`top`, `right`, `bottom`, `lef
 - measured tick label text bounds
 - measured axis label text bounds from `axes.*.label`
 
+When `options.legend.enabled` is true and at least one visible series is eligible for the legend, bottom auto-margin also reserves space for the legend block below the primary x-axis.
+
 Axis labels are sourced from `axes.x.label`, `axes.x2.label`, `axes.y.label`, and `axes.y2.label`.
 
 Default behavior (all auto):
@@ -211,6 +214,26 @@ All column arrays must be the same length.
     // x2: {},
     // y2: {},
   },
+  legend: {
+    enabled: true,
+    gap: 10,
+    rowGap: 8,
+    itemGap: 16,
+    markerSize: 10,
+    fontFamily: 'inherit',
+    fontSize: 12,
+    fontWeight: 500,
+    fontColor: 'currentColor',
+    colorbar: {
+      width: 120,
+      height: 10,
+      tickGap: 4,
+      tickFontSize: 10,
+      tickFontWeight: 400,
+    },
+    className: '',
+    sx: {},
+  },
   readout: {
     hoverMode: 'local',
   },
@@ -227,6 +250,7 @@ Each entry in `options.series` renders one plot layer.
 ```js
 {
   type: 'line', // 'line' | 'bar' | 'boxPlot' | 'circle' | 'area' | 'matrix' | 'heatmap'
+  name: undefined, // legend label; falls back to yKey
   xKey: 'x',
   yKey: 'y',
   data: undefined, // optional per-series dataset
@@ -234,10 +258,39 @@ Each entry in `options.series` renders one plot layer.
   isSecondaryYAxis: false,
   isSecondaryXAxis: false,
   isVisible: true,
+  showInLegend: true,
   stroke: null,
   fill: null,
   className: '',
   sx: {},
+}
+```
+
+## Legend
+
+Legend behavior is enabled by default.
+
+- The legend renders beneath the primary x-axis when at least one series is visible and `showInLegend` is not false.
+- Set `options.legend.enabled: false` to hide legend rendering and skip legend auto-margin reservation.
+- Set `series.showInLegend: false` to hide a single series from legend output.
+- Series labels use `name` first, then fall back to `yKey`.
+- Matrix and heatmap series render a per-series colorbar legend entry instead of a marker.
+
+Example:
+
+```js
+{
+  legend: {
+    enabled: true,
+  },
+  series: [
+    {
+      type: 'line',
+      name: 'Mean Temperature',
+      xKey: 'date',
+      yKey: 'temp.mean',
+    },
+  ],
 }
 ```
 

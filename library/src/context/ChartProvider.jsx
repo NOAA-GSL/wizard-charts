@@ -14,6 +14,7 @@ import {
 } from '../utilities/dataUtilities';
 import {
   buildAxisLayout,
+  buildLegendLayout,
   getAutoMarginFromAxisLayout,
   getProvisionalNumericMargin,
   normalizeMarginInput,
@@ -107,8 +108,15 @@ function buildChartValues(chartValues) {
     chartValues: provisionalValues,
     computedScales: provisionalScales,
   });
+  const provisionalLegendLayout = buildLegendLayout({
+    chartValues: provisionalValues,
+    axisLayout: provisionalAxisLayout,
+  });
 
-  const measuredAutoMargin = getAutoMarginFromAxisLayout(provisionalAxisLayout);
+  const measuredAutoMargin = getAutoMarginFromAxisLayout(
+    provisionalAxisLayout,
+    provisionalLegendLayout,
+  );
   const resolvedMargin = resolveMargin(baseMargin, measuredAutoMargin);
 
   const finalValues = makeChartValues(resolvedMargin);
@@ -117,13 +125,18 @@ function buildChartValues(chartValues) {
     chartValues: finalValues,
     computedScales,
   });
-  const autoMargin = getAutoMarginFromAxisLayout(axisLayout);
+  const legendLayout = buildLegendLayout({
+    chartValues: finalValues,
+    axisLayout,
+  });
+  const autoMargin = getAutoMarginFromAxisLayout(axisLayout, legendLayout);
 
   return {
     ...finalValues,
     autoMargin,
     computedScales,
     axisLayout,
+    legendLayout,
   };
 }
 

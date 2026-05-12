@@ -57,6 +57,26 @@ export const defaultOptions = {
     x2: defaultAxisOptions,
     y2: defaultAxisOptions,
   },
+  legend: {
+    enabled: true,
+    gap: 10,
+    rowGap: 8,
+    itemGap: 16,
+    markerSize: 10,
+    fontFamily: 'inherit',
+    fontSize: 12,
+    fontWeight: 500,
+    fontColor: 'currentColor',
+    colorbar: {
+      width: 120,
+      height: 10,
+      tickGap: 4,
+      tickFontSize: 10,
+      tickFontWeight: 400,
+    },
+    className: '',
+    sx: {},
+  },
   readout: {
     hoverMode: 'local',
   },
@@ -65,6 +85,7 @@ export const defaultOptions = {
 
 export const defaultSeriesOptions = {
   type: 'line', // line, bar, boxPlot, circle, area, matrix, heatmap
+  name: undefined,
   xKey: 'x',
   yKey: 'y',
   // optional per-series dataset; falls back to root-level data when omitted
@@ -74,6 +95,7 @@ export const defaultSeriesOptions = {
   isSecondaryYAxis: false,
   isSecondaryXAxis: false,
   isVisible: true,
+  showInLegend: true,
   stroke: null,
   fill: null,
   className: '',

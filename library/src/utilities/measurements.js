@@ -4,11 +4,15 @@ import {
   getSeriesForAxis,
   isXValueAxis,
 } from './dataUtilities';
+import { defaultHeatmapOptions, defaultMatrixOptions } from './defaultOptions';
 
 const AXIS_KEYS = ['x', 'x2', 'y', 'y2'];
 const DEFAULT_AUTO_MARGIN = 'auto';
 const AXIS_LABEL_GAP = 6;
 const AXIS_MEASUREMENT_BUFFER = 2;
+const LEGEND_MARKER_TEXT_GAP = 6;
+const LEGEND_COLORBAR_LABEL_GAP = 4;
+const LEGEND_COLORBAR_TICK_LABEL_GAP = 12;
 
 // setting up canvas outside of function to prevent repeated creation
 const canvas =
@@ -209,6 +213,401 @@ function normalizeTickValues(values) {
 
 function normalizeTickLabels(labels) {
   return Array.isArray(labels) && labels.length > 0 ? labels : null;
+}
+
+function getLegendLabel(series, index) {
+  const explicitName =
+    typeof series?.name === 'string' ? series.name.trim() : '';
+  if (explicitName) return explicitName;
+
+  if (series?.yKey != null && series?.yKey !== '') {
+    return String(series.yKey);
+  }
+
+  return `Series ${index + 1}`;
+}
+
+function resolveLegendColor(series) {
+  const fill = series?.fill;
+  const stroke = series?.stroke;
+  const strokeWhisker = series?.strokeWhisker;
+  const type = series?.type;
+  const hasFill = typeof fill === 'string' && fill !== 'none';
+
+  if (type === 'line') return stroke || fill || 'currentColor';
+  if (type === 'circle') return fill || stroke || 'currentColor';
+  if (type === 'area') {
+    return hasFill ? fill : stroke || strokeWhisker || 'currentColor';
+  }
+  if (type === 'boxPlot') {
+    return hasFill ? fill : strokeWhisker || stroke || 'currentColor';
+  }
+
+  return hasFill ? fill : stroke || 'currentColor';
+}
+
+function getMarkerShape(seriesType) {
+  switch (seriesType) {
+    case 'line':
+      return 'line';
+    case 'circle':
+      return 'circle';
+    default:
+      return 'rect';
+  }
+}
+
+function normalizeLegendThresholds(thresholds) {
+  if (!Array.isArray(thresholds)) return [];
+
+  const sorted = thresholds
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value))
+    .sort((a, b) => a - b);
+
+  return sorted.filter(
+    (value, index) => index === 0 || value !== sorted[index - 1],
+  );
+}
+
+function getNumericExtent(values) {
+  if (!Array.isArray(values) || values.length === 0) return [null, null];
+
+  let min = Infinity;
+  let max = -Infinity;
+
+  values.forEach((value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return;
+    if (numeric < min) min = numeric;
+    if (numeric > max) max = numeric;
+  });
+
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return [null, null];
+  return [min, max];
+}
+
+function resolveLegendThresholds(inputThresholds, values, colors) {
+  const normalized = normalizeLegendThresholds(inputThresholds);
+  if (normalized.length > 0) return normalized;
+
+  const colorCount = Array.isArray(colors) ? colors.length : 0;
+  const thresholdCount = Math.max(0, colorCount - 1);
+  if (thresholdCount === 0) return [];
+
+  const [min, max] = getNumericExtent(values);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return [];
+  if (max <= min) return [min];
+
+  const step = (max - min) / colorCount;
+  return Array.from(
+    { length: thresholdCount },
+    (_, index) => min + step * (index + 1),
+  );
+}
+
+function formatLegendValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+
+  const abs = Math.abs(numeric);
+  if (abs >= 100) {
+    return numeric.toLocaleString(undefined, { maximumFractionDigits: 1 });
+  }
+  if (abs >= 1) {
+    return numeric.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  }
+
+  return numeric.toLocaleString(undefined, {
+    minimumSignificantDigits: 1,
+    maximumSignificantDigits: 2,
+  });
+}
+
+function buildMarkerLegendItem({ series, index, markerSize, legendFont }) {
+  const label = getLegendLabel(series, index);
+  const color = resolveLegendColor(series);
+  const markerShape = getMarkerShape(series?.type);
+  const labelDimensions = getTextDimensions(label, legendFont);
+
+  return {
+    id: String(series?.id ?? `legend-item-${index}`),
+    kind: 'marker',
+    label,
+    color,
+    markerShape,
+    markerSize,
+    width: Math.max(
+      1,
+      markerSize + LEGEND_MARKER_TEXT_GAP + labelDimensions.width,
+    ),
+    height: Math.max(1, Math.max(markerSize, labelDimensions.height)),
+  };
+}
+
+function buildColorbarLegendItem({
+  series,
+  index,
+  rootData,
+  legendOptions,
+  legendFont,
+  tickFont,
+}) {
+  const type = series?.type;
+  const defaults =
+    type === 'matrix' ? defaultMatrixOptions : defaultHeatmapOptions;
+  const label = getLegendLabel(series, index);
+  const colorsFromSeries = Array.isArray(series?.colors) ? series.colors : null;
+  const colorsFromDefaults = Array.isArray(defaults?.colors)
+    ? defaults.colors
+    : [];
+  const colors =
+    colorsFromSeries && colorsFromSeries.length > 0
+      ? colorsFromSeries
+      : colorsFromDefaults;
+
+  const fallbackFill =
+    series?.fill ?? defaults?.fill ?? resolveLegendColor(series) ?? '#b8b8b8';
+  const safeColors = colors.length > 0 ? colors : [fallbackFill];
+
+  const valueKey = series?.valueKey ?? defaults?.valueKey;
+  const getValue = createAccessor(valueKey);
+  const seriesData = Array.isArray(series?.data) ? series.data : rootData;
+  const values = seriesData
+    .map((datum) => Number(getValue(datum)))
+    .filter((value) => Number.isFinite(value));
+
+  const thresholds = resolveLegendThresholds(
+    series?.thresholds,
+    values,
+    safeColors,
+  );
+  const [valueMin, valueMax] = getNumericExtent(values);
+  const thresholdMin = thresholds[0];
+  const thresholdMax = thresholds[thresholds.length - 1];
+
+  const minLabel = formatLegendValue(
+    Number.isFinite(valueMin) ? valueMin : thresholdMin,
+  );
+  const maxLabel = formatLegendValue(
+    Number.isFinite(valueMax) ? valueMax : thresholdMax,
+  );
+
+  const barWidth = toNonNegativeNumber(legendOptions?.colorbar?.width, 120);
+  const barHeight = toNonNegativeNumber(legendOptions?.colorbar?.height, 10);
+  const tickGap = toNonNegativeNumber(legendOptions?.colorbar?.tickGap, 4);
+
+  const labelDimensions = label
+    ? getTextDimensions(label, legendFont)
+    : { width: 0, height: 0 };
+  const minLabelDimensions = minLabel
+    ? getTextDimensions(minLabel, tickFont)
+    : { width: 0, height: 0 };
+  const maxLabelDimensions = maxLabel
+    ? getTextDimensions(maxLabel, tickFont)
+    : { width: 0, height: 0 };
+
+  const tickLabelWidth =
+    minLabelDimensions.width +
+    (minLabel && maxLabel ? LEGEND_COLORBAR_TICK_LABEL_GAP : 0) +
+    maxLabelDimensions.width;
+
+  const width = Math.max(
+    1,
+    Math.max(labelDimensions.width, barWidth, tickLabelWidth),
+  );
+
+  const tickLabelHeight = Math.max(
+    minLabelDimensions.height,
+    maxLabelDimensions.height,
+  );
+  const labelHeight = label
+    ? labelDimensions.height + LEGEND_COLORBAR_LABEL_GAP
+    : 0;
+  const tickRowHeight = tickLabelHeight > 0 ? tickGap + tickLabelHeight : 0;
+  const height = Math.max(1, labelHeight + barHeight + tickRowHeight);
+
+  return {
+    id: String(series?.id ?? `legend-item-${index}`),
+    kind: 'colorbar',
+    label,
+    colors: safeColors,
+    thresholds,
+    minLabel,
+    maxLabel,
+    barWidth,
+    barHeight,
+    tickGap,
+    labelTextHeight: label ? labelDimensions.height : 0,
+    labelGap: label ? LEGEND_COLORBAR_LABEL_GAP : 0,
+    tickLabelHeight,
+    width,
+    height,
+  };
+}
+
+function layoutLegendRows(items, availableWidth, itemGap, rowGap) {
+  const maxWidth = Math.max(0, toNonNegativeNumber(availableWidth, 0));
+  const rows = [];
+  let currentRow = { items: [], width: 0, height: 0 };
+
+  items.forEach((item) => {
+    const itemWidth = Math.max(1, toNonNegativeNumber(item.width, 0));
+    const itemHeight = Math.max(1, toNonNegativeNumber(item.height, 0));
+
+    const nextWidth =
+      currentRow.items.length === 0
+        ? itemWidth
+        : currentRow.width + itemGap + itemWidth;
+    const shouldWrap =
+      maxWidth > 0 && currentRow.items.length > 0 && nextWidth > maxWidth;
+
+    if (shouldWrap) {
+      rows.push(currentRow);
+      currentRow = { items: [], width: 0, height: 0 };
+    }
+
+    const x = currentRow.items.length === 0 ? 0 : currentRow.width + itemGap;
+
+    currentRow.items.push({
+      ...item,
+      width: itemWidth,
+      height: itemHeight,
+      x,
+      y: 0,
+    });
+    currentRow.width = x + itemWidth;
+    currentRow.height = Math.max(currentRow.height, itemHeight);
+  });
+
+  if (currentRow.items.length > 0) {
+    rows.push(currentRow);
+  }
+
+  const positionedItems = [];
+  let yOffset = 0;
+
+  rows.forEach((row, rowIndex) => {
+    const rowOffsetX =
+      maxWidth > 0 && row.width < maxWidth ? (maxWidth - row.width) / 2 : 0;
+
+    row.items.forEach((item) => {
+      positionedItems.push({
+        ...item,
+        rowIndex,
+        x: item.x + rowOffsetX,
+        y: yOffset + (row.height - item.height) / 2,
+      });
+    });
+
+    yOffset += row.height + rowGap;
+  });
+
+  const totalHeight = rows.length > 0 ? Math.max(0, yOffset - rowGap) : 0;
+  return { rows, items: positionedItems, totalHeight };
+}
+
+export function buildLegendLayout({ chartValues, axisLayout = {} }) {
+  const options = chartValues.options || {};
+  const series = options.series || [];
+  const legendOptions = options.legend || {};
+  const isEnabled = legendOptions.enabled !== false;
+
+  if (!isEnabled || series.length === 0) {
+    return {
+      enabled: false,
+      items: [],
+      rows: [],
+      height: 0,
+      axisOffset: toNonNegativeNumber(axisLayout?.x?.requiredOutsideSpace, 0),
+      gap: toNonNegativeNumber(legendOptions.gap, 10),
+      requiredOutsideSpace: 0,
+    };
+  }
+
+  const legendFont = toFontString(
+    legendOptions.fontWeight,
+    legendOptions.fontSize,
+    legendOptions.fontFamily,
+    'sans-serif',
+  );
+  const tickFont = toFontString(
+    legendOptions?.colorbar?.tickFontWeight,
+    legendOptions?.colorbar?.tickFontSize,
+    legendOptions.fontFamily,
+    'sans-serif',
+  );
+  const markerSize = toNonNegativeNumber(legendOptions.markerSize, 10);
+  const rootData = Array.isArray(chartValues.data) ? chartValues.data : [];
+
+  const rawItems = series
+    .map((entry, index) => {
+      if (!entry || entry.isVisible === false || entry.showInLegend === false) {
+        return null;
+      }
+
+      if (entry.type === 'matrix' || entry.type === 'heatmap') {
+        return buildColorbarLegendItem({
+          series: entry,
+          index,
+          rootData,
+          legendOptions,
+          legendFont,
+          tickFont,
+        });
+      }
+
+      return buildMarkerLegendItem({
+        series: entry,
+        index,
+        markerSize,
+        legendFont,
+      });
+    })
+    .filter(Boolean);
+
+  if (rawItems.length === 0) {
+    return {
+      enabled: false,
+      items: [],
+      rows: [],
+      height: 0,
+      axisOffset: toNonNegativeNumber(axisLayout?.x?.requiredOutsideSpace, 0),
+      gap: toNonNegativeNumber(legendOptions.gap, 10),
+      requiredOutsideSpace: 0,
+    };
+  }
+
+  const itemGap = toNonNegativeNumber(legendOptions.itemGap, 16);
+  const rowGap = toNonNegativeNumber(legendOptions.rowGap, 8);
+  const availableWidth = toNonNegativeNumber(chartValues.innerWidth, 0);
+  const { rows, items, totalHeight } = layoutLegendRows(
+    rawItems,
+    availableWidth,
+    itemGap,
+    rowGap,
+  );
+
+  const axisOffset = toNonNegativeNumber(
+    axisLayout?.x?.requiredOutsideSpace,
+    0,
+  );
+  const gap = toNonNegativeNumber(legendOptions.gap, 10);
+  const requiredOutsideSpace = gap + totalHeight + AXIS_MEASUREMENT_BUFFER;
+
+  return {
+    enabled: totalHeight > 0,
+    items,
+    rows: rows.map((row, index) => ({
+      index,
+      width: row.width,
+      height: row.height,
+    })),
+    height: totalHeight,
+    axisOffset,
+    gap,
+    requiredOutsideSpace: totalHeight > 0 ? requiredOutsideSpace : 0,
+  };
 }
 
 export function buildAxisTicks({
@@ -474,11 +873,20 @@ export function buildAxisLayout({ chartValues, computedScales = {} }) {
   return axisLayout;
 }
 
-export function getAutoMarginFromAxisLayout(axisLayout = {}) {
+export function getAutoMarginFromAxisLayout(
+  axisLayout = {},
+  legendLayout = {},
+) {
+  const legendBottom = toNonNegativeNumber(
+    legendLayout?.requiredOutsideSpace,
+    0,
+  );
+
   const baseMargin = {
     top: toNonNegativeNumber(axisLayout.x2?.requiredOutsideSpace, 0),
     right: toNonNegativeNumber(axisLayout.y2?.requiredOutsideSpace, 0),
-    bottom: toNonNegativeNumber(axisLayout.x?.requiredOutsideSpace, 0),
+    bottom:
+      toNonNegativeNumber(axisLayout.x?.requiredOutsideSpace, 0) + legendBottom,
     left: toNonNegativeNumber(axisLayout.y?.requiredOutsideSpace, 0),
   };
 
