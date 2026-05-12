@@ -504,10 +504,10 @@ export function getAutoMarginFromAxisLayout(axisLayout = {}) {
   });
 
   return {
-    top: Math.ceil(baseMargin.top + edgeOverflow.top),
-    right: Math.ceil(baseMargin.right + edgeOverflow.right),
-    bottom: Math.ceil(baseMargin.bottom + edgeOverflow.bottom),
-    left: Math.ceil(baseMargin.left + edgeOverflow.left),
+    top: Math.ceil(Math.max(baseMargin.top, edgeOverflow.top)),
+    right: Math.ceil(Math.max(baseMargin.right, edgeOverflow.right)),
+    bottom: Math.ceil(Math.max(baseMargin.bottom, edgeOverflow.bottom)),
+    left: Math.ceil(Math.max(baseMargin.left, edgeOverflow.left)),
   };
 }
 
