@@ -177,15 +177,6 @@ function getAxisEdgeOverflow({
   return overflow;
 }
 
-const DATA_ALIGNED_X_TICK_SERIES_TYPES = new Set([
-  'area',
-  'bar',
-  'boxPlot',
-  'circle',
-  'line',
-  'matrix',
-]);
-
 function getTickValueKey(value) {
   return value instanceof Date ? `d:${value.getTime()}` : `v:${String(value)}`;
 }
@@ -196,6 +187,15 @@ function toComparableTickValue(value) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : null;
 }
+
+const DATA_ALIGNED_X_TICK_SERIES_TYPES = new Set([
+  'area',
+  'bar',
+  'boxPlot',
+  'circle',
+  'line',
+  'matrix',
+]);
 
 function sampleTickValues(values, tickAmount) {
   if (!Array.isArray(values) || values.length === 0) return [];
@@ -208,17 +208,16 @@ function sampleTickValues(values, tickAmount) {
   if (values.length <= targetCount) return values;
   if (targetCount <= 1) return [values[0]];
 
+  // Use a fixed stride so consecutive tick gaps remain consistent.
+  const stride = Math.max(
+    1,
+    Math.floor((values.length - 1) / (targetCount - 1)),
+  );
   const sampled = [];
-  const seen = new Set();
 
-  for (let i = 0; i < targetCount; i += 1) {
-    const index = Math.round((i * (values.length - 1)) / (targetCount - 1));
-    const value = values[index];
-    const key = getTickValueKey(value);
-    if (seen.has(key)) continue;
-
-    seen.add(key);
-    sampled.push(value);
+  for (let i = 0; i < values.length; i += stride) {
+    sampled.push(values[i]);
+    if (sampled.length === targetCount) break;
   }
 
   return sampled;
@@ -230,9 +229,15 @@ function getDataAlignedXTickValues(chartValues, axisKey, tickAmount) {
   const series = chartValues.options?.series || [];
   const rootData = Array.isArray(chartValues.data) ? chartValues.data : [];
   const matchingSeries = getSeriesForAxis(series, axisKey);
-  const alignedSeries = matchingSeries.filter((s) =>
-    DATA_ALIGNED_X_TICK_SERIES_TYPES.has(s?.type),
+  const alignedSeries = matchingSeries.filter((seriesEntry) =>
+    DATA_ALIGNED_X_TICK_SERIES_TYPES.has(seriesEntry?.type),
   );
+
+  if (alignedSeries.length === 0) return [];
+
+  const hasOnlyMatrixSeries =
+    matchingSeries.length === alignedSeries.length &&
+    alignedSeries.every((seriesEntry) => seriesEntry?.type === 'matrix');
 
   const tickValues = [];
   const seen = new Set();
@@ -264,6 +269,9 @@ function getDataAlignedXTickValues(chartValues, axisKey, tickAmount) {
     if (comparableB == null) return -1;
     return comparableA - comparableB;
   });
+
+  // Matrix time/linear axes should keep every unique x value.
+  if (hasOnlyMatrixSeries) return sortedTickValues;
 
   return sampleTickValues(sortedTickValues, tickAmount);
 }
