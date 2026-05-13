@@ -70,6 +70,7 @@ function App() {
     const value = event.target.value;
     setDimensions((prev) => ({ ...prev, [dimension]: value }));
   };
+  console.log('data:', data);
 
   return (
     <div className="app-container">
@@ -98,7 +99,7 @@ function App() {
             key={type}
             height={dimensions.height}
             width={dimensions.width}
-            margin={margin}
+            // margin={margin}
             data={data}
             options={demoOptions[type]}
             sx={{

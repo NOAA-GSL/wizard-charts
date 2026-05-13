@@ -177,18 +177,69 @@ function getAxisEdgeOverflow({
   return overflow;
 }
 
-function getMatrixTickValues(chartValues, axisKey) {
+const DATA_ALIGNED_X_TICK_SERIES_TYPES = new Set([
+  'area',
+  'bar',
+  'boxPlot',
+  'circle',
+  'line',
+  'matrix',
+]);
+
+function getTickValueKey(value) {
+  return value instanceof Date ? `d:${value.getTime()}` : `v:${String(value)}`;
+}
+
+function toComparableTickValue(value) {
+  if (value instanceof Date) return value.getTime();
+
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function sampleTickValues(values, tickAmount) {
+  if (!Array.isArray(values) || values.length === 0) return [];
+
+  const targetCount =
+    Number.isFinite(tickAmount) && tickAmount > 0
+      ? Math.floor(tickAmount)
+      : values.length;
+
+  if (values.length <= targetCount) return values;
+  if (targetCount <= 1) return [values[0]];
+
+  const sampled = [];
+  const seen = new Set();
+
+  for (let i = 0; i < targetCount; i += 1) {
+    const index = Math.round((i * (values.length - 1)) / (targetCount - 1));
+    const value = values[index];
+    const key = getTickValueKey(value);
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    sampled.push(value);
+  }
+
+  return sampled;
+}
+
+function getDataAlignedXTickValues(chartValues, axisKey, tickAmount) {
   if (!isXValueAxis(axisKey)) return [];
 
   const series = chartValues.options?.series || [];
   const rootData = Array.isArray(chartValues.data) ? chartValues.data : [];
   const matchingSeries = getSeriesForAxis(series, axisKey);
-  const matrixSeries = matchingSeries.filter((s) => s?.type === 'matrix');
+  const alignedSeries = matchingSeries.filter((s) =>
+    DATA_ALIGNED_X_TICK_SERIES_TYPES.has(s?.type),
+  );
 
-  const matrixTickValues = [];
+  const tickValues = [];
   const seen = new Set();
 
-  matrixSeries.forEach((s) => {
+  alignedSeries.forEach((s) => {
+    if (!s?.xKey) return;
+
     const getX = createAccessor(s.xKey);
     const seriesData = Array.isArray(s?.data) ? s.data : rootData;
 
@@ -196,15 +247,25 @@ function getMatrixTickValues(chartValues, axisKey) {
       const v = getX(d);
       if (v == null) return;
 
-      const key = v instanceof Date ? `d:${v.getTime()}` : `v:${String(v)}`;
+      const key = getTickValueKey(v);
       if (seen.has(key)) return;
 
       seen.add(key);
-      matrixTickValues.push(v);
+      tickValues.push(v);
     });
   });
 
-  return matrixTickValues;
+  const sortedTickValues = tickValues.slice().sort((a, b) => {
+    const comparableA = toComparableTickValue(a);
+    const comparableB = toComparableTickValue(b);
+
+    if (comparableA == null && comparableB == null) return 0;
+    if (comparableA == null) return 1;
+    if (comparableB == null) return -1;
+    return comparableA - comparableB;
+  });
+
+  return sampleTickValues(sortedTickValues, tickAmount);
 }
 
 function normalizeTickValues(values) {
@@ -631,17 +692,17 @@ export function buildAxisTicks({
   const fallbackEmptyLabelToValue = !isXValueAxis(axisKey);
 
   const isBandScale = typeof scale?.bandwidth === 'function';
-  const matrixTickValues =
+  const dataAlignedTickValues =
     !explicitTickValues &&
     isXValueAxis(axisKey) &&
     (axisOptions.type === 'time' || axisOptions.type === 'linear')
-      ? getMatrixTickValues(chartValues, axisKey)
+      ? getDataAlignedXTickValues(chartValues, axisKey, tickAmount)
       : [];
 
   const generatedTickValues = isBandScale
     ? domain || []
-    : matrixTickValues.length > 0
-      ? matrixTickValues
+    : dataAlignedTickValues.length > 0
+      ? dataAlignedTickValues
       : typeof scale?.ticks === 'function'
         ? tickAmount != null
           ? scale.ticks(tickAmount)

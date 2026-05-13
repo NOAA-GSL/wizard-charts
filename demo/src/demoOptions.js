@@ -81,6 +81,7 @@ export const demoOptions = {
         label: { text: 'Date' },
         ticks: { formatter: timeFormatter('%m-%d %Hz'), amount: 4 }, // optional formatting function for ticks
         nice: false,
+        hasGridLines: true,
         sx: {},
       },
       y: {
@@ -113,7 +114,7 @@ export const demoOptions = {
         type: 'bar',
         xKey: 'date',
         yKey: 'series1.p90',
-        name: 'Series 1',
+        name: '90th Percentile',
         fill: dataVizColors.seaGreen,
         stacked: true,
         isCumulative: false,
@@ -123,7 +124,7 @@ export const demoOptions = {
         type: 'bar',
         xKey: 'date',
         yKey: 'series1.p50',
-        name: 'Series 1',
+        name: 'Median',
         fill: dataVizColors.tangerine,
         stacked: true,
         isCumulative: false,
@@ -133,7 +134,7 @@ export const demoOptions = {
         type: 'bar',
         xKey: 'date',
         yKey: 'series1.p10',
-        name: 'Series 1',
+        name: '10th Percentile',
         fill: dataVizColors.violet,
         stacked: true,
         isCumulative: false,
@@ -145,6 +146,7 @@ export const demoOptions = {
         type: 'linear',
         ticks: { formatter: timeFormatter('%m-%d %Hz') },
         nice: false,
+        hasGridLines: true,
       },
       y: {
         type: 'linear',
@@ -165,21 +167,21 @@ export const demoOptions = {
         type: 'line', // or 'bar'
         xKey: 'date', // support dot notation
         yKey: 'series2.p10',
-        name: 'Temperature',
+        name: '10th Percentile',
         stroke: dataVizColors.violet,
       },
       {
         type: 'line', // or 'bar'
         xKey: 'date', // support dot notation
         yKey: 'series2.p50',
-        name: 'Temperature',
+        name: 'Median',
         stroke: dataVizColors.green,
       },
       {
         type: 'line', // or 'bar'
         xKey: 'date', // support dot notation
         yKey: 'series2.p90',
-        name: 'Temperature',
+        name: '90th Percentile',
         stroke: dataVizColors.yellow,
       },
     ],
@@ -189,6 +191,7 @@ export const demoOptions = {
         type: 'linear', // band, linear, log, time
         ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
         nice: false,
+        hasGridLines: true,
       },
       y: {
         type: 'linear',
@@ -226,6 +229,7 @@ export const demoOptions = {
         type: 'linear', // band, linear, log, time
         ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
         nice: false,
+        hasGridLines: true,
       },
       y: {
         type: 'linear',
@@ -247,7 +251,7 @@ export const demoOptions = {
         type: 'circle',
         xKey: 'date',
         yKey: 'series1.p50',
-        name: 'Temperature',
+        name: 'Wind Speed',
         fill: `${dataVizColors.lime}88`, // with some transparency
         stroke: dataVizColors.yellow,
         radius: 4,
@@ -267,6 +271,7 @@ export const demoOptions = {
         type: 'linear', // band, linear, log, time
         ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
         nice: false,
+        hasGridLines: true,
       },
       y: {
         type: 'linear',
@@ -278,6 +283,7 @@ export const demoOptions = {
       },
       y2: {
         type: 'linear',
+        label: { text: 'Wind Speed (mph)' },
         nice: true,
         hasAxisLine: false,
       },
@@ -309,6 +315,7 @@ export const demoOptions = {
         type: 'linear', // band, linear, log, time
         ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
         nice: false,
+        hasGridLines: true,
       },
       y: {
         type: 'linear',
