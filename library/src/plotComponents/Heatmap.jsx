@@ -5,10 +5,10 @@ import { mergeDeep } from '../utilities/dataUtilities';
 import { defaultHeatmapOptions } from '../utilities/defaultOptions';
 import { buildContourModel } from '../utilities/marchingSquares';
 import {
-  toComparable,
   toTriggerPart,
   resolveThresholds,
   getColorForThresholdIndex,
+  buildPreparedHeatmapPoints,
 } from '../utilities/heatmapMatrixHelpers';
 
 // Helpers moved to ../utilities/heatmapMatrixHelpers.js
@@ -69,31 +69,7 @@ function Heatmap({ seriesIndex = 0, options = {} }) {
   const yIsBand = typeof yScale?.bandwidth === 'function';
 
   const preparedPoints = useMemo(() => {
-    if (!Array.isArray(seriesData)) return [];
-
-    return seriesData
-      .map((d) => {
-        const xRaw = accessors.x?.(d);
-        const yRaw = accessors.y?.(d);
-        const valueRaw = accessors.valueKey?.(d);
-
-        const x = toComparable(xRaw);
-        const y = toComparable(yRaw);
-        const value = Number(valueRaw);
-
-        if (
-          x == null ||
-          y == null ||
-          !Number.isFinite(value) ||
-          !Number.isFinite(xScale?.(xRaw)) ||
-          !Number.isFinite(yScale?.(yRaw))
-        ) {
-          return null;
-        }
-
-        return { x, y, value };
-      })
-      .filter(Boolean);
+    return buildPreparedHeatmapPoints(seriesData, accessors, xScale, yScale);
   }, [accessors, seriesData, xScale, yScale]);
 
   const thresholds = resolveThresholds(

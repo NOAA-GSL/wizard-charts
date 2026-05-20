@@ -5,11 +5,10 @@ import { mergeDeep } from '../utilities/dataUtilities';
 import { defaultMatrixOptions } from '../utilities/defaultOptions';
 
 import {
-  toComparable,
   toTriggerPart,
   resolveThresholds,
   getColorForValue,
-  getBandRect,
+  getMatrixCellRect,
   buildContinuousXMap,
 } from '../utilities/heatmapMatrixHelpers';
 
@@ -102,85 +101,21 @@ function Matrix({ seriesIndex = 0, options = {} }) {
 
         if (xValue == null || yValue == null) return null;
 
-        const yRect = getBandRect(yScale, yValue, cellPadding);
-        if (!yRect) return null;
+        const cellRect = getMatrixCellRect({
+          xValue,
+          yValue,
+          xScale,
+          yScale,
+          xIsBand,
+          useContinuousX,
+          continuousXMap,
+          timeAnchor,
+          cellWidthFactor,
+          cellPadding,
+        });
+        if (!cellRect) return null;
 
-        let xRect;
-        if (xIsBand) {
-          xRect = getBandRect(xScale, xValue, cellPadding);
-        } else if (useContinuousX) {
-          const comparable = toComparable(xValue);
-          if (comparable == null) return null;
-
-          const centerInfo = continuousXMap.get(comparable);
-          if (!centerInfo) return null;
-
-          const anchor =
-            timeAnchor === 'left'
-              ? 'start'
-              : timeAnchor === 'right'
-                ? 'end'
-                : timeAnchor;
-
-          const xRange =
-            typeof xScale.range === 'function' ? xScale.range() : [0, 0];
-          const xMin = Math.min(...xRange);
-          const xMax = Math.max(...xRange);
-
-          let baseWidth;
-          if (anchor === 'start') {
-            baseWidth = Number.isFinite(centerInfo.nextGap)
-              ? centerInfo.nextGap
-              : centerInfo.fallbackGap;
-          } else if (anchor === 'end') {
-            baseWidth = Number.isFinite(centerInfo.prevGap)
-              ? centerInfo.prevGap
-              : centerInfo.fallbackGap;
-          } else {
-            const leftHalf = Number.isFinite(centerInfo.prevGap)
-              ? centerInfo.prevGap / 2
-              : centerInfo.fallbackGap / 2;
-            const rightHalf = Number.isFinite(centerInfo.nextGap)
-              ? centerInfo.nextGap / 2
-              : centerInfo.fallbackGap / 2;
-            baseWidth = leftHalf + rightHalf;
-          }
-
-          if (!Number.isFinite(baseWidth) || baseWidth <= 0) return null;
-
-          const factor = Math.max(
-            0.05,
-            Math.min(1, Number(cellWidthFactor) || 1),
-          );
-          const width = Math.max(0, baseWidth * factor);
-          const pad = Math.max(0, Number(cellPadding) || 0);
-
-          let xStart;
-          let xEnd;
-
-          if (anchor === 'start') {
-            xStart = centerInfo.center;
-            xEnd = centerInfo.center + width;
-          } else if (anchor === 'end') {
-            xEnd = centerInfo.center;
-            xStart = centerInfo.center - width;
-          } else {
-            xStart = centerInfo.center - width / 2;
-            xEnd = centerInfo.center + width / 2;
-          }
-
-          xStart = Math.max(xMin, xStart);
-          xEnd = Math.min(xMax, xEnd);
-
-          xRect = {
-            start: xStart + pad,
-            size: Math.max(0, xEnd - xStart - 2 * pad),
-          };
-        } else {
-          return null;
-        }
-
-        if (!xRect || xRect.size <= 0) return null;
+        const { xRect, yRect } = cellRect;
 
         const cellColor = getColorForValue(
           value,

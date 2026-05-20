@@ -1,13 +1,24 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useChartHelpers } from './useChartHelpers';
+import {
+  buildContinuousXMap,
+  buildPreparedHeatmapPoints,
+  getDistanceToCellRect,
+  getMatrixCellRect,
+  interpolateIdwValueAtPoint,
+  invertScaleAtPixel,
+  isPointInsideScaleRanges,
+  toComparable,
+} from '../utilities/heatmapMatrixHelpers';
 
-// Keep first pass intentionally narrow while readout behavior stabilizes.
 const SUPPORTED_SERIES_TYPES = new Set([
   'area',
   'bar',
   'boxPlot',
   'circle',
+  'heatmap',
   'line',
+  'matrix',
 ]);
 
 function toNumberOrNull(value) {
@@ -118,7 +129,7 @@ function summarizeSeriesPoint({
   axisKeys,
 }) {
   const seriesType = series?.type;
-  if (!SUPPORTED_SERIES_TYPES.has(seriesType)) return null;
+  if (seriesType === 'heatmap' || seriesType === 'matrix') return null;
 
   const xValue = accessors.x?.(datum);
   if (xValue == null) return null;
@@ -148,6 +159,199 @@ function summarizeSeriesPoint({
     xPixel,
     yDistancePx,
     yPixel: Number.isFinite(yPixel) ? yPixel : null,
+  };
+}
+
+function isBetterByXThenDistance(summary, previous) {
+  if (!previous) return true;
+  if (summary.xDistancePx < previous.xDistancePx) return true;
+
+  return (
+    summary.xDistancePx === previous.xDistancePx &&
+    summary.distancePx < previous.distancePx
+  );
+}
+
+function summarizeMatrixSeriesPoint({
+  accessors,
+  axisKeys,
+  hoverX,
+  hoverY,
+  series,
+  seriesData,
+  seriesIndex,
+  xScale,
+  yScale,
+}) {
+  const xIsBand = typeof xScale?.bandwidth === 'function';
+  const useContinuousX = !xIsBand;
+
+  const continuousXMap =
+    useContinuousX && typeof accessors?.x === 'function'
+      ? buildContinuousXMap(seriesData, accessors.x, xScale)
+      : new Map();
+
+  let nearest = null;
+
+  for (let dataIndex = 0; dataIndex < seriesData.length; dataIndex += 1) {
+    const datum = seriesData[dataIndex];
+    const xValue = accessors.x?.(datum);
+    const yValue = accessors.y?.(datum);
+    if (xValue == null || yValue == null) continue;
+
+    const cellRect = getMatrixCellRect({
+      xValue,
+      yValue,
+      xScale,
+      yScale,
+      xIsBand,
+      useContinuousX,
+      continuousXMap,
+      timeAnchor: series?.timeAnchor,
+      cellWidthFactor: series?.cellWidthFactor,
+      cellPadding: series?.cellPadding,
+    });
+    if (!cellRect) continue;
+
+    const metrics = getDistanceToCellRect(hoverX, hoverY, cellRect);
+    if (!metrics) continue;
+
+    const value = accessors.valueKey?.(datum);
+    const label = accessors.labelKey ? accessors.labelKey(datum) : value;
+
+    const summary = {
+      axisKeys,
+      dataIndex,
+      distancePx: metrics.distancePx,
+      seriesIndex,
+      seriesName: series?.name || `Series ${seriesIndex + 1}`,
+      seriesType: 'matrix',
+      values: {
+        x: xValue,
+        y: yValue,
+        value,
+        label,
+        containsHover: metrics.containsPoint,
+        cellBounds: metrics.bounds,
+      },
+      xDistancePx: metrics.xDistancePx,
+      xPixel: metrics.xCenter,
+      yDistancePx: metrics.yDistancePx,
+      yPixel: metrics.yCenter,
+    };
+
+    // Matrix has explicit rectangular cells; if we're inside one, that's the readout target.
+    if (metrics.containsPoint) {
+      return summary;
+    }
+
+    if (isBetterByXThenDistance(summary, nearest)) {
+      nearest = summary;
+    }
+  }
+
+  return nearest;
+}
+
+function summarizeHeatmapSeriesPoint({
+  accessors,
+  axisKeys,
+  hoverX,
+  hoverY,
+  series,
+  seriesData,
+  seriesIndex,
+  xScale,
+  yScale,
+}) {
+  if (!isPointInsideScaleRanges(hoverX, hoverY, xScale, yScale)) {
+    return null;
+  }
+
+  const xValue = invertScaleAtPixel(xScale, hoverX);
+  const yValue = invertScaleAtPixel(yScale, hoverY);
+  const comparableX = toComparable(xValue);
+  const comparableY = toComparable(yValue);
+
+  if (comparableX == null || comparableY == null) {
+    return null;
+  }
+
+  const preparedPoints = buildPreparedHeatmapPoints(
+    seriesData,
+    accessors,
+    xScale,
+    yScale,
+  );
+  if (preparedPoints.length === 0) return null;
+
+  const xDomain = typeof xScale.domain === 'function' ? xScale.domain() : [];
+  const yDomain = typeof yScale.domain === 'function' ? yScale.domain() : [];
+  const xDomainMin = toComparable(xDomain[0]);
+  const xDomainMax = toComparable(xDomain[1]);
+  const yDomainMin = toComparable(yDomain[0]);
+  const yDomainMax = toComparable(yDomain[1]);
+
+  const interpolatedValue = interpolateIdwValueAtPoint({
+    points: preparedPoints,
+    x: comparableX,
+    y: comparableY,
+    xSpan:
+      xDomainMin != null && xDomainMax != null
+        ? Math.abs(xDomainMax - xDomainMin)
+        : null,
+    ySpan:
+      yDomainMin != null && yDomainMax != null
+        ? Math.abs(yDomainMax - yDomainMin)
+        : null,
+    power: series?.idwPower,
+    neighbors: series?.idwNeighbors,
+  });
+
+  if (!Number.isFinite(interpolatedValue)) {
+    return null;
+  }
+
+  let nearestSample = null;
+  preparedPoints.forEach((point) => {
+    const distancePx = Math.hypot(point.xPixel - hoverX, point.yPixel - hoverY);
+
+    if (!nearestSample || distancePx < nearestSample.distancePx) {
+      nearestSample = {
+        dataIndex: point.dataIndex,
+        distancePx,
+        x: point.xRaw,
+        y: point.yRaw,
+        value: point.value,
+      };
+    }
+  });
+
+  return {
+    axisKeys,
+    dataIndex: nearestSample?.dataIndex ?? null,
+    distancePx: 0,
+    seriesIndex,
+    seriesName: series?.name || `Series ${seriesIndex + 1}`,
+    seriesType: 'heatmap',
+    values: {
+      x: xValue,
+      y: yValue,
+      value: interpolatedValue,
+      interpolationMethod: series?.interpolationMethod || 'idw',
+      nearestSample: nearestSample
+        ? {
+            x: nearestSample.x,
+            y: nearestSample.y,
+            value: nearestSample.value,
+            distancePx: nearestSample.distancePx,
+          }
+        : null,
+    },
+    xDistancePx: 0,
+    xPixel: hoverX,
+    yDistancePx: 0,
+    yPixel: hoverY,
   };
 }
 
@@ -187,6 +391,34 @@ export function useHoverReadoutDebug({
           return null;
         }
 
+        if (series.type === 'matrix') {
+          return summarizeMatrixSeriesPoint({
+            accessors,
+            axisKeys,
+            hoverX: localX,
+            hoverY: localY,
+            series,
+            seriesData,
+            seriesIndex,
+            xScale,
+            yScale,
+          });
+        }
+
+        if (series.type === 'heatmap') {
+          return summarizeHeatmapSeriesPoint({
+            accessors,
+            axisKeys,
+            hoverX: localX,
+            hoverY: localY,
+            series,
+            seriesData,
+            seriesIndex,
+            xScale,
+            yScale,
+          });
+        }
+
         let nearest = null;
 
         seriesData.forEach((datum, dataIndex) => {
@@ -205,21 +437,8 @@ export function useHoverReadoutDebug({
 
           if (!summary) return;
 
-          if (!nearest) {
-            nearest = summary;
-            return;
-          }
-
           // Rank by x-distance first for a stable cross-series readout column.
-          if (summary.xDistancePx < nearest.xDistancePx) {
-            nearest = summary;
-            return;
-          }
-
-          if (
-            summary.xDistancePx === nearest.xDistancePx &&
-            summary.distancePx < nearest.distancePx
-          ) {
+          if (isBetterByXThenDistance(summary, nearest)) {
             nearest = summary;
           }
         });

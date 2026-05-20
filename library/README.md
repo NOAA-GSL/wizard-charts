@@ -280,8 +280,9 @@ Current implementation status for readout is debug-only:
 
 - Emits throttled `console.debug` payloads (roughly every 100ms while hovering).
 - Includes hover coordinates plus nearest values per chart.
-- Supported series for nearest-value debug output: `line`, `bar`, `circle`, `area`, `boxPlot`.
-- `matrix` and `heatmap` are currently excluded from nearest-value debug output.
+- Supported series for nearest-value debug output: `line`, `bar`, `circle`, `area`, `boxPlot`, `matrix`, `heatmap`.
+- `matrix` readouts resolve the hovered cell and report its value/label plus cell bounds.
+- `heatmap` readouts report an interpolated value at the hover location (using the same IDW settings as rendering), plus nearest sample-point context.
 
 ## Series Configuration
 
