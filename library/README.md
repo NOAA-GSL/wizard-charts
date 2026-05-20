@@ -216,10 +216,10 @@ All column arrays must be the same length.
   },
   legend: {
     enabled: true,
-    gap: 10,
-    rowGap: 8,
-    itemGap: 16,
-    markerSize: 10,
+    gap: 8, // space above the legend
+    rowGap: 8, // space between rows when the legend wraps
+    itemGap: 16, // space between items
+    markerSize: 12, // size of shaded line, square or circle identifier
     fontFamily: 'inherit',
     fontSize: 12,
     fontWeight: 500,

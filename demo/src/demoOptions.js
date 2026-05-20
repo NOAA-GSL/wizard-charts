@@ -60,6 +60,7 @@ export const demoOptions = {
         type: 'bar',
         xKey: 'date',
         yKey: 'series1.mean',
+        name: 'Mean Temperature',
         fill: dataVizColors.tropicalIndigo,
         alignment: 'left', // 'left', 'right' or 'center'
         paddingFactor: 0.8, // how much of the band to fill with the bar (0-1)
@@ -69,6 +70,7 @@ export const demoOptions = {
         type: 'line',
         xKey: 'date',
         yKey: 'series2.mean',
+        name: 'Mean Wind Speed',
         stroke: dataVizColors.tangerine,
         isSecondaryYAxis: true,
         strokeWidth: 5,
@@ -102,6 +104,13 @@ export const demoOptions = {
         hasAxisLine: false,
         label: { text: 'Wind Speed (mph)' },
       },
+    },
+    legend: {
+      markerSize: 20,
+      gap: 5,
+      itemGap: 20,
+      fontSize: 20,
+      fontColor: dataVizColors.malachite,
     },
     readout: {
       hoverMode: 'local', // or 'global'

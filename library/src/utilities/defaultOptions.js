@@ -59,10 +59,10 @@ export const defaultOptions = {
   },
   legend: {
     enabled: true,
-    gap: 10,
+    gap: 8,
     rowGap: 8,
     itemGap: 16,
-    markerSize: 10,
+    markerSize: 12,
     fontFamily: 'inherit',
     fontSize: 12,
     fontWeight: 500,
