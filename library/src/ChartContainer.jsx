@@ -1,11 +1,13 @@
-import { useMemo } from 'react';
+import { useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ChartProvider } from './context/ChartProvider';
-// import {
-// HoverPointContext,
-// HoverUpdateContext,
-// } from './context/HoverPointProvider';
+import {
+  HoverProviderContext,
+  HoverPointContext,
+  HoverUpdateContext,
+} from './context/HoverPointProvider';
 import ErrorBoundary from './ErrorBoundary';
-// import { pointer } from 'd3';
+import { pointer } from 'd3';
+import { useHoverReadoutDebug } from './hooks/useHoverReadoutDebug';
 import { defaultOptions } from './utilities/defaultOptions';
 import { axisHasMappedSeries, mergeDeep } from './utilities/dataUtilities';
 import XAxis from './axisComponents/XAxis';
@@ -19,6 +21,18 @@ import Area from './plotComponents/Area';
 import Matrix from './plotComponents/Matrix';
 import Heatmap from './plotComponents/Heatmap';
 
+function HoverReadoutDebugReporter({ chartId, hoverEvent, mode }) {
+  // Keep readout debug logic in a dedicated hook so ChartContainer stays focused on routing events.
+  useHoverReadoutDebug({
+    chartId,
+    hoverEvent,
+    mode,
+    throttleMs: 100,
+  });
+
+  return null;
+}
+
 function ChartContainer({
   height = 600,
   width = 800,
@@ -29,9 +43,16 @@ function ChartContainer({
   className = '',
   sx = {},
 }) {
-  // const updateHoverPoint = useContext(HoverUpdateContext);
-  // const hoverPoint = useContext(HoverPointContext);
-  // const svgReadoutRef = useRef(null);
+  // Every chart tracks its own hover event so local mode works without any provider wrapper.
+  const [localHoverEvent, setLocalHoverEvent] = useState(null);
+
+  const updateGlobalHoverPoint = useContext(HoverUpdateContext);
+  const globalHoverPoint = useContext(HoverPointContext);
+  const hasHoverProvider = useContext(HoverProviderContext);
+  const chartId = useId();
+
+  const svgReadoutRef = useRef(null);
+  const hasWarnedMissingProviderRef = useRef(false);
 
   // useMemo to avoid unnecessary re-renders in the useEffect hook of ChartProvider
   const initialValues = useMemo(
@@ -44,6 +65,97 @@ function ChartContainer({
     }),
     [height, width, margin, data, options],
   );
+
+  const configuredHoverMode = initialValues.options?.readout?.hoverMode;
+  const shouldUseGlobalHover =
+    configuredHoverMode === 'global' && hasHoverProvider;
+  // Global mode is opt-in and only active when the provider is present.
+  const effectiveHoverMode = shouldUseGlobalHover ? 'global' : 'local';
+
+  useEffect(() => {
+    if (configuredHoverMode !== 'global') return;
+    if (hasHoverProvider) return;
+    if (hasWarnedMissingProviderRef.current) return;
+
+    hasWarnedMissingProviderRef.current = true;
+
+    if (typeof console === 'undefined' || typeof console.debug !== 'function') {
+      return;
+    }
+
+    console.debug(
+      '[wizard-charts] readout.hoverMode="global" requires HoverPointProvider. Falling back to local mode.',
+    );
+  }, [configuredHoverMode, hasHoverProvider]);
+
+  const handleMouseMove = (event) => {
+    const svgNode = svgReadoutRef.current;
+    if (!svgNode) return;
+
+    const [localX, localY] = pointer(event, svgNode);
+    const rect = svgNode.getBoundingClientRect();
+    const widthPx = rect.width || Number(width) || 0;
+    const heightPx = rect.height || Number(height) || 0;
+
+    // Include normalized coordinates so other charts in a global group can map hover consistently.
+    const hoverEvent = {
+      sourceChartId: chartId,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      localX,
+      localY,
+      normalizedX: widthPx > 0 ? localX / widthPx : null,
+      normalizedY: heightPx > 0 ? localY / heightPx : null,
+      timestamp: Date.now(),
+    };
+
+    setLocalHoverEvent(hoverEvent);
+
+    if (shouldUseGlobalHover) {
+      updateGlobalHoverPoint(hoverEvent);
+    }
+  };
+
+  // Clear local and shared hover state so global groups stop rendering stale readouts.
+  const handleMouseLeave = () => {
+    setLocalHoverEvent(null);
+
+    if (shouldUseGlobalHover) {
+      updateGlobalHoverPoint(null);
+    }
+  };
+
+  let hoverEvent = localHoverEvent;
+
+  if (shouldUseGlobalHover && globalHoverPoint) {
+    const normalizedX = Number(globalHoverPoint.normalizedX);
+    const normalizedY = Number(globalHoverPoint.normalizedY);
+    const widthValue = Number(width);
+    const heightValue = Number(height);
+
+    // Reproject provider-shared normalized coordinates into this chart's local pixel space.
+    const localX =
+      Number.isFinite(normalizedX) &&
+      Number.isFinite(widthValue) &&
+      widthValue > 0
+        ? normalizedX * widthValue
+        : Number(globalHoverPoint.localX);
+    const localY =
+      Number.isFinite(normalizedY) &&
+      Number.isFinite(heightValue) &&
+      heightValue > 0
+        ? normalizedY * heightValue
+        : Number(globalHoverPoint.localY);
+
+    hoverEvent =
+      Number.isFinite(localX) && Number.isFinite(localY)
+        ? {
+            ...globalHoverPoint,
+            localX,
+            localY,
+          }
+        : null;
+  }
 
   // switch statement to render different series types based on options
   const seriesNodes = initialValues.options.series.map((s, i) => {
@@ -73,14 +185,19 @@ function ChartContainer({
   return (
     <ChartProvider initialValues={initialValues}>
       <ErrorBoundary>
+        <HoverReadoutDebugReporter
+          chartId={chartId}
+          hoverEvent={hoverEvent}
+          mode={effectiveHoverMode}
+        />
         <svg
+          ref={svgReadoutRef}
           height={height}
           width={width}
           className={className}
           style={sx}
-          // onMouseMove={(e) =>
-          //   updateHoverPoint(pointer(e, svgReadoutRef.current))
-          // }
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
         >
           {axes.x && axisHasMappedSeries(series, 'x') && (
             <XAxis options={axes.x} axisKey="x" />

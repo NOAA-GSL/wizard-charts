@@ -10,6 +10,7 @@ WIZARD Charts is a React charting library built on top of D3 for weather and for
 - [Dynamic Margins](#dynamic-margins)
 - [Data Model](#data-model)
 - [Options Overview](#options-overview)
+- [Hover Readout (Debug)](#hover-readout-debug)
 - [Series Configuration](#series-configuration)
 - [Legend](#legend)
 - [Combining Multiple Plot Types](#combining-multiple-plot-types)
@@ -240,6 +241,47 @@ All column arrays must be the same length.
   animationDuration: 1000, // ms (set 0 to disable animation)
 }
 ```
+
+## Hover Readout (Debug)
+
+`options.readout.hoverMode` supports two modes:
+
+- `'local'` (default): hover tracking is local to each chart and does not require any wrapper.
+- `'global'`: charts synchronize hover readout events through `HoverPointProvider`.
+
+### Local Mode
+
+```jsx
+<ChartContainer data={data} options={{ ...options, readout: { hoverMode: 'local' } }} />
+```
+
+### Global Mode
+
+Wrap charts that should share hover state in one `HoverPointProvider` group:
+
+```jsx
+import { ChartContainer, HoverPointProvider } from '@noaa-gsl/wizard-charts';
+
+<HoverPointProvider>
+  <ChartContainer
+    data={dataA}
+    options={{ ...optionsA, readout: { hoverMode: 'global' } }}
+  />
+  <ChartContainer
+    data={dataB}
+    options={{ ...optionsB, readout: { hoverMode: 'global' } }}
+  />
+</HoverPointProvider>;
+```
+
+If `hoverMode` is `'global'` but no provider is present, charts fall back to local mode.
+
+Current implementation status for readout is debug-only:
+
+- Emits throttled `console.debug` payloads (roughly every 100ms while hovering).
+- Includes hover coordinates plus nearest values per chart.
+- Supported series for nearest-value debug output: `line`, `bar`, `circle`, `area`, `boxPlot`.
+- `matrix` and `heatmap` are currently excluded from nearest-value debug output.
 
 ## Series Configuration
 

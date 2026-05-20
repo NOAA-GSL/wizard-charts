@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChartContainer } from '@noaa-gsl/wizard-charts';
+import { ChartContainer, HoverPointProvider } from '@noaa-gsl/wizard-charts';
 import InputSlider from './InputSlider';
 import { generateRandomData } from './helperFunctions';
 import '@noaa-gsl/wizard-charts/styles.css';
@@ -7,7 +7,7 @@ import '@noaa-gsl/wizard-charts/styles.css';
 import { demoOptions } from './demoOptions';
 
 // const margin = { top: 25, right: 50, bottom: 80, left: 50 };
-const chartTypes = [
+const localChartTypes = [
   'bar',
   'stackedBar',
   'multiLine',
@@ -19,6 +19,8 @@ const chartTypes = [
   'heatmap',
   'heatmapTime',
 ];
+
+const globalChartTypes = ['bar', 'multiLine', 'boxPlot', 'circle', 'area'];
 
 // use generateRandomData to create an array of objects
 // each number series is nested under a key in the data object
@@ -70,7 +72,14 @@ function App() {
     const value = event.target.value;
     setDimensions((prev) => ({ ...prev, [dimension]: value }));
   };
-  console.log('data:', data);
+
+  const withGlobalHoverMode = (type) => ({
+    ...demoOptions[type],
+    readout: {
+      ...(demoOptions[type].readout || {}),
+      hoverMode: 'global',
+    },
+  });
 
   return (
     <div className="app-container">
@@ -92,11 +101,12 @@ function App() {
           id="height"
         />
       </div>
+
+      <h2>Local Hover Mode (No Provider)</h2>
       <div className="flex gap-10" style={{ flexWrap: 'wrap' }}>
-        {/* <HoverPointProvider> */}
-        {chartTypes.map((type) => (
+        {localChartTypes.map((type) => (
           <ChartContainer
-            key={type}
+            key={`local-${type}`}
             height={dimensions.height}
             width={dimensions.width}
             // margin={margin}
@@ -110,8 +120,28 @@ function App() {
             }}
           />
         ))}
-        {/* </HoverPointProvider> */}
       </div>
+
+      <h2>Global Hover Mode (Shared Provider Group)</h2>
+      <HoverPointProvider>
+        <div className="flex gap-10" style={{ flexWrap: 'wrap' }}>
+          {globalChartTypes.map((type) => (
+            <ChartContainer
+              key={`global-${type}`}
+              height={dimensions.height}
+              width={dimensions.width}
+              data={data}
+              options={withGlobalHoverMode(type)}
+              sx={{
+                border: '1px solid #737373',
+                borderRadius: '8px',
+                background:
+                  'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
+              }}
+            />
+          ))}
+        </div>
+      </HoverPointProvider>
     </div>
   );
 }
