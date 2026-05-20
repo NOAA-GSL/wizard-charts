@@ -1,65 +1,17 @@
 import { useMemo, useRef } from 'react';
-import { extent } from 'd3';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
 import { mergeDeep } from '../utilities/dataUtilities';
 import { defaultHeatmapOptions } from '../utilities/defaultOptions';
+import { buildContourModel } from '../utilities/marchingSquares';
 import {
-  buildContourModel,
-  normalizeThresholds,
-} from '../utilities/marchingSquares';
+  toComparable,
+  toTriggerPart,
+  resolveThresholds,
+  getColorForThresholdIndex,
+} from '../utilities/heatmapMatrixHelpers';
 
-function toComparable(value) {
-  if (value instanceof Date) return value.getTime();
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
-}
-
-function toTriggerPart(value) {
-  if (value == null) return 'null';
-  if (value instanceof Date) return `date:${value.getTime()}`;
-
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? `num:${value}` : 'num:NaN';
-  }
-
-  if (typeof value === 'string') return `str:${value}`;
-  if (typeof value === 'boolean') return `bool:${value}`;
-
-  const numeric = Number(value);
-  if (Number.isFinite(numeric)) return `num:${numeric}`;
-
-  try {
-    return `json:${JSON.stringify(value)}`;
-  } catch {
-    return `str:${String(value)}`;
-  }
-}
-
-function getColorForThresholdIndex(index, thresholds, colors, fallbackFill) {
-  if (!Array.isArray(colors) || colors.length === 0) return fallbackFill;
-  const colorIndex = Math.max(0, Math.min(index, thresholds.length));
-  return colors[colorIndex] ?? colors[colors.length - 1] ?? fallbackFill;
-}
-
-function resolveThresholds(inputThresholds, values, colors) {
-  const normalized = normalizeThresholds(inputThresholds);
-  if (normalized.length > 0) return normalized;
-
-  const colorCount = Array.isArray(colors) ? colors.length : 0;
-  const thresholdCount = Math.max(0, colorCount - 1);
-  if (thresholdCount === 0) return [];
-
-  const [minValue, maxValue] = extent(values);
-  const min = Number(minValue);
-  const max = Number(maxValue);
-
-  if (!Number.isFinite(min) || !Number.isFinite(max)) return [];
-  if (max <= min) return [min];
-
-  const step = (max - min) / colorCount;
-  return Array.from({ length: thresholdCount }, (_, i) => min + step * (i + 1));
-}
+// Helpers moved to ../utilities/heatmapMatrixHelpers.js
 
 function Heatmap({ seriesIndex = 0, options = {} }) {
   const finalOptions = mergeDeep(defaultHeatmapOptions, options);
