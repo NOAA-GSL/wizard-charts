@@ -1,5 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useState, useCallback } from 'react';
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useSyncExternalStore,
+} from 'react';
 
 /**
  * Shared hover state for "global" readout mode.
@@ -8,45 +13,79 @@ import { createContext, useState, useCallback } from 'react';
  * - Charts can run in local mode (no provider) or global mode (with provider).
  * - In global mode, one chart publishes hover events and sibling charts consume them.
  *
- * Why there are multiple contexts:
- * - `HoverPointContext` stores the current hover payload (read-only value).
- * - `HoverUpdateContext` stores the setter function (write-only updater).
- * - Splitting read/write contexts helps avoid unnecessary re-renders in components
- *   that only publish updates and do not need to read the hover value.
+ * Why this uses an external store:
+ * - Updating React state/context on every mouse move can re-render entire chart trees.
+ * - A tiny subscribe/getSnapshot store lets only hover subscribers update.
+ * - Static chart marks (bars/lines/heatmap paths) are not forced to re-render.
  *
- * Why `HoverProviderContext` exists:
+ * Why the exported contexts exist:
+ * - `HoverStoreContext` exposes the store object.
+ * - `HoverProviderContext` exposes provider presence as a simple boolean.
+ *
+ * Why `HoverProviderContext` still exists:
  * - It is a simple presence flag so consumers can detect whether a provider wraps
  *   them, independent of hover value.
  * - This avoids ambiguity between:
  *   1) "no provider present" and 2) "provider present, but current hover is null".
  */
 
-// Default no-op updater allows charts to run in local mode when no provider is present.
-const noop = () => {};
+function createNoopStore() {
+  return {
+    getSnapshot: () => null,
+    setSnapshot: () => {},
+    subscribe: () => () => {},
+  };
+}
 
-// Read-only hover value consumed by charts that need synchronized hover coordinates.
-export const HoverPointContext = createContext(null);
-// Write-only updater consumed by charts that publish hover changes.
-export const HoverUpdateContext = createContext(noop);
+export function createHoverStore() {
+  let hoverPoint = null;
+  const listeners = new Set();
+
+  return {
+    getSnapshot: () => hoverPoint,
+    setSnapshot: (point) => {
+      const nextPoint = point ?? null;
+      if (Object.is(hoverPoint, nextPoint)) return;
+
+      hoverPoint = nextPoint;
+      listeners.forEach((listener) => listener());
+    },
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+}
+
+const defaultHoverStore = createNoopStore();
+
+// Primary store context used by hover overlays and readouts.
+export const HoverStoreContext = createContext(defaultHoverStore);
 // Provider-presence flag so charts can safely fall back to local mode when unwrapped.
 export const HoverProviderContext = createContext(false);
 
-export function HoverPointProvider({ children }) {
-  const [hoverPoint, setHoverPoint] = useState(null);
+export function useHoverStoreSnapshot(hoverStore) {
+  const storeFromContext = useContext(HoverStoreContext);
+  const store = hoverStore || storeFromContext || defaultHoverStore;
 
-  const updateHoverPoint = useCallback((point) => {
-    setHoverPoint(point ?? null);
-  }, []);
+  return useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getSnapshot,
+  );
+}
+
+export function HoverPointProvider({ children }) {
+  const hoverStore = useMemo(() => createHoverStore(), []);
 
   return (
-    // Explicit `value={true}` keeps the intent obvious:
-    // this context is not carrying data, only signaling "provider is present".
+    // This flag tells charts that global hover sync is available in this subtree.
     <HoverProviderContext.Provider value={true}>
-      <HoverPointContext.Provider value={hoverPoint}>
-        <HoverUpdateContext.Provider value={updateHoverPoint}>
-          {children}
-        </HoverUpdateContext.Provider>
-      </HoverPointContext.Provider>
+      <HoverStoreContext.Provider value={hoverStore}>
+        {children}
+      </HoverStoreContext.Provider>
     </HoverProviderContext.Provider>
   );
 }

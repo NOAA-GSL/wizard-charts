@@ -15,6 +15,27 @@ function toComparable(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function toTriggerPart(value) {
+  if (value == null) return 'null';
+  if (value instanceof Date) return `date:${value.getTime()}`;
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? `num:${value}` : 'num:NaN';
+  }
+
+  if (typeof value === 'string') return `str:${value}`;
+  if (typeof value === 'boolean') return `bool:${value}`;
+
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) return `num:${numeric}`;
+
+  try {
+    return `json:${JSON.stringify(value)}`;
+  } catch {
+    return `str:${String(value)}`;
+  }
+}
+
 function getColorForThresholdIndex(index, thresholds, colors, fallbackFill) {
   if (!Array.isArray(colors) || colors.length === 0) return fallbackFill;
   const colorIndex = Math.max(0, Math.min(index, thresholds.length));
@@ -65,12 +86,31 @@ function Heatmap({ seriesIndex = 0, options = {} }) {
   const seriesData = getSeriesData(seriesIndex);
   const { xScale, yScale } = getSeriesScales(seriesIndex);
 
+  // Keep fade animation tied to series content changes, not hover motion.
+  const animationTrigger = useMemo(() => {
+    if (!Array.isArray(seriesData) || seriesData.length === 0) return 'empty';
+
+    return seriesData
+      .map((d) => {
+        const xValue = accessors.x?.(d);
+        const yValue = accessors.y?.(d);
+        const value = accessors.valueKey?.(d);
+
+        return [
+          toTriggerPart(xValue),
+          toTriggerPart(yValue),
+          toTriggerPart(value),
+        ].join('|');
+      })
+      .join('||');
+  }, [accessors, seriesData]);
+
   const groupRef = useRef(null);
 
   useAnimation({
     type: 'fadeIn',
     ref: groupRef,
-    trigger: seriesData,
+    trigger: animationTrigger,
   });
 
   const xIsBand = typeof xScale?.bandwidth === 'function';

@@ -1,9 +1,10 @@
-import { useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useId, useMemo, useRef } from 'react';
 import { ChartProvider } from './context/ChartProvider';
 import {
+  createHoverStore,
   HoverProviderContext,
-  HoverPointContext,
-  HoverUpdateContext,
+  HoverStoreContext,
+  useHoverStoreSnapshot,
 } from './context/HoverPointProvider';
 import ErrorBoundary from './ErrorBoundary';
 import { pointer } from 'd3';
@@ -21,7 +22,47 @@ import Area from './plotComponents/Area';
 import Matrix from './plotComponents/Matrix';
 import Heatmap from './plotComponents/Heatmap';
 
-function HoverReadoutDebugReporter({ chartId, hoverEvent, mode }) {
+function HoverReadoutDebugReporter({
+  chartId,
+  hoverStore,
+  mode,
+  width,
+  height,
+}) {
+  const sharedHoverEvent = useHoverStoreSnapshot(hoverStore);
+
+  const hoverEvent = useMemo(() => {
+    if (!sharedHoverEvent) return null;
+    if (mode !== 'global') return sharedHoverEvent;
+
+    const normalizedX = Number(sharedHoverEvent.normalizedX);
+    const normalizedY = Number(sharedHoverEvent.normalizedY);
+    const widthValue = Number(width);
+    const heightValue = Number(height);
+
+    // Reproject provider-shared normalized coordinates into this chart's local pixel space.
+    const localX =
+      Number.isFinite(normalizedX) &&
+      Number.isFinite(widthValue) &&
+      widthValue > 0
+        ? normalizedX * widthValue
+        : Number(sharedHoverEvent.localX);
+    const localY =
+      Number.isFinite(normalizedY) &&
+      Number.isFinite(heightValue) &&
+      heightValue > 0
+        ? normalizedY * heightValue
+        : Number(sharedHoverEvent.localY);
+
+    return Number.isFinite(localX) && Number.isFinite(localY)
+      ? {
+          ...sharedHoverEvent,
+          localX,
+          localY,
+        }
+      : null;
+  }, [height, mode, sharedHoverEvent, width]);
+
   // Keep readout debug logic in a dedicated hook so ChartContainer stays focused on routing events.
   useHoverReadoutDebug({
     chartId,
@@ -43,15 +84,14 @@ function ChartContainer({
   className = '',
   sx = {},
 }) {
-  // Every chart tracks its own hover event so local mode works without any provider wrapper.
-  const [localHoverEvent, setLocalHoverEvent] = useState(null);
-
-  const updateGlobalHoverPoint = useContext(HoverUpdateContext);
-  const globalHoverPoint = useContext(HoverPointContext);
+  const hoverStoreFromProvider = useContext(HoverStoreContext);
   const hasHoverProvider = useContext(HoverProviderContext);
   const chartId = useId();
+  const localHoverStore = useMemo(() => createHoverStore(), []);
 
   const svgReadoutRef = useRef(null);
+  const pendingHoverEventRef = useRef(null);
+  const hoverRafRef = useRef(null);
   const hasWarnedMissingProviderRef = useRef(false);
 
   // useMemo to avoid unnecessary re-renders in the useEffect hook of ChartProvider
@@ -71,6 +111,9 @@ function ChartContainer({
     configuredHoverMode === 'global' && hasHoverProvider;
   // Global mode is opt-in and only active when the provider is present.
   const effectiveHoverMode = shouldUseGlobalHover ? 'global' : 'local';
+  const activeHoverStore = shouldUseGlobalHover
+    ? hoverStoreFromProvider
+    : localHoverStore;
 
   useEffect(() => {
     if (configuredHoverMode !== 'global') return;
@@ -87,6 +130,21 @@ function ChartContainer({
       '[wizard-charts] readout.hoverMode="global" requires HoverPointProvider. Falling back to local mode.',
     );
   }, [configuredHoverMode, hasHoverProvider]);
+
+  useEffect(
+    () => () => {
+      if (
+        hoverRafRef.current != null &&
+        typeof window !== 'undefined' &&
+        typeof window.cancelAnimationFrame === 'function'
+      ) {
+        window.cancelAnimationFrame(hoverRafRef.current);
+      }
+
+      activeHoverStore.setSnapshot(null);
+    },
+    [activeHoverStore],
+  );
 
   const handleMouseMove = (event) => {
     const svgNode = svgReadoutRef.current;
@@ -109,53 +167,44 @@ function ChartContainer({
       timestamp: Date.now(),
     };
 
-    setLocalHoverEvent(hoverEvent);
+    pendingHoverEventRef.current = hoverEvent;
 
-    if (shouldUseGlobalHover) {
-      updateGlobalHoverPoint(hoverEvent);
+    if (hoverRafRef.current != null) {
+      return;
     }
+
+    if (
+      typeof window === 'undefined' ||
+      typeof window.requestAnimationFrame !== 'function'
+    ) {
+      activeHoverStore.setSnapshot(hoverEvent);
+      pendingHoverEventRef.current = null;
+      return;
+    }
+
+    // Keep hover publication to once per frame so dense charts stay smooth.
+    hoverRafRef.current = window.requestAnimationFrame(() => {
+      hoverRafRef.current = null;
+      activeHoverStore.setSnapshot(pendingHoverEventRef.current);
+      pendingHoverEventRef.current = null;
+    });
   };
 
-  // Clear local and shared hover state so global groups stop rendering stale readouts.
+  // Clear hover state so overlays stop rendering stale readouts.
   const handleMouseLeave = () => {
-    setLocalHoverEvent(null);
+    pendingHoverEventRef.current = null;
 
-    if (shouldUseGlobalHover) {
-      updateGlobalHoverPoint(null);
+    if (
+      hoverRafRef.current != null &&
+      typeof window !== 'undefined' &&
+      typeof window.cancelAnimationFrame === 'function'
+    ) {
+      window.cancelAnimationFrame(hoverRafRef.current);
+      hoverRafRef.current = null;
     }
+
+    activeHoverStore.setSnapshot(null);
   };
-
-  let hoverEvent = localHoverEvent;
-
-  if (shouldUseGlobalHover && globalHoverPoint) {
-    const normalizedX = Number(globalHoverPoint.normalizedX);
-    const normalizedY = Number(globalHoverPoint.normalizedY);
-    const widthValue = Number(width);
-    const heightValue = Number(height);
-
-    // Reproject provider-shared normalized coordinates into this chart's local pixel space.
-    const localX =
-      Number.isFinite(normalizedX) &&
-      Number.isFinite(widthValue) &&
-      widthValue > 0
-        ? normalizedX * widthValue
-        : Number(globalHoverPoint.localX);
-    const localY =
-      Number.isFinite(normalizedY) &&
-      Number.isFinite(heightValue) &&
-      heightValue > 0
-        ? normalizedY * heightValue
-        : Number(globalHoverPoint.localY);
-
-    hoverEvent =
-      Number.isFinite(localX) && Number.isFinite(localY)
-        ? {
-            ...globalHoverPoint,
-            localX,
-            localY,
-          }
-        : null;
-  }
 
   // switch statement to render different series types based on options
   const seriesNodes = initialValues.options.series.map((s, i) => {
@@ -187,8 +236,10 @@ function ChartContainer({
       <ErrorBoundary>
         <HoverReadoutDebugReporter
           chartId={chartId}
-          hoverEvent={hoverEvent}
+          hoverStore={activeHoverStore}
           mode={effectiveHoverMode}
+          width={width}
+          height={height}
         />
         <svg
           ref={svgReadoutRef}

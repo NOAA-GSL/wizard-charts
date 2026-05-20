@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { extent } from 'd3';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
@@ -9,6 +9,27 @@ function toComparable(value) {
   if (value instanceof Date) return value.getTime();
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : null;
+}
+
+function toTriggerPart(value) {
+  if (value == null) return 'null';
+  if (value instanceof Date) return `date:${value.getTime()}`;
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? `num:${value}` : 'num:NaN';
+  }
+
+  if (typeof value === 'string') return `str:${value}`;
+  if (typeof value === 'boolean') return `bool:${value}`;
+
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) return `num:${numeric}`;
+
+  try {
+    return `json:${JSON.stringify(value)}`;
+  } catch {
+    return `str:${String(value)}`;
+  }
 }
 
 function normalizeThresholds(thresholds) {
@@ -160,6 +181,27 @@ function Matrix({ seriesIndex = 0, options = {} }) {
   const seriesData = getSeriesData(seriesIndex);
   const { xScale, yScale } = getSeriesScales(seriesIndex);
 
+  // Keep fade animation tied to series content changes, not hover motion.
+  const animationTrigger = useMemo(() => {
+    if (!Array.isArray(seriesData) || seriesData.length === 0) return 'empty';
+
+    return seriesData
+      .map((d) => {
+        const xValue = accessors.x?.(d);
+        const yValue = accessors.y?.(d);
+        const value = accessors.valueKey?.(d);
+        const label = accessors.labelKey?.(d);
+
+        return [
+          toTriggerPart(xValue),
+          toTriggerPart(yValue),
+          toTriggerPart(value),
+          toTriggerPart(label),
+        ].join('|');
+      })
+      .join('||');
+  }, [accessors, seriesData]);
+
   const thresholdValues = resolveThresholds(
     finalOptions.thresholds,
     seriesData
@@ -184,7 +226,7 @@ function Matrix({ seriesIndex = 0, options = {} }) {
   useAnimation({
     type: 'fadeIn',
     ref: groupRef,
-    trigger: seriesData,
+    trigger: animationTrigger,
   });
 
   if (!xScale || !yScale || !yIsBand) return null;
