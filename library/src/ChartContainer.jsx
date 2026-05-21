@@ -4,11 +4,10 @@ import {
   createHoverStore,
   HoverProviderContext,
   HoverStoreContext,
-  useHoverStoreSnapshot,
 } from './context/HoverPointProvider';
 import ErrorBoundary from './ErrorBoundary';
 import { pointer } from 'd3';
-import { useHoverReadoutDebug } from './hooks/useHoverReadoutDebug';
+import HoverReadoutLayer from './readout/HoverReadoutLayer';
 import { defaultOptions } from './utilities/defaultOptions';
 import { axisHasMappedSeries, mergeDeep } from './utilities/dataUtilities';
 import XAxis from './axisComponents/XAxis';
@@ -21,58 +20,6 @@ import Circle from './plotComponents/Circle';
 import Area from './plotComponents/Area';
 import Matrix from './plotComponents/Matrix';
 import Heatmap from './plotComponents/Heatmap';
-
-function HoverReadoutDebugReporter({
-  chartId,
-  hoverStore,
-  mode,
-  width,
-  height,
-}) {
-  const sharedHoverEvent = useHoverStoreSnapshot(hoverStore);
-
-  const hoverEvent = useMemo(() => {
-    if (!sharedHoverEvent) return null;
-    if (mode !== 'global') return sharedHoverEvent;
-
-    const normalizedX = Number(sharedHoverEvent.normalizedX);
-    const normalizedY = Number(sharedHoverEvent.normalizedY);
-    const widthValue = Number(width);
-    const heightValue = Number(height);
-
-    // Reproject provider-shared normalized coordinates into this chart's local pixel space.
-    const localX =
-      Number.isFinite(normalizedX) &&
-      Number.isFinite(widthValue) &&
-      widthValue > 0
-        ? normalizedX * widthValue
-        : Number(sharedHoverEvent.localX);
-    const localY =
-      Number.isFinite(normalizedY) &&
-      Number.isFinite(heightValue) &&
-      heightValue > 0
-        ? normalizedY * heightValue
-        : Number(sharedHoverEvent.localY);
-
-    return Number.isFinite(localX) && Number.isFinite(localY)
-      ? {
-          ...sharedHoverEvent,
-          localX,
-          localY,
-        }
-      : null;
-  }, [height, mode, sharedHoverEvent, width]);
-
-  // Keep readout debug logic in a dedicated hook so ChartContainer stays focused on routing events.
-  useHoverReadoutDebug({
-    chartId,
-    hoverEvent,
-    mode,
-    throttleMs: 100,
-  });
-
-  return null;
-}
 
 function ChartContainer({
   height = 600,
@@ -90,6 +37,8 @@ function ChartContainer({
   const localHoverStore = useMemo(() => createHoverStore(), []);
 
   const svgReadoutRef = useRef(null);
+  const plotBoundsRef = useRef(null);
+  const xValueResolverRef = useRef(() => null);
   const pendingHoverEventRef = useRef(null);
   const hoverRafRef = useRef(null);
   const hasWarnedMissingProviderRef = useRef(false);
@@ -146,28 +95,8 @@ function ChartContainer({
     [activeHoverStore],
   );
 
-  const handleMouseMove = (event) => {
-    const svgNode = svgReadoutRef.current;
-    if (!svgNode) return;
-
-    const [localX, localY] = pointer(event, svgNode);
-    const rect = svgNode.getBoundingClientRect();
-    const widthPx = rect.width || Number(width) || 0;
-    const heightPx = rect.height || Number(height) || 0;
-
-    // Include normalized coordinates so other charts in a global group can map hover consistently.
-    const hoverEvent = {
-      sourceChartId: chartId,
-      clientX: event.clientX,
-      clientY: event.clientY,
-      localX,
-      localY,
-      normalizedX: widthPx > 0 ? localX / widthPx : null,
-      normalizedY: heightPx > 0 ? localY / heightPx : null,
-      timestamp: Date.now(),
-    };
-
-    pendingHoverEventRef.current = hoverEvent;
+  const queueHoverSnapshot = (nextSnapshot) => {
+    pendingHoverEventRef.current = nextSnapshot;
 
     if (hoverRafRef.current != null) {
       return;
@@ -177,7 +106,7 @@ function ChartContainer({
       typeof window === 'undefined' ||
       typeof window.requestAnimationFrame !== 'function'
     ) {
-      activeHoverStore.setSnapshot(hoverEvent);
+      activeHoverStore.setSnapshot(nextSnapshot);
       pendingHoverEventRef.current = null;
       return;
     }
@@ -188,6 +117,64 @@ function ChartContainer({
       activeHoverStore.setSnapshot(pendingHoverEventRef.current);
       pendingHoverEventRef.current = null;
     });
+  };
+
+  const handleMouseMove = (event) => {
+    const svgNode = svgReadoutRef.current;
+    if (!svgNode) return;
+
+    const plotBounds = plotBoundsRef.current;
+    if (!plotBounds || plotBounds.width <= 0 || plotBounds.height <= 0) {
+      queueHoverSnapshot(null);
+      return;
+    }
+
+    const [localX, localY] = pointer(event, svgNode);
+    const rect = svgNode.getBoundingClientRect();
+    const widthPx = rect.width || Number(width) || 0;
+    const heightPx = rect.height || Number(height) || 0;
+
+    const isInsidePlot =
+      localX >= plotBounds.left &&
+      localX <= plotBounds.right &&
+      localY >= plotBounds.top &&
+      localY <= plotBounds.bottom;
+
+    if (!isInsidePlot) {
+      queueHoverSnapshot(null);
+      return;
+    }
+
+    const resolveXValue = xValueResolverRef.current;
+    const xValue =
+      typeof resolveXValue === 'function' ? resolveXValue(localX) : null;
+
+    if (xValue == null) {
+      queueHoverSnapshot(null);
+      return;
+    }
+
+    const plotWidth = plotBounds.right - plotBounds.left;
+    const plotHeight = plotBounds.bottom - plotBounds.top;
+
+    // Publish x-domain value so global readouts can align by data space, not screen ratios.
+    const hoverEvent = {
+      sourceChartId: chartId,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      localX,
+      localY,
+      xValue,
+      normalizedX: widthPx > 0 ? localX / widthPx : null,
+      normalizedY: heightPx > 0 ? localY / heightPx : null,
+      normalizedPlotX:
+        plotWidth > 0 ? (localX - plotBounds.left) / plotWidth : null,
+      normalizedPlotY:
+        plotHeight > 0 ? (localY - plotBounds.top) / plotHeight : null,
+      timestamp: Date.now(),
+    };
+
+    queueHoverSnapshot(hoverEvent);
   };
 
   // Clear hover state so overlays stop rendering stale readouts.
@@ -234,13 +221,6 @@ function ChartContainer({
   return (
     <ChartProvider initialValues={initialValues}>
       <ErrorBoundary>
-        <HoverReadoutDebugReporter
-          chartId={chartId}
-          hoverStore={activeHoverStore}
-          mode={effectiveHoverMode}
-          width={width}
-          height={height}
-        />
         <svg
           ref={svgReadoutRef}
           height={height}
@@ -263,6 +243,14 @@ function ChartContainer({
             <YAxis options={axes.y2} axisKey="y2" />
           )}
           {seriesNodes}
+          <HoverReadoutLayer
+            chartId={chartId}
+            hoverStore={activeHoverStore}
+            mode={effectiveHoverMode}
+            readoutOptions={initialValues.options?.readout}
+            plotBoundsRef={plotBoundsRef}
+            xValueResolverRef={xValueResolverRef}
+          />
           <Legend />
           {children}
         </svg>

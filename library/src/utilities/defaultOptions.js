@@ -79,6 +79,7 @@ export const defaultOptions = {
   },
   readout: {
     hoverMode: 'local',
+    showVerticalLine: true,
   },
   animationDuration: 1000, // in ms
 };

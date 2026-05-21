@@ -237,6 +237,7 @@ All column arrays must be the same length.
   },
   readout: {
     hoverMode: 'local',
+    showVerticalLine: true,
   },
   animationDuration: 1000, // ms (set 0 to disable animation)
 }
@@ -248,6 +249,11 @@ All column arrays must be the same length.
 
 - `'local'` (default): hover tracking is local to each chart and does not require any wrapper.
 - `'global'`: charts synchronize hover readout events through `HoverPointProvider`.
+
+`options.readout.showVerticalLine` controls whether a dashed vertical guide line renders at the hovered x position.
+
+- `true` (default): show vertical guide line.
+- `false`: hide vertical guide line.
 
 ### Local Mode
 
