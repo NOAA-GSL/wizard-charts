@@ -91,6 +91,8 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
 
   const showVerticalLine = Boolean(options?.showVerticalLine);
   const showTooltip = Boolean(options?.showTooltip);
+  const rowOrder =
+    options?.rowOrder === 'distance' ? 'distance' : 'seriesIndex';
   const showPointMarkers = Boolean(options?.showPointMarkers);
 
   const bySeries = readoutData?.nearest?.bySeries;
@@ -100,10 +102,28 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
         label: summary.seriesName || `Series ${index + 1}`,
         text: formatReadoutNumber(resolveSeriesValue(summary)),
         color: summary.readoutColor || '#d4d4d4',
+        seriesIndex: Number.isFinite(Number(summary.seriesIndex))
+          ? Number(summary.seriesIndex)
+          : index,
+        distancePx: Number.isFinite(Number(summary.distancePx))
+          ? Number(summary.distancePx)
+          : Infinity,
         xPixel: Number(summary.xPixel),
         yPixel: Number(summary.yPixel),
       }))
     : [];
+
+  const orderedRows = rows.slice().sort((a, b) => {
+    if (rowOrder === 'distance' && a.distancePx !== b.distancePx) {
+      return a.distancePx - b.distancePx;
+    }
+
+    if (a.seriesIndex !== b.seriesIndex) {
+      return a.seriesIndex - b.seriesIndex;
+    }
+
+    return a.distancePx - b.distancePx;
+  });
 
   const titleText = `x: ${formatReadoutXValue(hoverEvent.xValue)}`;
   const svgWidth = Number(chartValues.width) || 0;
@@ -130,7 +150,7 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
   const paddingX = 8;
   const paddingY = 6;
   const rowGap = 4;
-  const titleGap = rows.length > 0 ? 6 : 0;
+  const titleGap = orderedRows.length > 0 ? 6 : 0;
   const dotSize = 6;
   const dotGap = 6;
 
@@ -139,7 +159,7 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
     14,
     Math.ceil(getTextDimensions('Ag', rowFont).height),
   );
-  const rowWidths = rows.map((row) => {
+  const rowWidths = orderedRows.map((row) => {
     const labelMetrics = getTextDimensions(`${row.label}: `, rowLabelFont);
     const valueMetrics = getTextDimensions(row.text, rowFont);
     return dotSize + dotGap + labelMetrics.width + valueMetrics.width;
@@ -151,8 +171,8 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
     paddingY * 2 +
       titleMetrics.height +
       titleGap +
-      rows.length * rowHeight +
-      Math.max(0, rows.length - 1) * rowGap,
+      orderedRows.length * rowHeight +
+      Math.max(0, orderedRows.length - 1) * rowGap,
   );
 
   let tooltipLeft = localX + tooltipOffset;
@@ -203,7 +223,7 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
           />
         ))}
 
-      {showTooltip && rows.length > 0 && (
+      {showTooltip && orderedRows.length > 0 && (
         <g
           className="gsl-chart-readout-tooltip"
           transform={`translate(${tooltipLeft}, ${tooltipTop})`}
@@ -229,7 +249,7 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
             {titleText}
           </text>
 
-          {rows.map((row, index) => {
+          {orderedRows.map((row, index) => {
             const rowTop =
               paddingY +
               titleMetrics.height +

@@ -10,7 +10,7 @@ WIZARD Charts is a React charting library built on top of D3 for weather and for
 - [Dynamic Margins](#dynamic-margins)
 - [Data Model](#data-model)
 - [Options Overview](#options-overview)
-- [Hover Readout (Debug)](#hover-readout-debug)
+- [Hover Readout](#hover-readout)
 - [Series Configuration](#series-configuration)
 - [Legend](#legend)
 - [Combining Multiple Plot Types](#combining-multiple-plot-types)
@@ -238,12 +238,21 @@ All column arrays must be the same length.
   readout: {
     hoverMode: 'local',
     showVerticalLine: true,
+    showTooltip: true,
+    rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
+    showPointMarkers: true,
+    tooltipOffset: 12,
+    markerRadius: 4,
+    markerStroke: '#ffffff',
+    markerStrokeWidth: 1.25,
+    markerFill: 'none',
+    debug: false,
   },
   animationDuration: 1000, // ms (set 0 to disable animation)
 }
 ```
 
-## Hover Readout (Debug)
+## Hover Readout
 
 `options.readout.hoverMode` supports two modes:
 
@@ -255,10 +264,47 @@ All column arrays must be the same length.
 - `true` (default): show vertical guide line.
 - `false`: hide vertical guide line.
 
+`options.readout.showTooltip` controls whether a tooltip box renders with readout values.
+
+- `true` (default): show tooltip.
+- `false`: hide tooltip.
+
+`options.readout.rowOrder` controls tooltip row ordering.
+
+- `'seriesIndex'` (default): order rows by series index in `options.series`.
+- `'distance'`: order rows by distance from the hover pointer.
+
+`options.readout.showPointMarkers` controls point marker circles at readout points.
+
+- `true` (default): show marker circles.
+- `false`: hide marker circles.
+
+`options.readout.tooltipOffset` sets the horizontal pixel distance from pointer to tooltip anchor.
+
+Marker style options:
+
+- `markerRadius`
+- `markerStroke`
+- `markerStrokeWidth`
+- `markerFill`
+
+Readout overlays are constrained to chart/SVG bounds:
+
+- Readout rendering only occurs while the pointer is inside the plot area.
+- Tooltip is positioned to the right of the pointer by default, flips left when needed, and clamps to available SVG width/height.
+
+`options.readout.debug` controls console debug payload logging.
+
+- `false` (default): no readout debug logging.
+- `true`: emit throttled `console.debug` payloads (roughly every 100ms while hovering).
+
 ### Local Mode
 
 ```jsx
-<ChartContainer data={data} options={{ ...options, readout: { hoverMode: 'local' } }} />
+<ChartContainer
+  data={data}
+  options={{ ...options, readout: { hoverMode: 'local' } }}
+/>
 ```
 
 ### Global Mode
@@ -282,13 +328,7 @@ import { ChartContainer, HoverPointProvider } from '@noaa-gsl/wizard-charts';
 
 If `hoverMode` is `'global'` but no provider is present, charts fall back to local mode.
 
-Current implementation status for readout is debug-only:
-
-- Emits throttled `console.debug` payloads (roughly every 100ms while hovering).
-- Includes hover coordinates plus nearest values per chart.
-- Supported series for nearest-value debug output: `line`, `bar`, `circle`, `area`, `boxPlot`, `matrix`, `heatmap`.
-- `matrix` readouts resolve the hovered cell and report its value/label plus cell bounds.
-- `heatmap` readouts report an interpolated value at the hover location (using the same IDW settings as rendering), plus nearest sample-point context.
+When `readout.debug` is enabled, debug payloads include hover coordinates plus nearest values per chart. Supported series for nearest-value debug output are `line`, `bar`, `circle`, `area`, `boxPlot`, `matrix`, and `heatmap`.
 
 ## Series Configuration
 

@@ -81,6 +81,7 @@ export const defaultOptions = {
     hoverMode: 'local',
     showVerticalLine: true,
     showTooltip: true,
+    rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
     showPointMarkers: true,
     tooltipOffset: 12,
     markerRadius: 4,
