@@ -139,15 +139,22 @@ function HoverReadoutLayer({
       : null;
   }, [mode, plotBounds, readoutXScale, sharedHoverEvent]);
 
-  // Keep readout debug logic in a dedicated hook so ChartContainer stays focused on routing events.
-  useHoverReadoutDebug({
+  // Readout payload is computed in a dedicated hook so ChartContainer stays focused on routing events.
+  const readoutData = useHoverReadoutDebug({
     chartId,
     hoverEvent,
     mode,
     throttleMs: 100,
+    logToConsole: Boolean(readoutOptions?.debug),
   });
 
-  return <Readout hoverEvent={hoverEvent} options={readoutOptions} />;
+  return (
+    <Readout
+      hoverEvent={hoverEvent}
+      readoutData={readoutData}
+      options={readoutOptions}
+    />
+  );
 }
 
 export default HoverReadoutLayer;

@@ -116,6 +116,29 @@ function getRepresentativeYPixel(seriesType, yScale, summary) {
   return y != null ? yScale(y) : null;
 }
 
+function resolveSeriesReadoutColor(series) {
+  const fill =
+    typeof series?.fill === 'string' && series.fill !== 'none'
+      ? series.fill
+      : null;
+  const stroke =
+    typeof series?.stroke === 'string' && series.stroke !== 'none'
+      ? series.stroke
+      : null;
+  const whisker =
+    typeof series?.strokeWhisker === 'string' && series.strokeWhisker !== 'none'
+      ? series.strokeWhisker
+      : null;
+
+  if (series?.type === 'line') return stroke || fill || '#d4d4d4';
+  if (series?.type === 'area') return whisker || stroke || fill || '#d4d4d4';
+  if (series?.type === 'boxPlot') {
+    return whisker || stroke || fill || '#d4d4d4';
+  }
+
+  return fill || stroke || '#d4d4d4';
+}
+
 function summarizeSeriesPoint({
   accessors,
   dataIndex,
@@ -151,6 +174,7 @@ function summarizeSeriesPoint({
     axisKeys,
     dataIndex,
     distancePx,
+    readoutColor: resolveSeriesReadoutColor(series),
     seriesIndex,
     seriesName: series?.name || `Series ${seriesIndex + 1}`,
     seriesType,
@@ -223,6 +247,7 @@ function summarizeMatrixSeriesPoint({
       axisKeys,
       dataIndex,
       distancePx: metrics.distancePx,
+      readoutColor: resolveSeriesReadoutColor(series),
       seriesIndex,
       seriesName: series?.name || `Series ${seriesIndex + 1}`,
       seriesType: 'matrix',
@@ -331,6 +356,7 @@ function summarizeHeatmapSeriesPoint({
     axisKeys,
     dataIndex: nearestSample?.dataIndex ?? null,
     distancePx: 0,
+    readoutColor: resolveSeriesReadoutColor(series),
     seriesIndex,
     seriesName: series?.name || `Series ${seriesIndex + 1}`,
     seriesType: 'heatmap',
@@ -360,6 +386,7 @@ export function useHoverReadoutDebug({
   hoverEvent,
   mode = 'local',
   throttleMs = 100,
+  logToConsole = false,
 }) {
   const { chartValues, getAccessors, getSeriesData, getSeriesScales } =
     useChartHelpers();
@@ -522,7 +549,7 @@ export function useHoverReadoutDebug({
   ]);
 
   useEffect(() => {
-    if (!debugPayload) return;
+    if (!debugPayload || !logToConsole) return;
 
     const now = Date.now();
     // Throttle logs to keep console output readable while hovering.
@@ -537,7 +564,7 @@ export function useHoverReadoutDebug({
     }
 
     console.debug('[wizard-charts][hover-readout]', debugPayload);
-  }, [debugPayload, throttleMs]);
+  }, [debugPayload, logToConsole, throttleMs]);
 
   return debugPayload;
 }

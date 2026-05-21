@@ -80,6 +80,14 @@ export const defaultOptions = {
   readout: {
     hoverMode: 'local',
     showVerticalLine: true,
+    showTooltip: true,
+    showPointMarkers: true,
+    tooltipOffset: 12,
+    markerRadius: 4,
+    markerStroke: '#ffffff',
+    markerStrokeWidth: 1.25,
+    markerFill: 'none',
+    debug: false,
   },
   animationDuration: 1000, // in ms
 };
