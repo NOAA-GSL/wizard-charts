@@ -1,4 +1,3 @@
-import { extent } from 'd3';
 import { toComparable } from './valueUtilities';
 
 export function toTriggerPart(value) {
@@ -20,30 +19,6 @@ export function toTriggerPart(value) {
   } catch {
     return `str:${String(value)}`;
   }
-}
-
-export function resolveThresholds(inputThresholds, values, colors) {
-  const normalized = Array.isArray(inputThresholds)
-    ? inputThresholds
-        .map((v) => Number(v))
-        .filter((v) => Number.isFinite(v))
-        .sort((a, b) => a - b)
-    : [];
-  if (normalized.length > 0) return normalized;
-
-  const colorCount = Array.isArray(colors) ? colors.length : 0;
-  const thresholdCount = Math.max(0, colorCount - 1);
-  if (thresholdCount === 0) return [];
-
-  const [minValue, maxValue] = extent(values);
-  const min = Number(minValue);
-  const max = Number(maxValue);
-
-  if (!Number.isFinite(min) || !Number.isFinite(max)) return [];
-  if (max <= min) return [min];
-
-  const step = (max - min) / colorCount;
-  return Array.from({ length: thresholdCount }, (_, i) => min + step * (i + 1));
 }
 
 export function getColorForThresholdIndex(

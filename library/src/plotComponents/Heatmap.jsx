@@ -4,9 +4,9 @@ import useAnimation from '../hooks/useAnimation';
 import { mergeDeep } from '../utilities/dataUtilities';
 import { defaultHeatmapOptions } from '../utilities/defaultOptions';
 import { buildContourModel } from '../utilities/marchingSquares';
+import { resolveThresholds } from '../utilities/thresholdUtilities';
 import {
   toTriggerPart,
-  resolveThresholds,
   getColorForThresholdIndex,
   buildPreparedHeatmapPoints,
 } from '../utilities/heatmapMatrixHelpers';

@@ -3,10 +3,10 @@ import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
 import { mergeDeep } from '../utilities/dataUtilities';
 import { defaultMatrixOptions } from '../utilities/defaultOptions';
+import { resolveThresholds } from '../utilities/thresholdUtilities';
 
 import {
   toTriggerPart,
-  resolveThresholds,
   getColorForValue,
   getMatrixCellRect,
   buildContinuousXMap,

@@ -5,17 +5,6 @@ function fromComparable(value, useDate) {
   return useDate ? new Date(value) : value;
 }
 
-export function normalizeThresholds(thresholds) {
-  if (!Array.isArray(thresholds)) return [];
-
-  const sorted = thresholds
-    .map((d) => Number(d))
-    .filter((d) => Number.isFinite(d))
-    .sort((a, b) => a - b);
-
-  return sorted.filter((d, i) => i === 0 || d !== sorted[i - 1]);
-}
-
 function resolveResolution(resolution) {
   if (Array.isArray(resolution) && resolution.length > 0) {
     const fallback = Math.max(4, Math.round(Number(resolution[0]) || 0));
