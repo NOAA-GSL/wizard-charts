@@ -1,4 +1,5 @@
 import { useChartHelpers } from '../hooks/useChartHelpers';
+import { getPlotBoundsFromChartValues } from '../utilities/measurements';
 
 function Readout({ hoverEvent, options = {} }) {
   const { chartValues } = useChartHelpers();
@@ -9,21 +10,10 @@ function Readout({ hoverEvent, options = {} }) {
   const localX = Number(hoverEvent.localX);
   if (!Number.isFinite(localX)) return null;
 
-  const margin = chartValues.margin || {
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-  };
-  const innerWidth = Number(chartValues.innerWidth) || 0;
-  const innerHeight = Number(chartValues.innerHeight) || 0;
+  const { left, right, top, bottom, width, height } =
+    getPlotBoundsFromChartValues(chartValues);
 
-  if (innerWidth <= 0 || innerHeight <= 0) return null;
-
-  const left = margin.left;
-  const right = margin.left + innerWidth;
-  const top = margin.top;
-  const bottom = margin.top + innerHeight;
+  if (width <= 0 || height <= 0) return null;
 
   if (localX < left || localX > right) return null;
 

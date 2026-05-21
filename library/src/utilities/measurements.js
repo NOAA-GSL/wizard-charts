@@ -789,6 +789,29 @@ export function resolveMargin(baseMargin, autoMargin) {
   };
 }
 
+export function getPlotBoundsFromChartValues(chartValues = {}) {
+  const margin = chartValues.margin || {
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  };
+
+  const left = toNumber(margin.left, 0);
+  const top = toNumber(margin.top, 0);
+  const width = toNonNegativeNumber(chartValues.innerWidth, 0);
+  const height = toNonNegativeNumber(chartValues.innerHeight, 0);
+
+  return {
+    left,
+    right: left + width,
+    top,
+    bottom: top + height,
+    width,
+    height,
+  };
+}
+
 export function buildAxisLayout({ chartValues, computedScales = {} }) {
   const axisConfig = chartValues.options?.axes || {};
   const series = chartValues.options?.series || [];

@@ -3,30 +3,8 @@ import { useHoverStoreSnapshot } from '../context/HoverPointProvider';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import { useHoverReadoutDebug } from '../hooks/useHoverReadoutDebug';
 import { axisHasMappedSeries } from '../utilities/dataUtilities';
+import { getPlotBoundsFromChartValues } from '../utilities/measurements';
 import Readout from './Readout';
-
-function getPlotBoundsFromChartValues(chartValues) {
-  const margin = chartValues?.margin || {
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-  };
-
-  const left = Number(margin.left) || 0;
-  const top = Number(margin.top) || 0;
-  const width = Math.max(0, Number(chartValues?.innerWidth) || 0);
-  const height = Math.max(0, Number(chartValues?.innerHeight) || 0);
-
-  return {
-    left,
-    right: left + width,
-    top,
-    bottom: top + height,
-    width,
-    height,
-  };
-}
 
 function resolveBandValueAtPixel(scale, pixel) {
   const domain = scale?.domain?.() || [];
