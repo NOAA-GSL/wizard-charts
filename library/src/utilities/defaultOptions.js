@@ -82,6 +82,19 @@ export const defaultOptions = {
     showVerticalLine: true,
     showTooltip: true,
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
+    rowGap: 0,
+    title: {
+      fontSize: 12,
+      fontWeight: 700,
+      fontFamily: 'sans-serif',
+      fontColor: 'currentColor',
+    },
+    row: {
+      fontSize: 12,
+      fontWeight: 400,
+      fontFamily: 'sans-serif',
+      fontColor: 'currentColor',
+    },
     showPointMarkers: true,
     tooltipOffset: 12,
     markerRadius: 4,

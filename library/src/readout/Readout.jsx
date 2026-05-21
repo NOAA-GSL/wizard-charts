@@ -8,6 +8,37 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
+function resolveReadoutFontOptions(input, fallback) {
+  const next = input && typeof input === 'object' ? input : {};
+
+  const parsedSize = Number(next.fontSize);
+  const fontSize =
+    Number.isFinite(parsedSize) && parsedSize > 0
+      ? parsedSize
+      : fallback.fontSize;
+
+  const fontWeight = next.fontWeight ?? fallback.fontWeight;
+  const fontFamily =
+    typeof next.fontFamily === 'string' && next.fontFamily.trim().length > 0
+      ? next.fontFamily
+      : fallback.fontFamily;
+  const fontColor =
+    typeof next.fontColor === 'string' && next.fontColor.trim().length > 0
+      ? next.fontColor
+      : fallback.fontColor;
+
+  return {
+    fontSize,
+    fontWeight,
+    fontFamily,
+    fontColor,
+  };
+}
+
+function toFontString(fontOptions) {
+  return `${fontOptions.fontWeight} ${fontOptions.fontSize}px ${fontOptions.fontFamily}`;
+}
+
 function formatReadoutNumber(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return 'n/a';
@@ -144,25 +175,42 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
     ? Number(options.tooltipOffset)
     : 12;
 
-  const titleFont = '600 12px sans-serif';
-  const rowFont = '500 11px sans-serif';
-  const rowLabelFont = '600 11px sans-serif';
+  const titleFontOptions = resolveReadoutFontOptions(options?.title, {
+    fontSize: 12,
+    fontWeight: 700,
+    fontFamily: 'sans-serif',
+    fontColor: 'currentColor',
+  });
+  const rowFontOptions = resolveReadoutFontOptions(options?.row, {
+    fontSize: 11,
+    fontWeight: 600,
+    fontFamily: 'sans-serif',
+    fontColor: 'currentColor',
+  });
+
+  const titleFont = toFontString(titleFontOptions);
+  const rowFont = toFontString(rowFontOptions);
+
   const paddingX = 8;
   const paddingY = 6;
-  const rowGap = 4;
-  const titleGap = orderedRows.length > 0 ? 6 : 0;
+  const rowGap = Number.isFinite(Number(options?.rowGap))
+    ? Math.max(0, Number(options.rowGap))
+    : 4;
+  const titleGap = orderedRows.length > 0 ? rowGap : 0;
   const dotSize = 6;
   const dotGap = 6;
 
   const titleMetrics = getTextDimensions(titleText, titleFont);
   const rowHeight = Math.max(
-    14,
+    dotSize,
     Math.ceil(getTextDimensions('Ag', rowFont).height),
   );
   const rowWidths = orderedRows.map((row) => {
-    const labelMetrics = getTextDimensions(`${row.label}: `, rowLabelFont);
-    const valueMetrics = getTextDimensions(row.text, rowFont);
-    return dotSize + dotGap + labelMetrics.width + valueMetrics.width;
+    const rowTextMetrics = getTextDimensions(
+      `${row.label}: ${row.text}`,
+      rowFont,
+    );
+    return dotSize + dotGap + rowTextMetrics.width;
   });
 
   const tooltipContentWidth = Math.max(titleMetrics.width, ...rowWidths, 0);
@@ -174,6 +222,7 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
       orderedRows.length * rowHeight +
       Math.max(0, orderedRows.length - 1) * rowGap,
   );
+  const titleCenterY = paddingY + titleMetrics.height / 2;
 
   let tooltipLeft = localX + tooltipOffset;
   if (tooltipLeft + tooltipWidth > svgWidth) {
@@ -227,6 +276,7 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
         <g
           className="gsl-chart-readout-tooltip"
           transform={`translate(${tooltipLeft}, ${tooltipTop})`}
+          style={{ color: '#f9fafb' }}
         >
           <rect
             width={tooltipWidth}
@@ -240,11 +290,12 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
           />
           <text
             x={paddingX}
-            y={paddingY + titleMetrics.height}
-            fill="#f9fafb"
-            fontSize={12}
-            fontWeight={600}
-            fontFamily="sans-serif"
+            y={titleCenterY}
+            dominantBaseline="middle"
+            fill={titleFontOptions.fontColor}
+            fontSize={titleFontOptions.fontSize}
+            fontWeight={titleFontOptions.fontWeight}
+            fontFamily={titleFontOptions.fontFamily}
           >
             {titleText}
           </text>
@@ -255,7 +306,7 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
               titleMetrics.height +
               titleGap +
               index * (rowHeight + rowGap);
-            const textY = rowTop + rowHeight - 3;
+            const textY = rowHeight / 2;
 
             return (
               <g key={row.id} transform={`translate(${paddingX}, ${rowTop})`}>
@@ -268,15 +319,13 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
                 <text
                   x={dotSize + dotGap}
                   y={textY}
-                  fill="#e5e7eb"
-                  fontSize={11}
-                  fontWeight={600}
-                  fontFamily="sans-serif"
+                  dominantBaseline="middle"
+                  fill={rowFontOptions.fontColor}
+                  fontSize={rowFontOptions.fontSize}
+                  fontWeight={rowFontOptions.fontWeight}
+                  fontFamily={rowFontOptions.fontFamily}
                 >
-                  {`${row.label}: `}
-                  <tspan fill="#ffffff" fontWeight={500}>
-                    {row.text}
-                  </tspan>
+                  {`${row.label}: ${row.text}`}
                 </text>
               </g>
             );

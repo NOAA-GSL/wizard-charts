@@ -240,6 +240,19 @@ All column arrays must be the same length.
     showVerticalLine: true,
     showTooltip: true,
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
+    rowGap: 4,
+    title: {
+      fontSize: 12,
+      fontWeight: 700,
+      fontFamily: 'sans-serif',
+      fontColor: 'currentColor',
+    },
+    row: {
+      fontSize: 12,
+      fontWeight: 400,
+      fontFamily: 'sans-serif',
+      fontColor: 'currentColor',
+    },
     showPointMarkers: true,
     tooltipOffset: 12,
     markerRadius: 4,
@@ -273,6 +286,19 @@ All column arrays must be the same length.
 
 - `'seriesIndex'` (default): order rows by series index in `options.series`.
 - `'distance'`: order rows by distance from the hover pointer.
+
+`options.readout.rowGap` controls vertical spacing in pixels between tooltip rows and between the title and first row.
+
+- `4` (default).
+
+`options.readout.title` and `options.readout.row` controls tooltip title and row text styling.
+
+- `fontSize`
+- `fontWeight`
+- `fontFamily`
+- `fontColor`
+
+Row labels and values share the same `row` font settings.
 
 `options.readout.showPointMarkers` controls point marker circles at readout points.
 
