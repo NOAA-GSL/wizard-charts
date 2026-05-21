@@ -7,6 +7,7 @@ import {
   extent,
 } from 'd3';
 import { seriesAccessorProps } from './defaultOptions';
+import { toComparable } from './valueUtilities';
 
 const VALID_AXIS_KEYS = new Set(['x', 'y', 'x2', 'y2']);
 
@@ -255,14 +256,9 @@ function computeStackedExtent(data = [], series = []) {
 
 function getContinuousXDomainPadding(series = [], domain = []) {
   const [domainStart, domainEnd] = domain;
-  const toComparableNumber = (value) => {
-    if (value instanceof Date) return value.getTime();
-    const numeric = Number(value);
-    return Number.isFinite(numeric) ? numeric : null;
-  };
 
-  const domainStartNum = toComparableNumber(domainStart);
-  const domainEndNum = toComparableNumber(domainEnd);
+  const domainStartNum = toComparable(domainStart);
+  const domainEndNum = toComparable(domainEnd);
   if (domainStartNum == null || domainEndNum == null) {
     return { start: 0, end: 0 };
   }
@@ -272,7 +268,7 @@ function getContinuousXDomainPadding(series = [], domain = []) {
     const getX = createAccessor(s.xKey);
     const seriesData = Array.isArray(s?.data) ? s.data : [];
     const xs = seriesData
-      .map((d) => toComparableNumber(getX(d)))
+      .map((d) => toComparable(getX(d)))
       .filter((v) => v != null)
       .sort((a, b) => a - b);
 
@@ -406,12 +402,6 @@ export const computeScales = (chartValues, axisConfig) => {
     let domain;
     const scaleType = type || 'linear';
 
-    const toComparableNumber = (value) => {
-      if (value instanceof Date) return value.getTime();
-      const numeric = Number(value);
-      return Number.isFinite(numeric) ? numeric : null;
-    };
-
     if (scaleType === 'band') {
       // For band scales we need an array of categorical values (preserve order, unique)
       const vals = [];
@@ -442,8 +432,8 @@ export const computeScales = (chartValues, axisConfig) => {
           seriesData,
           accessorKeys,
         );
-        const seriesMinComparable = toComparableNumber(seriesMin);
-        const seriesMaxComparable = toComparableNumber(seriesMax);
+        const seriesMinComparable = toComparable(seriesMin);
+        const seriesMaxComparable = toComparable(seriesMax);
         if (seriesMinComparable == null || seriesMaxComparable == null) return;
 
         if (seriesMinComparable < minComparable) {

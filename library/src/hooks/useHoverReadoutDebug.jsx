@@ -8,8 +8,8 @@ import {
   interpolateIdwValueAtPoint,
   invertScaleAtPixel,
   isPointInsideScaleRanges,
-  toComparable,
 } from '../utilities/heatmapMatrixHelpers';
+import { toComparable } from '../utilities/valueUtilities';
 
 const SUPPORTED_SERIES_TYPES = new Set([
   'area',

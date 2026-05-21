@@ -5,6 +5,7 @@ import {
   isXValueAxis,
 } from './dataUtilities';
 import { defaultHeatmapOptions, defaultMatrixOptions } from './defaultOptions';
+import { toComparable } from './valueUtilities';
 
 const AXIS_KEYS = ['x', 'x2', 'y', 'y2'];
 const DEFAULT_AUTO_MARGIN = 'auto';
@@ -181,13 +182,6 @@ function getTickValueKey(value) {
   return value instanceof Date ? `d:${value.getTime()}` : `v:${String(value)}`;
 }
 
-function toComparableTickValue(value) {
-  if (value instanceof Date) return value.getTime();
-
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
-}
-
 const DATA_ALIGNED_X_TICK_SERIES_TYPES = new Set([
   'area',
   'bar',
@@ -261,8 +255,8 @@ function getDataAlignedXTickValues(chartValues, axisKey, tickAmount) {
   });
 
   const sortedTickValues = tickValues.slice().sort((a, b) => {
-    const comparableA = toComparableTickValue(a);
-    const comparableB = toComparableTickValue(b);
+    const comparableA = toComparable(a);
+    const comparableB = toComparable(b);
 
     if (comparableA == null && comparableB == null) return 0;
     if (comparableA == null) return 1;

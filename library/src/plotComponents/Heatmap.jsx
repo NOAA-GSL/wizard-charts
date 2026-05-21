@@ -11,8 +11,6 @@ import {
   buildPreparedHeatmapPoints,
 } from '../utilities/heatmapMatrixHelpers';
 
-// Helpers moved to ../utilities/heatmapMatrixHelpers.js
-
 function Heatmap({ seriesIndex = 0, options = {} }) {
   const finalOptions = mergeDeep(defaultHeatmapOptions, options);
   const {

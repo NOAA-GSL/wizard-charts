@@ -1,10 +1,5 @@
 import { contours as d3Contours, geoPath, geoTransform } from 'd3';
-
-function toComparable(value) {
-  if (value instanceof Date) return value.getTime();
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
-}
+import { toComparable } from './valueUtilities';
 
 function fromComparable(value, useDate) {
   return useDate ? new Date(value) : value;
