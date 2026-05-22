@@ -82,7 +82,8 @@ export const defaultOptions = {
     showVerticalLine: true,
     showTooltip: true,
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
-    rowGap: 0,
+    padding: { x: 8, y: 8 },
+    rowGap: 4,
     title: {
       fontSize: 12,
       fontWeight: 700,

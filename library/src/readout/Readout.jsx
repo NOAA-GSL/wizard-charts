@@ -35,6 +35,22 @@ function resolveReadoutFontOptions(input, fallback) {
   };
 }
 
+function resolveReadoutPadding(input, fallback) {
+  const numeric = Number(input);
+  if (Number.isFinite(numeric) && numeric >= 0) {
+    return { x: numeric, y: numeric };
+  }
+
+  const next = input && typeof input === 'object' ? input : {};
+  const parsedX = Number(next.x);
+  const parsedY = Number(next.y);
+
+  return {
+    x: Number.isFinite(parsedX) && parsedX >= 0 ? parsedX : fallback.x,
+    y: Number.isFinite(parsedY) && parsedY >= 0 ? parsedY : fallback.y,
+  };
+}
+
 function toFontString(fontOptions) {
   return `${fontOptions.fontWeight} ${fontOptions.fontSize}px ${fontOptions.fontFamily}`;
 }
@@ -191,8 +207,12 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
   const titleFont = toFontString(titleFontOptions);
   const rowFont = toFontString(rowFontOptions);
 
-  const paddingX = 8;
-  const paddingY = 6;
+  const readoutPadding = resolveReadoutPadding(options?.padding, {
+    x: 8,
+    y: 8,
+  });
+  const paddingX = readoutPadding.x;
+  const paddingY = readoutPadding.y;
   const rowGap = Number.isFinite(Number(options?.rowGap))
     ? Math.max(0, Number(options.rowGap))
     : 4;

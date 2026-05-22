@@ -240,6 +240,7 @@ All column arrays must be the same length.
     showVerticalLine: true,
     showTooltip: true,
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
+    padding: { x: 8, y: 6 }, // number | { x, y }
     rowGap: 4,
     title: {
       fontSize: 12,
@@ -290,6 +291,12 @@ All column arrays must be the same length.
 `options.readout.rowGap` controls vertical spacing in pixels between tooltip rows and between the title and first row.
 
 - `4` (default).
+
+`options.readout.padding` controls outer padding around the tooltip title and rows.
+
+- `number`: applies same padding to x and y.
+- `{ x, y }`: sets horizontal and vertical padding independently.
+- default: `{ x: 8, y: 8 }`.
 
 `options.readout.title` and `options.readout.row` controls tooltip title and row text styling.
 
