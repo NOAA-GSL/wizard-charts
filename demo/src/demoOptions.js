@@ -250,7 +250,8 @@ export const demoOptions = {
       },
     },
     readout: {
-      hoverMode: 'local', // or 'global'
+      hoverMode: 'local', // or 'global',
+      boxPlotFields: ['max', 'q3', 'median', 'q1', 'min'],
     },
     animationDuration: 1000, // in ms
   },
@@ -337,6 +338,7 @@ export const demoOptions = {
     },
     readout: {
       hoverMode: 'local', // or 'global'
+      areaFields: ['max', 'q1', 'min'], // which fields to show in the readout for area charts
     },
     animationDuration: 1000, // in ms
   },

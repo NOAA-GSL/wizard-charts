@@ -5,12 +5,11 @@ import {
 } from '../utilities/measurements';
 import {
   clamp,
+  formatSeriesReadoutText,
   resolveReadoutFontOptions,
   resolveReadoutPadding,
   toFontString,
-  formatReadoutNumber,
   formatReadoutXValue,
-  resolveSeriesValue,
 } from '../utilities/readoutHelpers';
 
 function Readout({ hoverEvent, readoutData, options = {} }) {
@@ -41,7 +40,7 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
     ? bySeries.map((summary, index) => ({
         id: `${summary.seriesIndex ?? index}-${summary.dataIndex ?? 'na'}`,
         label: summary.seriesName || `Series ${index + 1}`,
-        text: formatReadoutNumber(resolveSeriesValue(summary)),
+        text: formatSeriesReadoutText(summary, options),
         color: summary.readoutColor || '#d4d4d4',
         seriesIndex: Number.isFinite(Number(summary.seriesIndex))
           ? Number(summary.seriesIndex)

@@ -240,7 +240,9 @@ All column arrays must be the same length.
     showVerticalLine: true,
     showTooltip: true,
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
-    padding: { x: 8, y: 6 }, // number | { x, y }
+    boxPlotFields: 'auto', // 'auto' | key | key[]
+    areaFields: 'auto', // 'auto' | key | key[]
+    padding: { x: 8, y: 8 }, // number | { x, y }
     rowGap: 4,
     title: {
       fontSize: 12,
@@ -292,6 +294,21 @@ All column arrays must be the same length.
 
 - `4` (default).
 
+`options.readout.boxPlotFields` controls which box-plot values render in the readout row.
+
+- `'auto'` (default): uses median when available, then falls back to box midpoint.
+- `string` or `string[]`: choose from `'median'`, `'q1'`, `'q3'`, `'min'`, `'max'`.
+- aliases: `'lower'` -> `'q1'`, `'upper'` -> `'q3'`.
+
+`options.readout.areaFields` controls which area values render in the readout row.
+
+- `'auto'` (default): uses `y` when available, then falls back to band midpoint.
+- `string` or `string[]`: choose from `'y'`, `'q1'`, `'q3'`, `'min'`, `'max'`.
+- aliases: `'median'` -> `'y'`, `'q1'` -> `'lower'`, `'q3'` -> `'upper'`.
+
+When multiple fields are configured, the tooltip row renders labeled values (for example `Q1: ... | Q3: ...`).
+The first valid configured field also drives marker y-position and distance ranking.
+
 `options.readout.padding` controls outer padding around the tooltip title and rows.
 
 - `number`: applies same padding to x and y.
@@ -311,7 +328,8 @@ Row labels and values share the same `row` font settings.
 
 - `true` (default): show marker circles.
 - `false`: hide marker circles.
-- For `bar`/`boxPlot` series, marker x-position follows the rendered rectangle center (including alignment and width), not just raw x-scale position.
+- For `area` and `line` series on continuous x-scales, marker x-position follows the raw x-scale value.
+- For `bar`/`boxPlot` series, marker x-position follows the rendered rectangle center (including alignment and width).
 
 `options.readout.tooltipOffset` sets the horizontal pixel distance from pointer to tooltip anchor.
 

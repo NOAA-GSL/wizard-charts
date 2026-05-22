@@ -146,6 +146,7 @@ function HoverReadoutLayer({
     mode,
     throttleMs: 100,
     logToConsole: Boolean(readoutOptions?.debug),
+    readoutOptions,
   });
 
   return (

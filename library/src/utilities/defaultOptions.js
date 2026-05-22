@@ -82,6 +82,8 @@ export const defaultOptions = {
     showVerticalLine: true,
     showTooltip: true,
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
+    boxPlotFields: 'auto', // 'auto' | key | key[]
+    areaFields: 'auto', // 'auto' | key | key[]
     padding: { x: 8, y: 8 },
     rowGap: 4,
     title: {

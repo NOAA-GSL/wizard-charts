@@ -9,6 +9,7 @@ import {
   invertScaleAtPixel,
   isPointInsideScaleRanges,
 } from '../utilities/heatmapMatrixHelpers';
+import { resolveSeriesValue } from '../utilities/readoutHelpers';
 import { toComparable } from '../utilities/valueUtilities';
 
 const SUPPORTED_SERIES_TYPES = new Set([
@@ -193,8 +194,16 @@ function buildValueSummary(seriesType, accessors, datum) {
   };
 }
 
-function getRepresentativeYPixel(seriesType, yScale, summary) {
+function getRepresentativeYPixel(seriesType, yScale, summary, readoutOptions) {
   if (!yScale) return null;
+
+  const configuredValue = toNumberOrNull(
+    resolveSeriesValue({ seriesType, values: summary }, readoutOptions),
+  );
+  if (configuredValue != null) {
+    const configuredY = yScale(configuredValue);
+    if (Number.isFinite(configuredY)) return configuredY;
+  }
 
   if (seriesType === 'boxPlot') {
     // Prefer median for nearest-point ranking; fall back to box midpoint when median is unavailable.
@@ -253,6 +262,7 @@ function summarizeSeriesPoint({
   hoverX,
   hoverY,
   rectWidth,
+  readoutOptions,
   series,
   seriesIndex,
   xScale,
@@ -269,7 +279,12 @@ function summarizeSeriesPoint({
   if (!Number.isFinite(xPixel)) return null;
 
   const values = buildValueSummary(seriesType, accessors, datum);
-  const yPixel = getRepresentativeYPixel(seriesType, yScale, values);
+  const yPixel = getRepresentativeYPixel(
+    seriesType,
+    yScale,
+    values,
+    readoutOptions,
+  );
 
   const xDistancePx = Math.abs(xPixel - hoverX);
   const yDistancePx = Number.isFinite(yPixel)
@@ -495,6 +510,7 @@ export function useHoverReadoutDebug({
   mode = 'local',
   throttleMs = 100,
   logToConsole = false,
+  readoutOptions = {},
 }) {
   const { chartValues, getAccessors, getSeriesData, getSeriesScales } =
     useChartHelpers();
@@ -573,6 +589,7 @@ export function useHoverReadoutDebug({
             hoverX: localX,
             hoverY: localY,
             rectWidth,
+            readoutOptions,
             series,
             seriesIndex,
             xScale,
@@ -663,6 +680,7 @@ export function useHoverReadoutDebug({
     getSeriesScales,
     hoverEvent,
     mode,
+    readoutOptions,
   ]);
 
   useEffect(() => {
