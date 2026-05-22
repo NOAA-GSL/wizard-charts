@@ -311,6 +311,7 @@ Row labels and values share the same `row` font settings.
 
 - `true` (default): show marker circles.
 - `false`: hide marker circles.
+- For `bar`/`boxPlot` series, marker x-position follows the rendered rectangle center (including alignment and width), not just raw x-scale position.
 
 `options.readout.tooltipOffset` sets the horizontal pixel distance from pointer to tooltip anchor.
 

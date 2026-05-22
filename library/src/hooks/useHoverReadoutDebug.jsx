@@ -26,6 +26,58 @@ function toNumberOrNull(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function getAlignmentMode(rawAlignment) {
+  const alignment =
+    typeof rawAlignment === 'string' ? rawAlignment.toLowerCase() : 'center';
+
+  if (alignment === 'left' || alignment === 'start') return 'left';
+  if (alignment === 'right' || alignment === 'end') return 'right';
+  return 'center';
+}
+
+function getSeriesRectWidth({
+  accessors,
+  innerWidth,
+  series,
+  seriesData,
+  xScale,
+}) {
+  const seriesType = series?.type;
+  if (
+    (seriesType !== 'bar' && seriesType !== 'boxPlot') ||
+    !Array.isArray(seriesData)
+  ) {
+    return null;
+  }
+
+  const positions = seriesData
+    .map((datum) => xScale(accessors.x?.(datum)))
+    .filter((pixel) => Number.isFinite(pixel))
+    .sort((a, b) => a - b);
+
+  let step = 0;
+  if (positions.length > 1) {
+    const diffs = positions
+      .slice(1)
+      .map((value, index) => value - positions[index]);
+    step = Math.max(0, Math.min(...diffs));
+  }
+
+  const fallback = (Number(innerWidth) || 0) / Math.max(1, seriesData.length);
+  const paddingFactor = Number.isFinite(Number(series?.paddingFactor))
+    ? Number(series.paddingFactor)
+    : 0.8;
+
+  let rectWidth = (step || fallback) * paddingFactor;
+
+  // Bar uses band width when available; boxPlot currently uses computed step width.
+  if (seriesType === 'bar' && typeof xScale.bandwidth === 'function') {
+    rectWidth = xScale.bandwidth() * paddingFactor;
+  }
+
+  return Number.isFinite(rectWidth) && rectWidth > 0 ? rectWidth : null;
+}
+
 function getXCenter(xScale, xValue) {
   const x = xScale?.(xValue);
   if (!Number.isFinite(x)) return null;
@@ -39,6 +91,61 @@ function getXCenter(xScale, xValue) {
   }
 
   return x;
+}
+
+function getBarCenterX({ alignment, rectWidth, xScale, xValue }) {
+  const scaleCenter = getXCenter(xScale, xValue);
+  if (!Number.isFinite(scaleCenter)) return null;
+
+  if (!Number.isFinite(rectWidth)) return scaleCenter;
+
+  if (typeof xScale.bandwidth === 'function') {
+    const bandStart = xScale(xValue);
+    const band = xScale.bandwidth();
+
+    if (!Number.isFinite(bandStart) || !Number.isFinite(band)) return null;
+
+    if (alignment === 'left') return bandStart + rectWidth / 2;
+    if (alignment === 'right') return bandStart + band - rectWidth / 2;
+    return bandStart + band / 2;
+  }
+
+  if (alignment === 'left') return scaleCenter - rectWidth / 2;
+  if (alignment === 'right') return scaleCenter + rectWidth / 2;
+  return scaleCenter;
+}
+
+function getBoxPlotCenterX({ alignment, rectWidth, xScale, xValue }) {
+  const x = xScale?.(xValue);
+  if (!Number.isFinite(x)) return null;
+
+  if (!Number.isFinite(rectWidth)) return x;
+
+  if (alignment === 'left') return x - rectWidth / 2;
+  if (alignment === 'right') return x + rectWidth / 2;
+  return x;
+}
+
+function getSeriesCenterX({ rectWidth, series, xScale, xValue }) {
+  if (series?.type === 'bar') {
+    return getBarCenterX({
+      alignment: getAlignmentMode(series?.alignment),
+      rectWidth,
+      xScale,
+      xValue,
+    });
+  }
+
+  if (series?.type === 'boxPlot') {
+    return getBoxPlotCenterX({
+      alignment: getAlignmentMode(series?.alignment),
+      rectWidth,
+      xScale,
+      xValue,
+    });
+  }
+
+  return getXCenter(xScale, xValue);
 }
 
 function buildValueSummary(seriesType, accessors, datum) {
@@ -145,6 +252,7 @@ function summarizeSeriesPoint({
   datum,
   hoverX,
   hoverY,
+  rectWidth,
   series,
   seriesIndex,
   xScale,
@@ -157,7 +265,7 @@ function summarizeSeriesPoint({
   const xValue = accessors.x?.(datum);
   if (xValue == null) return null;
 
-  const xPixel = getXCenter(xScale, xValue);
+  const xPixel = getSeriesCenterX({ rectWidth, series, xScale, xValue });
   if (!Number.isFinite(xPixel)) return null;
 
   const values = buildValueSummary(seriesType, accessors, datum);
@@ -418,6 +526,14 @@ export function useHoverReadoutDebug({
           return null;
         }
 
+        const rectWidth = getSeriesRectWidth({
+          accessors,
+          innerWidth: chartValues.innerWidth,
+          series,
+          seriesData,
+          xScale,
+        });
+
         if (series.type === 'matrix') {
           return summarizeMatrixSeriesPoint({
             accessors,
@@ -456,6 +572,7 @@ export function useHoverReadoutDebug({
             datum,
             hoverX: localX,
             hoverY: localY,
+            rectWidth,
             series,
             seriesIndex,
             xScale,
