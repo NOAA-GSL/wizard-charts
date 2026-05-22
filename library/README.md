@@ -328,6 +328,7 @@ Row labels and values share the same `row` font settings.
 
 - `true` (default): show marker circles.
 - `false`: hide marker circles.
+- For `boxPlot` and `area`, markers follow configured readout fields: when multiple fields are selected (for example `['q1', 'q3']`), one marker is rendered per field.
 - For `area` and `line` series on continuous x-scales, marker x-position follows the raw x-scale value.
 - For `bar`/`boxPlot` series, marker x-position follows the rendered rectangle center (including alignment and width).
 

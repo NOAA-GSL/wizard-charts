@@ -9,7 +9,10 @@ import {
   invertScaleAtPixel,
   isPointInsideScaleRanges,
 } from '../utilities/heatmapMatrixHelpers';
-import { resolveSeriesValue } from '../utilities/readoutHelpers';
+import {
+  resolveSeriesReadoutEntries,
+  resolveSeriesValue,
+} from '../utilities/readoutHelpers';
 import { toComparable } from '../utilities/valueUtilities';
 
 const SUPPORTED_SERIES_TYPES = new Set([
@@ -255,6 +258,42 @@ function resolveSeriesReadoutColor(series) {
   return fill || stroke || '#d4d4d4';
 }
 
+function buildSeriesMarkerPoints({
+  seriesType,
+  values,
+  xPixel,
+  yScale,
+  readoutOptions,
+}) {
+  if (!Number.isFinite(xPixel) || !yScale) return [];
+
+  const entries = resolveSeriesReadoutEntries(
+    { seriesType, values },
+    readoutOptions,
+  );
+
+  return entries
+    .map((entry, index) => {
+      const yValue = toNumberOrNull(entry?.value);
+      if (yValue == null) return null;
+
+      const yPixel = yScale(yValue);
+      if (!Number.isFinite(yPixel)) return null;
+
+      const key =
+        typeof entry?.key === 'string' && entry.key.length > 0
+          ? entry.key
+          : `value-${index}`;
+
+      return {
+        id: `${key}-${index}`,
+        xPixel,
+        yPixel,
+      };
+    })
+    .filter(Boolean);
+}
+
 function summarizeSeriesPoint({
   accessors,
   dataIndex,
@@ -285,6 +324,13 @@ function summarizeSeriesPoint({
     values,
     readoutOptions,
   );
+  const markerPoints = buildSeriesMarkerPoints({
+    seriesType,
+    values,
+    xPixel,
+    yScale,
+    readoutOptions,
+  });
 
   const xDistancePx = Math.abs(xPixel - hoverX);
   const yDistancePx = Number.isFinite(yPixel)
@@ -306,6 +352,7 @@ function summarizeSeriesPoint({
     xPixel,
     yDistancePx,
     yPixel: Number.isFinite(yPixel) ? yPixel : null,
+    markerPoints,
   };
 }
 

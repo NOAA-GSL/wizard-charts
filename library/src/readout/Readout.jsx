@@ -50,6 +50,9 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
           : Infinity,
         xPixel: Number(summary.xPixel),
         yPixel: Number(summary.yPixel),
+        markerPoints: Array.isArray(summary.markerPoints)
+          ? summary.markerPoints
+          : [],
       }))
     : [];
 
@@ -146,15 +149,28 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
   let tooltipTop = localY - tooltipHeight / 2;
   tooltipTop = clamp(tooltipTop, 0, Math.max(0, svgHeight - tooltipHeight));
 
-  const markerRows = rows.filter(
-    (row) =>
-      Number.isFinite(row.xPixel) &&
-      Number.isFinite(row.yPixel) &&
-      row.xPixel >= left &&
-      row.xPixel <= right &&
-      row.yPixel >= top &&
-      row.yPixel <= bottom,
-  );
+  const markerRows = rows
+    .flatMap((row) => {
+      const points =
+        Array.isArray(row.markerPoints) && row.markerPoints.length > 0
+          ? row.markerPoints
+          : [{ id: 'primary', xPixel: row.xPixel, yPixel: row.yPixel }];
+
+      return points.map((point, pointIndex) => ({
+        id: `${row.id}-${point?.id ?? pointIndex}`,
+        xPixel: Number(point?.xPixel),
+        yPixel: Number(point?.yPixel),
+      }));
+    })
+    .filter(
+      (row) =>
+        Number.isFinite(row.xPixel) &&
+        Number.isFinite(row.yPixel) &&
+        row.xPixel >= left &&
+        row.xPixel <= right &&
+        row.yPixel >= top &&
+        row.yPixel <= bottom,
+    );
 
   return (
     <g className="gsl-chart-readout" pointerEvents="none" aria-hidden="true">

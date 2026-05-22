@@ -221,12 +221,15 @@ export function resolveSeriesReadoutEntries(summary, readoutOptions = {}) {
   if (summary?.seriesType === 'boxPlot') {
     const fields = resolveBoxPlotFields(readoutOptions);
     if (fields.length === 1 && fields[0] === 'auto') {
-      return [{ label: null, value: resolveAutoBoxPlotValue(values) }];
+      return [
+        { key: 'auto', label: null, value: resolveAutoBoxPlotValue(values) },
+      ];
     }
 
     return fields
       .filter((field) => field !== 'auto')
       .map((field) => ({
+        key: field,
         label: BOX_PLOT_FIELD_LABELS[field],
         value: resolveBoxPlotFieldValue(values, field),
       }));
@@ -235,22 +238,25 @@ export function resolveSeriesReadoutEntries(summary, readoutOptions = {}) {
   if (summary?.seriesType === 'area') {
     const fields = resolveAreaFields(readoutOptions);
     if (fields.length === 1 && fields[0] === 'auto') {
-      return [{ label: null, value: resolveAutoAreaValue(values) }];
+      return [
+        { key: 'auto', label: null, value: resolveAutoAreaValue(values) },
+      ];
     }
 
     return fields
       .filter((field) => field !== 'auto')
       .map((field) => ({
+        key: field,
         label: AREA_FIELD_LABELS[field],
         value: resolveAreaFieldValue(values, field),
       }));
   }
 
   if (summary?.seriesType === 'matrix' || summary?.seriesType === 'heatmap') {
-    return [{ label: null, value: values.value }];
+    return [{ key: 'value', label: null, value: values.value }];
   }
 
-  return [{ label: null, value: values.y }];
+  return [{ key: 'y', label: null, value: values.y }];
 }
 
 export function resolveSeriesValue(summary, readoutOptions = {}) {
