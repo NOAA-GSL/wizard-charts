@@ -49,10 +49,19 @@ export function toFontString(fontOptions) {
   return `${fontOptions.fontWeight} ${fontOptions.fontSize}px ${fontOptions.fontFamily}`;
 }
 
-export function formatReadoutNumber(value) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return 'n/a';
+function applyReadoutFormatter(formatter, value, context, fallbackText) {
+  if (typeof formatter !== 'function') return fallbackText;
 
+  try {
+    const formatted = formatter(value, context);
+    if (formatted == null) return fallbackText;
+    return String(formatted);
+  } catch {
+    return fallbackText;
+  }
+}
+
+function getDefaultReadoutNumberText(numeric) {
   const abs = Math.abs(numeric);
   if (abs >= 100) {
     return numeric.toLocaleString(undefined, { maximumFractionDigits: 1 });
@@ -67,18 +76,49 @@ export function formatReadoutNumber(value) {
   });
 }
 
-export function formatReadoutXValue(value) {
+export function formatReadoutNumber(
+  value,
+  formatter = null,
+  formatterContext = {},
+) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 'n/a';
+
+  const fallbackText = getDefaultReadoutNumberText(numeric);
+  return applyReadoutFormatter(
+    formatter,
+    numeric,
+    formatterContext,
+    fallbackText,
+  );
+}
+
+export function formatReadoutXValue(value, formatter = null) {
   if (value instanceof Date) {
-    return value.toLocaleString();
+    const fallbackText = value.toLocaleString();
+    return applyReadoutFormatter(
+      formatter,
+      value,
+      { axisKey: 'x', isDate: true },
+      fallbackText,
+    );
   }
 
   const numeric = Number(value);
   if (Number.isFinite(numeric)) {
-    return formatReadoutNumber(numeric);
+    return formatReadoutNumber(numeric, formatter, {
+      axisKey: 'x',
+      isDate: false,
+    });
   }
 
-  if (value == null) return 'n/a';
-  return String(value);
+  const fallbackText = value == null ? 'n/a' : String(value);
+  return applyReadoutFormatter(
+    formatter,
+    value,
+    { axisKey: 'x', isDate: false },
+    fallbackText,
+  );
 }
 
 const BOX_PLOT_FIELD_LABELS = {
@@ -269,17 +309,43 @@ export function resolveSeriesValue(summary, readoutOptions = {}) {
   return firstFinite ? firstFinite.value : entries[0].value;
 }
 
+function resolveReadoutValueFormatter(readoutOptions = {}) {
+  return typeof readoutOptions?.valueFormatter === 'function'
+    ? readoutOptions.valueFormatter
+    : null;
+}
+
+function buildReadoutValueFormatterContext(summary, entry, variant) {
+  return {
+    seriesType: summary?.seriesType ?? null,
+    fieldKey: entry?.key ?? null,
+    fieldLabel: entry?.label ?? null,
+    variant,
+    summary,
+  };
+}
+
 export function formatSeriesReadoutText(summary, readoutOptions = {}) {
   const entries = resolveSeriesReadoutEntries(summary, readoutOptions);
   if (!entries.length) return 'n/a';
 
+  const valueFormatter = resolveReadoutValueFormatter(readoutOptions);
+
   if (entries.length === 1 && !entries[0].label) {
-    return formatReadoutNumber(entries[0].value);
+    return formatReadoutNumber(
+      entries[0].value,
+      valueFormatter,
+      buildReadoutValueFormatterContext(summary, entries[0], 'row'),
+    );
   }
 
   return entries
     .map((entry) => {
-      const valueText = formatReadoutNumber(entry.value);
+      const valueText = formatReadoutNumber(
+        entry.value,
+        valueFormatter,
+        buildReadoutValueFormatterContext(summary, entry, 'row'),
+      );
       return entry.label ? `${entry.label}: ${valueText}` : valueText;
     })
     .join(' | ');
@@ -291,12 +357,17 @@ export function resolveSeriesReadoutDetailLines(summary, readoutOptions = {}) {
   }
 
   const entries = resolveSeriesReadoutEntries(summary, readoutOptions);
+  const valueFormatter = resolveReadoutValueFormatter(readoutOptions);
 
   return entries
     .filter((entry) => entry?.label && Number.isFinite(Number(entry?.value)))
     .map((entry) => ({
       key: entry.key,
       label: String(entry.label),
-      text: formatReadoutNumber(entry.value),
+      text: formatReadoutNumber(
+        entry.value,
+        valueFormatter,
+        buildReadoutValueFormatterContext(summary, entry, 'detail'),
+      ),
     }));
 }

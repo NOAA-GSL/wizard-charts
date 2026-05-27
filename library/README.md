@@ -242,6 +242,8 @@ All column arrays must be the same length.
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
     boxPlotFields: 'auto', // 'auto' | key | key[]
     areaFields: 'auto', // 'auto' | key | key[]
+    titleFormatter: null, // (value, context?) => string
+    valueFormatter: null, // (numericValue, context?) => string
     padding: { x: 8, y: 8 }, // number | { x, y }
     rowGap: 4,
     title: {
@@ -306,8 +308,42 @@ All column arrays must be the same length.
 - `string` or `string[]`: choose from `'y'`, `'q1'`, `'q3'`, `'min'`, `'max'`.
 - aliases: `'median'` -> `'y'`, `'q1'` -> `'lower'`, `'q3'` -> `'upper'`.
 
-When multiple fields are configured, the tooltip row renders labeled values (for example `Q1: ... | Q3: ...`).
+When multiple fields are configured for `boxPlot`/`area`, the tooltip renders labeled values on indented sub-lines with an aligned value column.
 The first valid configured field also drives marker y-position and distance ranking.
+
+`options.readout.titleFormatter` optionally formats the x-value shown in the tooltip title.
+
+- `null` (default): uses built-in formatting.
+- `(value, context) => string`: custom formatter.
+- `context`: `{ axisKey: 'x', isDate: boolean }`.
+
+`options.readout.valueFormatter` optionally formats numeric values shown in tooltip rows.
+
+- `null` (default): uses built-in numeric formatting.
+- `(value, context) => string`: custom formatter.
+- `value`: numeric value after parsing.
+- `context`: `{ seriesType, fieldKey, fieldLabel, variant, summary }` where `variant` is `'row'` or `'detail'`.
+- If a formatter throws or returns `null`/`undefined`, readout falls back to default formatting.
+
+Example formatter usage:
+
+```js
+{
+  readout: {
+    titleFormatter: (value, { isDate }) =>
+      isDate && value instanceof Date ? value.toISOString() : String(value),
+    valueFormatter: (value, { seriesType, fieldKey }) => {
+      if (seriesType === 'area' || seriesType === 'boxPlot') {
+        return `${value.toFixed(1)} mph`;
+      }
+      if (fieldKey === 'value') {
+        return `${value.toFixed(0)}%`;
+      }
+      return value.toFixed(2);
+    },
+  },
+}
+```
 
 `options.readout.padding` controls outer padding around the tooltip title and rows.
 

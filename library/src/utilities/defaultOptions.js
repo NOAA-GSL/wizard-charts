@@ -84,6 +84,8 @@ export const defaultOptions = {
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
     boxPlotFields: 'auto', // 'auto' | key | key[]
     areaFields: 'auto', // 'auto' | key | key[]
+    titleFormatter: null, // optional formatting function for title x value
+    valueFormatter: null, // optional formatting function for row values
     padding: { x: 8, y: 8 },
     rowGap: 4,
     title: {

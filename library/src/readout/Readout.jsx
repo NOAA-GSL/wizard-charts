@@ -70,7 +70,10 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
     return a.distancePx - b.distancePx;
   });
 
-  const titleText = `x: ${formatReadoutXValue(hoverEvent.xValue)}`;
+  const titleText = `${formatReadoutXValue(
+    hoverEvent.xValue,
+    options?.titleFormatter,
+  )}`;
   const svgWidth = Number(chartValues.width) || 0;
   const svgHeight = Number(chartValues.height) || 0;
 

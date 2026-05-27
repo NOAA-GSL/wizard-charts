@@ -114,6 +114,7 @@ export const demoOptions = {
     },
     readout: {
       hoverMode: 'local', // or 'global'
+      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
     },
     animationDuration: 1000, // in ms
   },
@@ -167,6 +168,7 @@ export const demoOptions = {
     },
     readout: {
       hoverMode: 'local',
+      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
     },
     animationDuration: 1000,
   },
@@ -213,6 +215,7 @@ export const demoOptions = {
     },
     readout: {
       hoverMode: 'local', // or 'global'
+      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
     },
     animationDuration: 1000, // in ms
   },
@@ -252,6 +255,7 @@ export const demoOptions = {
     readout: {
       hoverMode: 'local', // or 'global',
       boxPlotFields: ['max', 'q3', 'median', 'q1', 'min'],
+      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
     },
     animationDuration: 1000, // in ms
   },
