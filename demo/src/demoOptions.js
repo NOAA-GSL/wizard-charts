@@ -84,11 +84,10 @@ export const demoOptions = {
         ticks: { formatter: timeFormatter('%m-%d %Hz'), amount: 4 }, // optional formatting function for ticks
         nice: false,
         hasGridLines: true,
-        sx: {},
       },
       y: {
         type: 'linear',
-        label: { text: 'Temperature (F)' },
+        label: { text: 'Temperature' },
         nice: true,
         ticks: {
           values: [],
@@ -97,12 +96,13 @@ export const demoOptions = {
         },
         hasAxisLine: false,
         hasGridLines: true,
-        sx: {},
+        units: 'F',
       },
       y2: {
         type: 'linear',
         hasAxisLine: false,
-        label: { text: 'Wind Speed (mph)' },
+        label: { text: 'Wind Speed' },
+        units: 'mph',
       },
     },
     legend: {
@@ -160,10 +160,11 @@ export const demoOptions = {
       },
       y: {
         type: 'linear',
-        label: { text: 'Temperature (F)' },
+        label: { text: 'Temperature' },
         ticks: { values: [], labels: [], amount: 10 },
         hasAxisLine: false,
         hasGridLines: true,
+        units: 'F',
       },
     },
     readout: {
@@ -206,11 +207,12 @@ export const demoOptions = {
       },
       y: {
         type: 'linear',
-        label: { text: 'Temperature (F)' },
+        label: { text: 'Temperature' },
         ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
         nice: true,
         hasAxisLine: false,
         hasGridLines: true,
+        units: 'F',
       },
     },
     readout: {
@@ -245,11 +247,12 @@ export const demoOptions = {
       },
       y: {
         type: 'linear',
-        label: { text: 'Temperature (F)' },
+        label: { text: 'Temperature' },
         ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
         nice: true,
         hasAxisLine: false,
         hasGridLines: true,
+        units: 'F',
       },
     },
     readout: {
@@ -289,21 +292,24 @@ export const demoOptions = {
       },
       y: {
         type: 'linear',
-        label: { text: 'Temperature (F)' },
+        label: { text: 'Temperature' },
         ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
         nice: true,
         hasAxisLine: false,
         hasGridLines: true,
+        units: 'F',
       },
       y2: {
         type: 'linear',
-        label: { text: 'Wind Speed (mph)' },
+        label: { text: 'Wind Speed' },
         nice: true,
         hasAxisLine: false,
+        units: 'mph',
       },
     },
     readout: {
       hoverMode: 'local', // or 'global'
+      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
     },
     animationDuration: 1000, // in ms
   },
@@ -333,16 +339,18 @@ export const demoOptions = {
       },
       y: {
         type: 'linear',
-        label: { text: 'Temperature (F)' },
+        label: { text: 'Temperature' },
         ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
         nice: true,
         hasAxisLine: false,
         hasGridLines: true,
+        units: 'F',
       },
     },
     readout: {
       hoverMode: 'local', // or 'global'
       areaFields: ['max', 'q1', 'min'], // which fields to show in the readout for area charts
+      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
     },
     animationDuration: 1000, // in ms
   },

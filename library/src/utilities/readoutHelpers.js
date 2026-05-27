@@ -61,7 +61,37 @@ function applyReadoutFormatter(formatter, value, context, fallbackText) {
   }
 }
 
-function getDefaultReadoutNumberText(numeric) {
+function normalizeUnitsText(value) {
+  if (typeof value !== 'string') return '';
+
+  const units = value.trim();
+  return units.length > 0 ? units : '';
+}
+
+function resolveReadoutPrecision(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+
+  return Math.min(20, Math.floor(parsed));
+}
+
+function appendUnitsSuffix(text, units, displayUnits) {
+  if (!displayUnits) return text;
+
+  const unitsText = normalizeUnitsText(units);
+  if (!unitsText) return text;
+
+  return `${text} ${unitsText}`;
+}
+
+function getDefaultReadoutNumberText(numeric, precision = null) {
+  if (precision != null) {
+    return numeric.toLocaleString(undefined, {
+      minimumFractionDigits: precision,
+      maximumFractionDigits: precision,
+    });
+  }
+
   const abs = Math.abs(numeric);
   if (abs >= 100) {
     return numeric.toLocaleString(undefined, { maximumFractionDigits: 1 });
@@ -84,22 +114,42 @@ export function formatReadoutNumber(
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return 'n/a';
 
-  const fallbackText = getDefaultReadoutNumberText(numeric);
-  return applyReadoutFormatter(
-    formatter,
-    numeric,
-    formatterContext,
-    fallbackText,
+  const readoutPrecision = resolveReadoutPrecision(
+    formatterContext?.readoutPrecision,
   );
+  const displayUnits = formatterContext?.displayUnits !== false;
+  const units = normalizeUnitsText(formatterContext?.units);
+
+  const fallbackText = appendUnitsSuffix(
+    getDefaultReadoutNumberText(numeric, readoutPrecision),
+    units,
+    displayUnits,
+  );
+
+  const nextContext = {
+    ...formatterContext,
+    defaultText: fallbackText,
+    displayUnits,
+    units,
+    readoutPrecision,
+  };
+
+  return applyReadoutFormatter(formatter, numeric, nextContext, fallbackText);
 }
 
-export function formatReadoutXValue(value, formatter = null) {
+export function formatReadoutXValue(
+  value,
+  formatter = null,
+  formatterContext = {},
+) {
+  const axisKey = formatterContext?.axisKey === 'x2' ? 'x2' : 'x';
+
   if (value instanceof Date) {
     const fallbackText = value.toLocaleString();
     return applyReadoutFormatter(
       formatter,
       value,
-      { axisKey: 'x', isDate: true },
+      { ...formatterContext, axisKey, isDate: true },
       fallbackText,
     );
   }
@@ -107,7 +157,8 @@ export function formatReadoutXValue(value, formatter = null) {
   const numeric = Number(value);
   if (Number.isFinite(numeric)) {
     return formatReadoutNumber(numeric, formatter, {
-      axisKey: 'x',
+      ...formatterContext,
+      axisKey,
       isDate: false,
     });
   }
@@ -116,7 +167,7 @@ export function formatReadoutXValue(value, formatter = null) {
   return applyReadoutFormatter(
     formatter,
     value,
-    { axisKey: 'x', isDate: false },
+    { ...formatterContext, axisKey, isDate: false },
     fallbackText,
   );
 }
@@ -315,13 +366,26 @@ function resolveReadoutValueFormatter(readoutOptions = {}) {
     : null;
 }
 
-function buildReadoutValueFormatterContext(summary, entry, variant) {
+function buildReadoutValueFormatterContext(
+  summary,
+  entry,
+  variant,
+  readoutOptions = {},
+) {
+  const readoutDisplayUnits = readoutOptions?.displayUnits !== false;
+  const seriesDisplayUnits = summary?.seriesDisplayUnits !== false;
+
   return {
     seriesType: summary?.seriesType ?? null,
     fieldKey: entry?.key ?? null,
     fieldLabel: entry?.label ?? null,
     variant,
     summary,
+    units: normalizeUnitsText(summary?.seriesUnits),
+    displayUnits: readoutDisplayUnits && seriesDisplayUnits,
+    readoutDisplayUnits,
+    seriesDisplayUnits,
+    readoutPrecision: summary?.seriesReadoutPrecision,
   };
 }
 
@@ -335,7 +399,12 @@ export function formatSeriesReadoutText(summary, readoutOptions = {}) {
     return formatReadoutNumber(
       entries[0].value,
       valueFormatter,
-      buildReadoutValueFormatterContext(summary, entries[0], 'row'),
+      buildReadoutValueFormatterContext(
+        summary,
+        entries[0],
+        'row',
+        readoutOptions,
+      ),
     );
   }
 
@@ -344,7 +413,12 @@ export function formatSeriesReadoutText(summary, readoutOptions = {}) {
       const valueText = formatReadoutNumber(
         entry.value,
         valueFormatter,
-        buildReadoutValueFormatterContext(summary, entry, 'row'),
+        buildReadoutValueFormatterContext(
+          summary,
+          entry,
+          'row',
+          readoutOptions,
+        ),
       );
       return entry.label ? `${entry.label}: ${valueText}` : valueText;
     })
@@ -367,7 +441,12 @@ export function resolveSeriesReadoutDetailLines(summary, readoutOptions = {}) {
       text: formatReadoutNumber(
         entry.value,
         valueFormatter,
-        buildReadoutValueFormatterContext(summary, entry, 'detail'),
+        buildReadoutValueFormatterContext(
+          summary,
+          entry,
+          'detail',
+          readoutOptions,
+        ),
       ),
     }));
 }

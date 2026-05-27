@@ -14,7 +14,7 @@ import {
 } from '../utilities/readoutHelpers';
 
 function Readout({ hoverEvent, readoutData, options = {} }) {
-  const { chartValues } = useChartHelpers();
+  const { chartValues, xScale, x2Scale } = useChartHelpers();
 
   if (!hoverEvent) return null;
 
@@ -70,9 +70,22 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
     return a.distancePx - b.distancePx;
   });
 
+  const seriesList = chartValues.options?.series || [];
+  const hasPrimaryXAxisSeries = seriesList.some(
+    (series) => !series?.isSecondaryXAxis,
+  );
+  const hasSecondaryXAxisSeries = seriesList.some((series) =>
+    Boolean(series?.isSecondaryXAxis),
+  );
+  const readoutXAxisKey =
+    (hasPrimaryXAxisSeries && xScale && 'x') ||
+    (hasSecondaryXAxisSeries && x2Scale && 'x2') ||
+    (xScale ? 'x' : 'x2');
+
   const titleText = `${formatReadoutXValue(
     hoverEvent.xValue,
     options?.titleFormatter,
+    { axisKey: readoutXAxisKey },
   )}`;
   const svgWidth = Number(chartValues.width) || 0;
   const svgHeight = Number(chartValues.height) || 0;

@@ -55,9 +55,27 @@ function getSideForAxis(axisKey) {
   return 'left';
 }
 
+function normalizeUnitsText(value) {
+  if (typeof value !== 'string') return '';
+
+  const units = value.trim();
+  return units.length > 0 ? units : '';
+}
+
 function getAxisLabelText(axisOptions = {}) {
   const text = axisOptions.label?.text;
-  return text == null ? '' : String(text);
+  const labelText = text == null ? '' : String(text);
+  const labelHasContent = labelText.trim().length > 0;
+
+  const shouldDisplayUnits = axisOptions?.displayUnits !== false;
+  const unitsText = shouldDisplayUnits
+    ? normalizeUnitsText(axisOptions?.units)
+    : '';
+
+  if (!unitsText) return labelText;
+  if (!labelHasContent) return unitsText;
+
+  return `${labelText} (${unitsText})`;
 }
 
 function getTextAnchorHorizontalExtents(textAnchor, width) {

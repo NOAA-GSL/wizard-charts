@@ -18,6 +18,8 @@ export const defaultAxisOptions = {
   // default domain will compute max and min from data
   domainMin: undefined, // optionally provide a min domain
   domainMax: undefined, // optionally provide a max domain
+  displayUnits: true,
+  units: '',
   label: {
     text: '',
     fontSize: 14,
@@ -81,6 +83,7 @@ export const defaultOptions = {
     hoverMode: 'local',
     showVerticalLine: true,
     showTooltip: true,
+    displayUnits: true,
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
     boxPlotFields: 'auto', // 'auto' | key | key[]
     areaFields: 'auto', // 'auto' | key | key[]
@@ -116,6 +119,9 @@ export const defaultSeriesOptions = {
   name: undefined,
   xKey: 'x',
   yKey: 'y',
+  units: '',
+  displayUnits: true,
+  readoutPrecision: undefined,
   // optional per-series dataset; falls back to root-level data when omitted
   data: undefined,
   // if these are true, it will pull from the secondary x2 or y2 axis options

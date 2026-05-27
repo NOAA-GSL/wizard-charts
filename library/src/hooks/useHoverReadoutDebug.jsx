@@ -30,6 +30,28 @@ function toNumberOrNull(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function normalizeUnitsText(value) {
+  if (typeof value !== 'string') return '';
+
+  const units = value.trim();
+  return units.length > 0 ? units : '';
+}
+
+function resolveSeriesReadoutUnits({ series, axisKeys, chartValues }) {
+  const explicitSeriesUnits = normalizeUnitsText(series?.units);
+  if (explicitSeriesUnits) return explicitSeriesUnits;
+
+  // Matrix and heatmap values are value-field based, not y-axis quantity based.
+  if (series?.type === 'matrix' || series?.type === 'heatmap') {
+    return '';
+  }
+
+  const yAxisKey = axisKeys?.y;
+  if (!yAxisKey) return '';
+
+  return normalizeUnitsText(chartValues?.options?.axes?.[yAxisKey]?.units);
+}
+
 function getAlignmentMode(rawAlignment) {
   const alignment =
     typeof rawAlignment === 'string' ? rawAlignment.toLowerCase() : 'center';
@@ -296,6 +318,7 @@ function buildSeriesMarkerPoints({
 
 function summarizeSeriesPoint({
   accessors,
+  seriesUnits,
   dataIndex,
   datum,
   hoverX,
@@ -344,6 +367,9 @@ function summarizeSeriesPoint({
     dataIndex,
     distancePx,
     readoutColor: resolveSeriesReadoutColor(series),
+    seriesUnits,
+    seriesDisplayUnits: series?.displayUnits,
+    seriesReadoutPrecision: series?.readoutPrecision,
     seriesIndex,
     seriesName: series?.name || `Series ${seriesIndex + 1}`,
     seriesType,
@@ -369,6 +395,7 @@ function isBetterByXThenDistance(summary, previous) {
 function summarizeMatrixSeriesPoint({
   accessors,
   axisKeys,
+  seriesUnits,
   hoverX,
   hoverY,
   series,
@@ -418,6 +445,9 @@ function summarizeMatrixSeriesPoint({
       dataIndex,
       distancePx: metrics.distancePx,
       readoutColor: resolveSeriesReadoutColor(series),
+      seriesUnits,
+      seriesDisplayUnits: series?.displayUnits,
+      seriesReadoutPrecision: series?.readoutPrecision,
       seriesIndex,
       seriesName: series?.name || `Series ${seriesIndex + 1}`,
       seriesType: 'matrix',
@@ -451,6 +481,7 @@ function summarizeMatrixSeriesPoint({
 function summarizeHeatmapSeriesPoint({
   accessors,
   axisKeys,
+  seriesUnits,
   hoverX,
   hoverY,
   series,
@@ -527,6 +558,9 @@ function summarizeHeatmapSeriesPoint({
     dataIndex: nearestSample?.dataIndex ?? null,
     distancePx: 0,
     readoutColor: resolveSeriesReadoutColor(series),
+    seriesUnits,
+    seriesDisplayUnits: series?.displayUnits,
+    seriesReadoutPrecision: series?.readoutPrecision,
     seriesIndex,
     seriesName: series?.name || `Series ${seriesIndex + 1}`,
     seriesType: 'heatmap',
@@ -584,6 +618,11 @@ export function useHoverReadoutDebug({
         const accessors = getAccessors(seriesIndex);
         const seriesData = getSeriesData(seriesIndex);
         const { xScale, yScale, axisKeys } = getSeriesScales(seriesIndex);
+        const seriesUnits = resolveSeriesReadoutUnits({
+          series,
+          axisKeys,
+          chartValues,
+        });
 
         if (!xScale || !yScale || !Array.isArray(seriesData)) {
           return null;
@@ -601,6 +640,7 @@ export function useHoverReadoutDebug({
           return summarizeMatrixSeriesPoint({
             accessors,
             axisKeys,
+            seriesUnits,
             hoverX: localX,
             hoverY: localY,
             series,
@@ -615,6 +655,7 @@ export function useHoverReadoutDebug({
           return summarizeHeatmapSeriesPoint({
             accessors,
             axisKeys,
+            seriesUnits,
             hoverX: localX,
             hoverY: localY,
             series,
@@ -631,6 +672,7 @@ export function useHoverReadoutDebug({
           const summary = summarizeSeriesPoint({
             accessors,
             axisKeys,
+            seriesUnits,
             dataIndex,
             datum,
             hoverX: localX,
@@ -718,10 +760,7 @@ export function useHoverReadoutDebug({
     };
   }, [
     chartId,
-    chartValues.innerHeight,
-    chartValues.innerWidth,
-    chartValues.margin,
-    chartValues.options?.series,
+    chartValues,
     getAccessors,
     getSeriesData,
     getSeriesScales,

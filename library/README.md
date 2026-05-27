@@ -239,6 +239,7 @@ All column arrays must be the same length.
     hoverMode: 'local',
     showVerticalLine: true,
     showTooltip: true,
+    displayUnits: true,
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
     boxPlotFields: 'auto', // 'auto' | key | key[]
     areaFields: 'auto', // 'auto' | key | key[]
@@ -287,6 +288,16 @@ All column arrays must be the same length.
 - `true` (default): show tooltip.
 - `false`: hide tooltip.
 
+`options.readout.displayUnits` controls whether series units are appended to readout values.
+
+- `true` (default): append units when available.
+- `false`: suppress unit suffixes in readout rows.
+- Readout units use series `units` first.
+- If a series `units` is empty, axis-linked series (`line`, `bar`, `boxPlot`, `area`, `circle`) fall back to their mapped y-axis `axes.y.units` or `axes.y2.units`.
+- `matrix` and `heatmap` values do not fall back to axis units; provide `series.units` when you want value units in those readouts.
+- Units only render when both `readout.displayUnits` and `series.displayUnits` are true.
+- If no series units are provided, nothing is appended.
+
 `options.readout.rowOrder` controls tooltip row ordering.
 
 - `'seriesIndex'` (default): order rows by series index in `options.series`.
@@ -315,31 +326,35 @@ The first valid configured field also drives marker y-position and distance rank
 
 - `null` (default): uses built-in formatting.
 - `(value, context) => string`: custom formatter.
-- `context`: `{ axisKey: 'x', isDate: boolean }`.
+- `context`: `{ axisKey: 'x' | 'x2', isDate: boolean }`.
+
+Series readout controls:
+
+- `series.readoutPrecision`: optional fixed decimal precision used by default readout formatting.
+- `series.units`: optional unit suffix for readout values.
+- `series.displayUnits`: per-series unit toggle in readout (`true` by default).
 
 `options.readout.valueFormatter` optionally formats numeric values shown in tooltip rows.
 
 - `null` (default): uses built-in numeric formatting.
 - `(value, context) => string`: custom formatter.
 - `value`: numeric value after parsing.
-- `context`: `{ seriesType, fieldKey, fieldLabel, variant, summary }` where `variant` is `'row'` or `'detail'`.
+- `context`: `{ seriesType, fieldKey, fieldLabel, variant, units, displayUnits, readoutDisplayUnits, seriesDisplayUnits, readoutPrecision, defaultText, summary }` where `variant` is `'row'` or `'detail'`.
 - If a formatter throws or returns `null`/`undefined`, readout falls back to default formatting.
+
+Default readout formatting uses `series.readoutPrecision` when provided; otherwise it uses the built-in adaptive formatter.
 
 Example formatter usage:
 
 ```js
 {
   readout: {
-    titleFormatter: (value, { isDate }) =>
-      isDate && value instanceof Date ? value.toISOString() : String(value),
-    valueFormatter: (value, { seriesType, fieldKey }) => {
-      if (seriesType === 'area' || seriesType === 'boxPlot') {
-        return `${value.toFixed(1)} mph`;
-      }
+    titleFormatter: timeFormatter('%m-%d %Hz'),
+    valueFormatter: (value, { fieldKey, defaultText }) => {
       if (fieldKey === 'value') {
         return `${value.toFixed(0)}%`;
       }
-      return value.toFixed(2);
+      return defaultText;
     },
   },
 }
@@ -431,6 +446,9 @@ Each entry in `options.series` renders one plot layer.
   name: undefined, // legend label; falls back to yKey
   xKey: 'x',
   yKey: 'y',
+  units: '', // optional readout unit suffix for this series
+  displayUnits: true, // toggle unit suffix in readout for this series
+  readoutPrecision: undefined, // optional fixed decimal precision for readout values
   data: undefined, // optional per-series dataset
   // set true to map this series to x2 / y2 instead of x / y
   isSecondaryYAxis: false,
@@ -796,6 +814,8 @@ Axis defaults:
   type: 'linear', // 'band' | 'linear' | 'time' | 'threshold'
   domainMin: undefined,
   domainMax: undefined,
+  displayUnits: true,
+  units: '',
   label: {
     text: '',
     fontSize: 14,
@@ -831,6 +851,9 @@ Label behavior:
 
 - Use `axes.*.label` for axis label text and font settings.
 - `label.text` is rendered on all supported axes (`x`, `x2`, `y`, `y2`) when non-empty.
+- Use `axes.*.units` to provide optional axis unit text.
+- `axes.*.displayUnits` controls whether axis units are appended to label text (`true` by default).
+- If `label.text` is empty and units are enabled, the axis label renders just the units.
 - Use `label.fontColor` to control axis label color independently of tick label color.
 - Legacy `axes.*.title` is not used by axis rendering.
 
@@ -851,7 +874,8 @@ axes: {
   },
   y: {
     type: 'linear',
-    label: { text: 'Temperature (F)', fontColor: '#147AF3' },
+    label: { text: 'Temperature', fontColor: '#147AF3' },
+    units: 'F',
     ticks: {
       values: [0, 15, 30],
       labels: ['Calm', 'Breezy', 'Windy'],
