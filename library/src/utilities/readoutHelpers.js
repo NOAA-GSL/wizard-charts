@@ -296,7 +296,7 @@ export function resolveSeriesReadoutDetailLines(summary, readoutOptions = {}) {
     .filter((entry) => entry?.label && Number.isFinite(Number(entry?.value)))
     .map((entry) => ({
       key: entry.key,
-      label: String(entry.label).toLowerCase(),
+      label: String(entry.label),
       text: formatReadoutNumber(entry.value),
     }));
 }

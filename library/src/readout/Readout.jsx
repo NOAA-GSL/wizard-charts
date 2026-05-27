@@ -118,12 +118,28 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
   const titleGap = orderedRows.length > 0 ? rowGap : 0;
   const dotSize = 6;
   const dotGap = 6;
+  const detailLabelValueGap = 6;
+  const textColumnX = dotSize + dotGap;
 
   const titleMetrics = getTextDimensions(titleText, titleFont);
   const rowLineHeight = Math.max(
     dotSize,
     Math.ceil(getTextDimensions('Ag', rowFont).height),
   );
+  const detailLabelTexts = orderedRows.flatMap((row) =>
+    Array.isArray(row.detailLines)
+      ? row.detailLines.map((line) => `${line.label}:`)
+      : [],
+  );
+  const maxDetailLabelWidth = detailLabelTexts.reduce((maxWidth, labelText) => {
+    const textMetrics = getTextDimensions(labelText, rowFont);
+    return Math.max(maxWidth, textMetrics.width);
+  }, 0);
+  const detailValueX =
+    textColumnX +
+    maxDetailLabelWidth +
+    (maxDetailLabelWidth > 0 ? detailLabelValueGap : 0);
+
   const rowLayouts = orderedRows.map((row) => {
     const hasDetailLines =
       Array.isArray(row.detailLines) && row.detailLines.length > 0;
@@ -134,19 +150,22 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
     const detailLines = hasDetailLines
       ? row.detailLines.map((line) => ({
           key: line.key,
-          text: `${line.label}: ${line.text}`,
+          labelText: `${line.label}:`,
+          valueText: line.text,
         }))
       : [];
 
-    const lineTexts = [primaryText, ...detailLines.map((line) => line.text)];
-    const maxLineWidth = lineTexts.reduce((maxWidth, lineText) => {
-      const textMetrics = getTextDimensions(lineText, rowFont);
-      return Math.max(maxWidth, dotSize + dotGap + textMetrics.width);
-    }, 0);
+    const primaryTextMetrics = getTextDimensions(primaryText, rowFont);
+    const primaryWidth = textColumnX + primaryTextMetrics.width;
+    const detailWidths = detailLines.map((line) => {
+      const valueMetrics = getTextDimensions(line.valueText, rowFont);
+      return detailValueX + valueMetrics.width;
+    });
+    const maxLineWidth = Math.max(primaryWidth, ...detailWidths, 0);
 
     const blockHeight =
-      lineTexts.length * rowLineHeight +
-      Math.max(0, lineTexts.length - 1) * detailLineGap;
+      (1 + detailLines.length) * rowLineHeight +
+      Math.max(0, detailLines.length) * detailLineGap;
 
     return {
       ...row,
@@ -277,7 +296,7 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
                   fill={row.color}
                 />
                 <text
-                  x={dotSize + dotGap}
+                  x={textColumnX}
                   y={primaryTextY}
                   dominantBaseline="middle"
                   fill={rowFontOptions.fontColor}
@@ -294,18 +313,30 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
                     (detailIndex + 1) * (rowLineHeight + detailLineGap);
 
                   return (
-                    <text
-                      key={`${row.id}-${detailLine.key}`}
-                      x={dotSize + dotGap}
-                      y={detailTextY}
-                      dominantBaseline="middle"
-                      fill={rowFontOptions.fontColor}
-                      fontSize={rowFontOptions.fontSize}
-                      fontWeight={rowFontOptions.fontWeight}
-                      fontFamily={rowFontOptions.fontFamily}
-                    >
-                      {detailLine.text}
-                    </text>
+                    <g key={`${row.id}-${detailLine.key}`}>
+                      <text
+                        x={textColumnX}
+                        y={detailTextY}
+                        dominantBaseline="middle"
+                        fill={rowFontOptions.fontColor}
+                        fontSize={rowFontOptions.fontSize}
+                        fontWeight={rowFontOptions.fontWeight}
+                        fontFamily={rowFontOptions.fontFamily}
+                      >
+                        {detailLine.labelText}
+                      </text>
+                      <text
+                        x={detailValueX}
+                        y={detailTextY}
+                        dominantBaseline="middle"
+                        fill={rowFontOptions.fontColor}
+                        fontSize={rowFontOptions.fontSize}
+                        fontWeight={rowFontOptions.fontWeight}
+                        fontFamily={rowFontOptions.fontFamily}
+                      >
+                        {detailLine.valueText}
+                      </text>
+                    </g>
                   );
                 })}
               </g>
