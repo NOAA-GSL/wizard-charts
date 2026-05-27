@@ -6,6 +6,7 @@ import {
 import {
   clamp,
   formatSeriesReadoutText,
+  resolveSeriesReadoutDetailLines,
   resolveReadoutFontOptions,
   resolveReadoutPadding,
   toFontString,
@@ -41,6 +42,7 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
         id: `${summary.seriesIndex ?? index}-${summary.dataIndex ?? 'na'}`,
         label: summary.seriesName || `Series ${index + 1}`,
         text: formatSeriesReadoutText(summary, options),
+        detailLines: resolveSeriesReadoutDetailLines(summary, options),
         color: summary.readoutColor || '#d4d4d4',
         seriesIndex: Number.isFinite(Number(summary.seriesIndex))
           ? Number(summary.seriesIndex)
@@ -112,33 +114,66 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
   const rowGap = Number.isFinite(Number(options?.rowGap))
     ? Math.max(0, Number(options.rowGap))
     : 4;
+  const detailLineGap = 2;
   const titleGap = orderedRows.length > 0 ? rowGap : 0;
   const dotSize = 6;
   const dotGap = 6;
 
   const titleMetrics = getTextDimensions(titleText, titleFont);
-  const rowHeight = Math.max(
+  const rowLineHeight = Math.max(
     dotSize,
     Math.ceil(getTextDimensions('Ag', rowFont).height),
   );
-  const rowWidths = orderedRows.map((row) => {
-    const rowTextMetrics = getTextDimensions(
-      `${row.label}: ${row.text}`,
-      rowFont,
-    );
-    return dotSize + dotGap + rowTextMetrics.width;
+  const rowLayouts = orderedRows.map((row) => {
+    const hasDetailLines =
+      Array.isArray(row.detailLines) && row.detailLines.length > 0;
+
+    const primaryText = hasDetailLines
+      ? row.label
+      : `${row.label}: ${row.text}`;
+    const detailLines = hasDetailLines
+      ? row.detailLines.map((line) => ({
+          key: line.key,
+          text: `${line.label}: ${line.text}`,
+        }))
+      : [];
+
+    const lineTexts = [primaryText, ...detailLines.map((line) => line.text)];
+    const maxLineWidth = lineTexts.reduce((maxWidth, lineText) => {
+      const textMetrics = getTextDimensions(lineText, rowFont);
+      return Math.max(maxWidth, dotSize + dotGap + textMetrics.width);
+    }, 0);
+
+    const blockHeight =
+      lineTexts.length * rowLineHeight +
+      Math.max(0, lineTexts.length - 1) * detailLineGap;
+
+    return {
+      ...row,
+      primaryText,
+      detailLines,
+      blockHeight,
+      width: maxLineWidth,
+    };
   });
+  const rowWidths = rowLayouts.map((row) => row.width);
+  const rowsTotalHeight =
+    rowLayouts.reduce((sum, row) => sum + row.blockHeight, 0) +
+    Math.max(0, rowLayouts.length - 1) * rowGap;
 
   const tooltipContentWidth = Math.max(titleMetrics.width, ...rowWidths, 0);
   const tooltipWidth = Math.ceil(paddingX * 2 + tooltipContentWidth);
   const tooltipHeight = Math.ceil(
-    paddingY * 2 +
-      titleMetrics.height +
-      titleGap +
-      orderedRows.length * rowHeight +
-      Math.max(0, orderedRows.length - 1) * rowGap,
+    paddingY * 2 + titleMetrics.height + titleGap + rowsTotalHeight,
   );
   const titleCenterY = paddingY + titleMetrics.height / 2;
+
+  const rowTopOffsets = [];
+  let nextRowTop = paddingY + titleMetrics.height + titleGap;
+  rowLayouts.forEach((row) => {
+    rowTopOffsets.push(nextRowTop);
+    nextRowTop += row.blockHeight + rowGap;
+  });
 
   let tooltipLeft = localX + tooltipOffset;
   if (tooltipLeft + tooltipWidth > svgWidth) {
@@ -229,33 +264,50 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
             {titleText}
           </text>
 
-          {orderedRows.map((row, index) => {
-            const rowTop =
-              paddingY +
-              titleMetrics.height +
-              titleGap +
-              index * (rowHeight + rowGap);
-            const textY = rowHeight / 2;
+          {rowLayouts.map((row, index) => {
+            const rowTop = rowTopOffsets[index];
+            const primaryTextY = rowLineHeight / 2;
 
             return (
               <g key={row.id} transform={`translate(${paddingX}, ${rowTop})`}>
                 <circle
                   cx={dotSize / 2}
-                  cy={rowHeight / 2}
+                  cy={rowLineHeight / 2}
                   r={dotSize / 2}
                   fill={row.color}
                 />
                 <text
                   x={dotSize + dotGap}
-                  y={textY}
+                  y={primaryTextY}
                   dominantBaseline="middle"
                   fill={rowFontOptions.fontColor}
                   fontSize={rowFontOptions.fontSize}
                   fontWeight={rowFontOptions.fontWeight}
                   fontFamily={rowFontOptions.fontFamily}
                 >
-                  {`${row.label}: ${row.text}`}
+                  {row.primaryText}
                 </text>
+
+                {row.detailLines.map((detailLine, detailIndex) => {
+                  const detailTextY =
+                    rowLineHeight / 2 +
+                    (detailIndex + 1) * (rowLineHeight + detailLineGap);
+
+                  return (
+                    <text
+                      key={`${row.id}-${detailLine.key}`}
+                      x={dotSize + dotGap}
+                      y={detailTextY}
+                      dominantBaseline="middle"
+                      fill={rowFontOptions.fontColor}
+                      fontSize={rowFontOptions.fontSize}
+                      fontWeight={rowFontOptions.fontWeight}
+                      fontFamily={rowFontOptions.fontFamily}
+                    >
+                      {detailLine.text}
+                    </text>
+                  );
+                })}
               </g>
             );
           })}

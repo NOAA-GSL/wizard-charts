@@ -284,3 +284,19 @@ export function formatSeriesReadoutText(summary, readoutOptions = {}) {
     })
     .join(' | ');
 }
+
+export function resolveSeriesReadoutDetailLines(summary, readoutOptions = {}) {
+  if (summary?.seriesType !== 'boxPlot' && summary?.seriesType !== 'area') {
+    return [];
+  }
+
+  const entries = resolveSeriesReadoutEntries(summary, readoutOptions);
+
+  return entries
+    .filter((entry) => entry?.label && Number.isFinite(Number(entry?.value)))
+    .map((entry) => ({
+      key: entry.key,
+      label: String(entry.label).toLowerCase(),
+      text: formatReadoutNumber(entry.value),
+    }));
+}
