@@ -117,6 +117,7 @@ function App() {
               borderRadius: '8px',
               background:
                 'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
+              padding: '12px',
             }}
           />
         ))}
@@ -137,6 +138,7 @@ function App() {
                 borderRadius: '8px',
                 background:
                   'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
+                padding: '12px',
               }}
             />
           ))}

@@ -99,6 +99,8 @@ type ChartContainerProps = {
 
 `margin` defaults to `{ top: 'auto', right: 'auto', bottom: 'auto', left: 'auto' }`.
 
+`width` and `height` define the chart's outer SVG box. Internal chart layout (scales, axes, and plot area) is measured from the SVG content box, so `box-sizing: border-box` with `border` and/or `padding` in `sx` is accounted for automatically.
+
 ## Dynamic Margins
 
 Each margin side can be either:

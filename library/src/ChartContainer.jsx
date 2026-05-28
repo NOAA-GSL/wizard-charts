@@ -1,4 +1,13 @@
-import { useContext, useEffect, useId, useMemo, useRef } from 'react';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { ChartProvider } from './context/ChartProvider';
 import {
   createHoverStore,
@@ -20,6 +29,59 @@ import Circle from './plotComponents/Circle';
 import Area from './plotComponents/Area';
 import Matrix from './plotComponents/Matrix';
 import Heatmap from './plotComponents/Heatmap';
+
+const SIZE_EPSILON = 0.25;
+
+function toNumericSize(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.max(0, numeric) : fallback;
+}
+
+function parseCssPixelValue(value) {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+}
+
+function measureSvgContentSize(svgNode, fallbackWidth, fallbackHeight) {
+  const safeFallbackWidth = toNumericSize(fallbackWidth, 0);
+  const safeFallbackHeight = toNumericSize(fallbackHeight, 0);
+
+  if (
+    !svgNode ||
+    typeof window === 'undefined' ||
+    typeof window.getComputedStyle !== 'function'
+  ) {
+    return {
+      width: safeFallbackWidth,
+      height: safeFallbackHeight,
+    };
+  }
+
+  const styles = window.getComputedStyle(svgNode);
+  const horizontalExtras =
+    parseCssPixelValue(styles.paddingLeft) +
+    parseCssPixelValue(styles.paddingRight) +
+    parseCssPixelValue(styles.borderLeftWidth) +
+    parseCssPixelValue(styles.borderRightWidth);
+  const verticalExtras =
+    parseCssPixelValue(styles.paddingTop) +
+    parseCssPixelValue(styles.paddingBottom) +
+    parseCssPixelValue(styles.borderTopWidth) +
+    parseCssPixelValue(styles.borderBottomWidth);
+
+  const rect = svgNode.getBoundingClientRect();
+  const measuredWidth = rect.width - horizontalExtras;
+  const measuredHeight = rect.height - verticalExtras;
+
+  return {
+    width: Number.isFinite(measuredWidth)
+      ? Math.max(0, measuredWidth)
+      : safeFallbackWidth,
+    height: Number.isFinite(measuredHeight)
+      ? Math.max(0, measuredHeight)
+      : safeFallbackHeight,
+  };
+}
 
 function ChartContainer({
   height = 600,
@@ -43,16 +105,115 @@ function ChartContainer({
   const hoverRafRef = useRef(null);
   const hasWarnedMissingProviderRef = useRef(false);
 
+  const requestedWidth = toNumericSize(width, 0);
+  const requestedHeight = toNumericSize(height, 0);
+  // Content-box size drives scales/margins, while width/height remain outer SVG size.
+  const [measuredContentSize, setMeasuredContentSize] = useState(null);
+
+  const updateContentSize = useCallback(
+    (nextSize) => {
+      const nextWidth = toNumericSize(nextSize?.width, requestedWidth);
+      const nextHeight = toNumericSize(nextSize?.height, requestedHeight);
+
+      setMeasuredContentSize((prevSize) => {
+        const hasPrevSize = prevSize != null;
+        const prevWidth = toNumericSize(prevSize?.width, 0);
+        const prevHeight = toNumericSize(prevSize?.height, 0);
+        const hasUsablePrevSize =
+          hasPrevSize && prevWidth > SIZE_EPSILON && prevHeight > SIZE_EPSILON;
+        const hasUsableNextSize =
+          nextWidth > SIZE_EPSILON && nextHeight > SIZE_EPSILON;
+
+        // Ignore transient zero/near-zero observer reads once a usable size exists.
+        if (!hasUsableNextSize && hasUsablePrevSize) {
+          return prevSize;
+        }
+
+        if (
+          Math.abs(prevWidth - nextWidth) < SIZE_EPSILON &&
+          Math.abs(prevHeight - nextHeight) < SIZE_EPSILON
+        ) {
+          return prevSize;
+        }
+
+        return {
+          width: nextWidth,
+          height: nextHeight,
+        };
+      });
+    },
+    [requestedHeight, requestedWidth],
+  );
+
+  const measuredWidth = toNumericSize(measuredContentSize?.width, 0);
+  const measuredHeight = toNumericSize(measuredContentSize?.height, 0);
+  const hasMeasuredContentSize =
+    measuredContentSize != null &&
+    measuredWidth > SIZE_EPSILON &&
+    measuredHeight > SIZE_EPSILON;
+
+  const contentSize = useMemo(
+    () => ({
+      width: toNumericSize(measuredContentSize?.width, requestedWidth),
+      height: toNumericSize(measuredContentSize?.height, requestedHeight),
+    }),
+    [
+      measuredContentSize?.height,
+      measuredContentSize?.width,
+      requestedHeight,
+      requestedWidth,
+    ],
+  );
+
+  // Measure before paint so animated layers mount with final geometry.
+  useLayoutEffect(() => {
+    const svgNode = svgReadoutRef.current;
+    if (!svgNode) return;
+
+    const syncContentSize = (entry) => {
+      if (entry?.contentRect) {
+        updateContentSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        });
+        return;
+      }
+
+      updateContentSize(
+        measureSvgContentSize(svgNode, requestedWidth, requestedHeight),
+      );
+    };
+
+    syncContentSize();
+
+    if (
+      typeof window === 'undefined' ||
+      typeof window.ResizeObserver !== 'function'
+    ) {
+      return;
+    }
+
+    const observer = new window.ResizeObserver((entries) => {
+      syncContentSize(entries[0]);
+    });
+
+    observer.observe(svgNode);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [requestedHeight, requestedWidth, updateContentSize]);
+
   // useMemo to avoid unnecessary re-renders in the useEffect hook of ChartProvider
   const initialValues = useMemo(
     () => ({
-      height,
-      width,
+      height: contentSize.height,
+      width: contentSize.width,
       baseMargin: margin,
       data,
       options: mergeDeep(defaultOptions, options),
     }),
-    [height, width, margin, data, options],
+    [contentSize.height, contentSize.width, margin, data, options],
   );
 
   const configuredHoverMode = initialValues.options?.readout?.hoverMode;
@@ -131,8 +292,9 @@ function ChartContainer({
 
     const [localX, localY] = pointer(event, svgNode);
     const rect = svgNode.getBoundingClientRect();
-    const widthPx = rect.width || Number(width) || 0;
-    const heightPx = rect.height || Number(height) || 0;
+    const widthPx = Number(initialValues.width) || rect.width || requestedWidth;
+    const heightPx =
+      Number(initialValues.height) || rect.height || requestedHeight;
 
     const isInsidePlot =
       localX >= plotBounds.left &&
@@ -218,18 +380,19 @@ function ChartContainer({
   const axes = initialValues.options.axes || {};
   const series = initialValues.options.series || [];
 
-  return (
-    <ChartProvider initialValues={initialValues}>
-      <ErrorBoundary>
-        <svg
-          ref={svgReadoutRef}
-          height={height}
-          width={width}
-          className={className}
-          style={sx}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-        >
+  // Phase 1: render only an SVG shell so we can measure content-box size first.
+  const svgNode = (
+    <svg
+      ref={svgReadoutRef}
+      height={height}
+      width={width}
+      className={className}
+      style={sx}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
+      {hasMeasuredContentSize && (
+        <>
           {axes.x && axisHasMappedSeries(series, 'x') && (
             <XAxis options={axes.x} axisKey="x" />
           )}
@@ -253,8 +416,19 @@ function ChartContainer({
           />
           <Legend />
           {children}
-        </svg>
-      </ErrorBoundary>
+        </>
+      )}
+    </svg>
+  );
+
+  // Phase 2: once measured, mount provider + animated chart internals.
+  if (!hasMeasuredContentSize) {
+    return <ErrorBoundary>{svgNode}</ErrorBoundary>;
+  }
+
+  return (
+    <ChartProvider initialValues={initialValues}>
+      <ErrorBoundary>{svgNode}</ErrorBoundary>
     </ChartProvider>
   );
 }
