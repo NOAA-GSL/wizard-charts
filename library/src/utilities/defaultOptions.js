@@ -1,3 +1,8 @@
+import {
+  DEFAULT_TICK_COLLISION_MIN_GAP,
+  DEFAULT_TICK_COLLISION_STRATEGY,
+} from './constants';
+
 export const dataVizColors = {
   seaGreen: '#0FB5AE',
   palatinateBlue: '#4046CA',
@@ -41,6 +46,8 @@ export const defaultAxisOptions = {
     labels: [],
     amount: 10, // hint for generated continuous tick count when values is empty
     isAngled: false,
+    collisionStrategy: DEFAULT_TICK_COLLISION_STRATEGY, // 'auto' | 'rotate' | 'reduce' | 'none'
+    collisionMinGap: DEFAULT_TICK_COLLISION_MIN_GAP,
     length: 5,
     labelPadding: 5,
     fontFamily: 'inherit',

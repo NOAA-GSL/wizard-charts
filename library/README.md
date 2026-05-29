@@ -838,6 +838,8 @@ Axis defaults:
     labels: [],
     amount: 10,
     isAngled: false,
+    collisionStrategy: 'auto',
+    collisionMinGap: 5,
     length: 5,
     labelPadding: 5,
     fontFamily: 'inherit',
@@ -865,6 +867,12 @@ Tick behavior:
 - Provide `ticks.values` to render only those tick positions.
 - `ticks.amount` only affects generated continuous ticks. It is ignored when `ticks.values` is provided.
 - Provide `ticks.labels` to override labels by index. If a label is missing for a given tick value, the axis falls back to `ticks.formatter(value)`, then `String(value)`.
+- `ticks.collisionStrategy` controls overlap handling:
+  - `'auto'` (default): x/x2 try 45-degree rotation first, then reduce ticks if needed; y/y2 reduce ticks.
+  - `'rotate'`: x/x2 rotate to 45 degrees but do not reduce tick count.
+  - `'reduce'`: keep orientation and reduce tick count.
+  - `'none'`: disable automatic collision handling.
+- `ticks.collisionMinGap` sets the minimum pixel gap between adjacent label bounds before labels are considered colliding.
 
 Example:
 

@@ -1,0 +1,9 @@
+export const AXIS_KEYS = ['x', 'x2', 'y', 'y2'];
+export const DEFAULT_AUTO_MARGIN = 'auto';
+export const AXIS_LABEL_GAP = 6;
+export const AXIS_MEASUREMENT_BUFFER = 2;
+export const LEGEND_MARKER_TEXT_GAP = 6;
+export const LEGEND_COLORBAR_LABEL_GAP = 4;
+export const LEGEND_COLORBAR_TICK_LABEL_GAP = 12;
+export const DEFAULT_TICK_COLLISION_STRATEGY = 'auto';
+export const DEFAULT_TICK_COLLISION_MIN_GAP = 5;
