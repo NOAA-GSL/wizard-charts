@@ -31,6 +31,13 @@ import Matrix from './plotComponents/Matrix';
 import Heatmap from './plotComponents/Heatmap';
 
 const SIZE_EPSILON = 0.25;
+const AUTO_SIZE = 'auto';
+const DEFAULT_AUTO_WIDTH = 800;
+const DEFAULT_AUTO_HEIGHT = 600;
+
+function isAutoSizeValue(value) {
+  return value == null || value === AUTO_SIZE;
+}
 
 function toNumericSize(value, fallback = 0) {
   const numeric = Number(value);
@@ -84,8 +91,8 @@ function measureSvgContentSize(svgNode, fallbackWidth, fallbackHeight) {
 }
 
 function ChartContainer({
-  height = 600,
-  width = 800,
+  height,
+  width,
   margin = { top: 'auto', right: 'auto', bottom: 'auto', left: 'auto' },
   data = [],
   options = {},
@@ -105,8 +112,16 @@ function ChartContainer({
   const hoverRafRef = useRef(null);
   const hasWarnedMissingProviderRef = useRef(false);
 
-  const requestedWidth = toNumericSize(width, 0);
-  const requestedHeight = toNumericSize(height, 0);
+  const isAutoWidth = isAutoSizeValue(width);
+  const isAutoHeight = isAutoSizeValue(height);
+  const requestedWidth = isAutoWidth
+    ? DEFAULT_AUTO_WIDTH
+    : toNumericSize(width, DEFAULT_AUTO_WIDTH);
+  const requestedHeight = isAutoHeight
+    ? DEFAULT_AUTO_HEIGHT
+    : toNumericSize(height, DEFAULT_AUTO_HEIGHT);
+  const svgWidth = isAutoWidth ? '100%' : requestedWidth;
+  const svgHeight = isAutoHeight ? '100%' : requestedHeight;
   // Content-box size drives scales/margins, while width/height remain outer SVG size.
   const [measuredContentSize, setMeasuredContentSize] = useState(null);
 
@@ -166,19 +181,16 @@ function ChartContainer({
   );
 
   // Measure before paint so animated layers mount with final geometry.
+  // Include hasMeasuredContentSize so we rebind observers after shell->provider
+  // transition replaces the SVG node.
   useLayoutEffect(() => {
     const svgNode = svgReadoutRef.current;
     if (!svgNode) return;
+    const parentNode = svgNode.parentElement;
+    const shouldObserveParent =
+      (isAutoWidth || isAutoHeight) && parentNode != null;
 
-    const syncContentSize = (entry) => {
-      if (entry?.contentRect) {
-        updateContentSize({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height,
-        });
-        return;
-      }
-
+    const syncContentSize = () => {
       updateContentSize(
         measureSvgContentSize(svgNode, requestedWidth, requestedHeight),
       );
@@ -193,16 +205,28 @@ function ChartContainer({
       return;
     }
 
-    const observer = new window.ResizeObserver((entries) => {
-      syncContentSize(entries[0]);
+    const observer = new window.ResizeObserver(() => {
+      syncContentSize();
     });
 
     observer.observe(svgNode);
 
+    // Parent observation catches layout-driven size changes in auto mode.
+    if (shouldObserveParent) {
+      observer.observe(parentNode);
+    }
+
     return () => {
       observer.disconnect();
     };
-  }, [requestedHeight, requestedWidth, updateContentSize]);
+  }, [
+    hasMeasuredContentSize,
+    isAutoHeight,
+    isAutoWidth,
+    requestedHeight,
+    requestedWidth,
+    updateContentSize,
+  ]);
 
   // useMemo to avoid unnecessary re-renders in the useEffect hook of ChartProvider
   const initialValues = useMemo(
@@ -384,8 +408,8 @@ function ChartContainer({
   const svgNode = (
     <svg
       ref={svgReadoutRef}
-      height={height}
-      width={width}
+      height={svgHeight}
+      width={svgWidth}
       className={className}
       style={sx}
       onMouseMove={handleMouseMove}

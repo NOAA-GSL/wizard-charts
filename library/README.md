@@ -68,8 +68,6 @@ const options = {
 };
 
 <ChartContainer
-  height={600}
-  width={800}
   margin={{ left: 40, top: 'auto', right: 'auto', bottom: 'auto' }}
   data={data}
   options={options}
@@ -81,8 +79,8 @@ const options = {
 
 ```tsx
 type ChartContainerProps = {
-  height: number;
-  width: number;
+  height?: number | 'auto';
+  width?: number | 'auto';
   margin?: {
     top?: number | 'auto';
     right?: number | 'auto';
@@ -98,6 +96,8 @@ type ChartContainerProps = {
 ```
 
 `margin` defaults to `{ top: 'auto', right: 'auto', bottom: 'auto', left: 'auto' }`.
+
+`width` and `height` default to `'auto'` (100% of the parent container on that dimension). If you provide one or both as numbers, only those dimensions are fixed.
 
 `width` and `height` define the chart's outer SVG box. Internal chart layout (scales, axes, and plot area) is measured from the SVG content box, so `box-sizing: border-box` with `border` and/or `padding` in `sx` is accounted for automatically.
 
@@ -123,14 +123,13 @@ Axis labels are sourced from `axes.x.label`, `axes.x2.label`, `axes.y.label`, an
 Default behavior (all auto):
 
 ```jsx
-<ChartContainer height={600} width={800} data={data} options={options} />
+<ChartContainer data={data} options={options} />
 ```
 
 Mixed overrides (fixed left margin, other sides auto):
 
 ```jsx
 <ChartContainer
-  height={600}
   width={800}
   margin={{ left: 48, top: 'auto', right: 'auto', bottom: 'auto' }}
   data={data}

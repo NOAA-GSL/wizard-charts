@@ -5,6 +5,7 @@ function InputSlider({ dimensions, handleSliderChange, label, id }) {
       <p>{dimensions[id]}</p>
       <input
         onChange={handleSliderChange(id)}
+        value={dimensions[id]}
         id={`${id}-slider`}
         type="range"
         min="200"

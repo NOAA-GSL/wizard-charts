@@ -69,7 +69,7 @@ function App() {
   const [data, setData] = useState(makeFinalData(2, 30));
 
   const handleSliderChange = (dimension) => (event) => {
-    const value = event.target.value;
+    const value = Number(event.target.value);
     setDimensions((prev) => ({ ...prev, [dimension]: value }));
   };
 
@@ -105,21 +105,25 @@ function App() {
       <h2>Local Hover Mode (No Provider)</h2>
       <div className="flex gap-10" style={{ flexWrap: 'wrap' }}>
         {localChartTypes.map((type) => (
-          <ChartContainer
+          <div
             key={`local-${type}`}
-            height={dimensions.height}
-            width={dimensions.width}
-            // margin={margin}
-            data={data}
-            options={demoOptions[type]}
-            sx={{
-              border: '1px solid #737373',
-              borderRadius: '8px',
-              background:
-                'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
-              padding: '12px',
-            }}
-          />
+            style={{ width: dimensions.width, height: dimensions.height }}
+          >
+            <ChartContainer
+              // height={dimensions.height}
+              // width={dimensions.width}
+              // margin={margin}
+              data={data}
+              options={demoOptions[type]}
+              sx={{
+                border: '1px solid #737373',
+                borderRadius: '8px',
+                background:
+                  'radial-gradient(122.88% 144.44% at 5.99% 6.25%, #292727 0%, #151414 100%)',
+                padding: '12px',
+              }}
+            />
+          </div>
         ))}
       </div>
 
