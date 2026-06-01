@@ -35,6 +35,43 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
   const rowOrder =
     options?.rowOrder === 'distance' ? 'distance' : 'seriesIndex';
   const showPointMarkers = Boolean(options?.showPointMarkers);
+  const readoutClassName =
+    typeof options?.className === 'string' && options.className.trim().length
+      ? `wizard-charts-readout ${options.className.trim()}`
+      : 'wizard-charts-readout';
+  const readoutStyle =
+    options?.sx && typeof options.sx === 'object' ? options.sx : undefined;
+
+  const tooltipOptions =
+    options?.tooltip && typeof options.tooltip === 'object'
+      ? options.tooltip
+      : {};
+  const tooltipClassName =
+    typeof tooltipOptions.className === 'string' &&
+    tooltipOptions.className.trim().length
+      ? `wizard-charts-readout-tooltip ${tooltipOptions.className.trim()}`
+      : 'wizard-charts-readout-tooltip';
+  const tooltipStyle =
+    tooltipOptions.sx && typeof tooltipOptions.sx === 'object'
+      ? { ...tooltipOptions.sx }
+      : {};
+  const tooltipFill =
+    typeof tooltipOptions.fill === 'string' ? tooltipOptions.fill : '#171717';
+  const tooltipFillOpacity = Number.isFinite(Number(tooltipOptions.fillOpacity))
+    ? clamp(Number(tooltipOptions.fillOpacity), 0, 1)
+    : 0.95;
+  const tooltipStroke =
+    typeof tooltipOptions.stroke === 'string'
+      ? tooltipOptions.stroke
+      : '#374151';
+  const tooltipStrokeWidth = Number.isFinite(Number(tooltipOptions.strokeWidth))
+    ? Math.max(0, Number(tooltipOptions.strokeWidth))
+    : 1;
+  const tooltipCornerRadius = Number.isFinite(
+    Number(tooltipOptions.cornerRadius),
+  )
+    ? Math.max(0, Number(tooltipOptions.cornerRadius))
+    : 6;
 
   const bySeries = readoutData?.nearest?.bySeries;
   const rows = Array.isArray(bySeries)
@@ -243,10 +280,15 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
     );
 
   return (
-    <g className="gsl-chart-readout" pointerEvents="none" aria-hidden="true">
+    <g
+      className={readoutClassName}
+      style={readoutStyle}
+      pointerEvents="none"
+      aria-hidden="true"
+    >
       {showVerticalLine && (
         <line
-          className="gsl-chart-readout-vertical-line"
+          className="wizard-charts-readout-vertical-line"
           x1={localX}
           x2={localX}
           y1={top}
@@ -273,19 +315,19 @@ function Readout({ hoverEvent, readoutData, options = {} }) {
 
       {showTooltip && orderedRows.length > 0 && (
         <g
-          className="gsl-chart-readout-tooltip"
+          className={tooltipClassName}
           transform={`translate(${tooltipLeft}, ${tooltipTop})`}
-          style={{ color: '#f9fafb' }}
+          style={tooltipStyle}
         >
           <rect
             width={tooltipWidth}
             height={tooltipHeight}
-            rx={6}
-            ry={6}
-            fill="#111827"
-            fillOpacity={0.95}
-            stroke="#374151"
-            strokeWidth={1}
+            rx={tooltipCornerRadius}
+            ry={tooltipCornerRadius}
+            fill={tooltipFill}
+            fillOpacity={tooltipFillOpacity}
+            stroke={tooltipStroke}
+            strokeWidth={tooltipStrokeWidth}
           />
           <text
             x={paddingX}

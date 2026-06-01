@@ -241,6 +241,17 @@ All column arrays must be the same length.
     hoverMode: 'local',
     showVerticalLine: true,
     showTooltip: true,
+    className: '',
+    sx: {},
+    tooltip: {
+      fill: '#111827',
+      fillOpacity: 0.95,
+      stroke: '#374151',
+      strokeWidth: 1,
+      cornerRadius: 6,
+      className: '',
+      sx: {},
+    },
     displayUnits: true,
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
     boxPlotFields: 'auto', // 'auto' | key | key[]
@@ -289,6 +300,21 @@ All column arrays must be the same length.
 
 - `true` (default): show tooltip.
 - `false`: hide tooltip.
+
+`options.readout.className` and `options.readout.sx` apply to the readout overlay root `<g>` element.
+
+- Use `className` for CSS-based overrides.
+- Use `sx` for inline style overrides.
+
+`options.readout.tooltip` controls tooltip wrapper/box styling.
+
+- `fill`: tooltip rectangle fill color.
+- `fillOpacity`: tooltip rectangle fill opacity (`0..1`).
+- `stroke`: tooltip rectangle stroke color.
+- `strokeWidth`: tooltip rectangle stroke width in pixels.
+- `cornerRadius`: tooltip rectangle corner radius in pixels.
+- `className`: class applied to the tooltip `<g>` wrapper.
+- `sx`: inline style object applied to the tooltip `<g>` wrapper.
 
 `options.readout.displayUnits` controls whether series units are appended to readout values.
 

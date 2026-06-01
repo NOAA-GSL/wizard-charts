@@ -90,6 +90,17 @@ export const defaultOptions = {
     hoverMode: 'local',
     showVerticalLine: true,
     showTooltip: true,
+    className: '',
+    sx: {},
+    tooltip: {
+      fill: '#171717',
+      fillOpacity: 0.95,
+      stroke: '#404040',
+      strokeWidth: 1,
+      cornerRadius: 6,
+      className: '',
+      sx: {},
+    },
     displayUnits: true,
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
     boxPlotFields: 'auto', // 'auto' | key | key[]
