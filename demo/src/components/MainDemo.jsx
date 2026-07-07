@@ -76,7 +76,6 @@ function MainDemo() {
 
   return (
     <div>
-      <h1>Main Demo</h1>
       <div className="flex gap-10">
         <button onClick={() => setData(makeFinalData(2, 30))}>
           Regenerate Data
