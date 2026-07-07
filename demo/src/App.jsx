@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChartContainer, HoverPointProvider } from '@noaa-gsl/wizard-charts';
-import InputSlider from './InputSlider';
+import InputSlider from './components/InputSlider';
 import { generateRandomData } from './helperFunctions';
 import '@noaa-gsl/wizard-charts/styles.css';
 // import InputColor from './InputColor';
