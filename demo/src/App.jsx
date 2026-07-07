@@ -1,6 +1,6 @@
 import { Link, Route, Switch, useLocation } from 'wouter';
 import MainDemo from './components/MainDemo';
-import TestingData from './components/TestingData';
+import TestingPlayground from './components/TestingPlayground';
 
 function App() {
   const [location] = useLocation();
@@ -18,17 +18,17 @@ function App() {
           Main Demo
         </Link>
         <Link
-          href="/testing-data"
-          className={`nav-link ${location === '/testing-data' ? 'active' : ''}`}
-          aria-current={location === '/testing-data' ? 'page' : undefined}
+          href="/testing-playground"
+          className={`nav-link ${location === '/testing-playground' ? 'active' : ''}`}
+          aria-current={location === '/testing-playground' ? 'page' : undefined}
         >
-          Testing Data
+          Testing Playground
         </Link>
       </div>
 
       <Switch>
         <Route path="/" component={MainDemo} />
-        <Route path="/testing-data" component={TestingData} />
+        <Route path="/testing-playground" component={TestingPlayground} />
         <Route>404: Page not found</Route>
       </Switch>
     </div>

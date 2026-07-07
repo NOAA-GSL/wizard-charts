@@ -130,3 +130,97 @@ button {
   gap: 10px;
   margin: 10px 0;
 }
+
+.testing-data-layout {
+  display: grid;
+  grid-template-columns: minmax(400px, 600px) 1fr;
+  gap: 20px;
+  align-items: start;
+  margin-top: 20px;
+}
+
+.testing-data-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #404040;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--background-color) 85%, #2f2f2f 15%) 0%,
+    color-mix(in srgb, var(--background-color) 92%, #202020 8%) 100%
+  );
+}
+
+.testing-data-controls-header h2 {
+  margin: 0;
+}
+
+.testing-data-controls-header p {
+  margin: 8px 0 0;
+  color: #d3d3d3;
+}
+
+.testing-data-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.secondary-button {
+  background: color-mix(in srgb, var(--background-color) 68%, #ffffff 32%);
+  color: var(--text-color);
+}
+
+.secondary-button:hover {
+  background: color-mix(in srgb, var(--background-color) 74%, #ffffff 26%);
+}
+
+.secondary-button:active {
+  background: color-mix(in srgb, var(--background-color) 78%, #ffffff 22%);
+}
+
+.testing-data-error {
+  margin: 0;
+  color: #ff9696;
+}
+
+.testing-data-editor-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.testing-data-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.testing-data-textarea {
+  min-height: 350px;
+  width: 100%;
+  border: 1px solid #555;
+  border-radius: 8px;
+  padding: 10px;
+  resize: vertical;
+  background: #111;
+  color: #f3f3f3;
+  font-family:
+    Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  line-height: 1.35;
+}
+
+.testing-data-chart {
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+}
+
+@media (max-width: 1200px) {
+  .testing-data-layout {
+    grid-template-columns: 1fr;
+  }
+}
