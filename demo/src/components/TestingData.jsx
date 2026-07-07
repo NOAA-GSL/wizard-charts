@@ -2,44 +2,6 @@ import { ChartContainer, timeFormatter } from '@noaa-gsl/wizard-charts';
 import '@noaa-gsl/wizard-charts/styles.css';
 import { testData } from '../data/testData';
 
-const testOptions = {
-  series: [
-    {
-      type: 'area',
-      xKey: 'date',
-      q1YKey: 'series.p25',
-      q3YKey: 'series.p75',
-      name: 'Temperature',
-      fill: `#fafe8888`,
-      stroke: '#fafe88',
-    },
-  ],
-  axes: {
-    // can also use the default x and y
-    x: {
-      type: 'linear', // band, linear, log, time
-      ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
-      nice: false,
-      hasGridLines: true,
-    },
-    y: {
-      type: 'linear',
-      label: { text: 'Temperature' },
-      ticks: { values: [], labels: [], amount: 10 }, // default will print values, then labels if provided
-      nice: true,
-      hasAxisLine: false,
-      hasGridLines: true,
-      units: 'F',
-    },
-  },
-  readout: {
-    hoverMode: 'local', // or 'global'
-    areaFields: ['max', 'q1', 'min'], // which fields to show in the readout for area charts
-    titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
-  },
-  animationDuration: 1000, // in ms
-};
-
 const userOptions = {
   series: [
     {
@@ -76,14 +38,12 @@ const userOptions = {
       label: { text: 'Time (UTC)', fontSize: 10 },
       ticks: { formatter: timeFormatter('%a %-m/%-d %Hz'), amount: 4 },
       hasGridLines: true,
-      // strokeGrid: 'var(--border)',
     },
     y: {
       type: 'linear',
       nice: true,
       hasGridLines: true,
       label: { text: `Flow (cfs)`, fontSize: 10 },
-      // strokeGrid: 'var(--border)',
     },
   },
   readout: {
