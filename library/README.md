@@ -841,6 +841,7 @@ Axis defaults:
   type: 'linear', // 'band' | 'linear' | 'time' | 'threshold'
   domainMin: undefined,
   domainMax: undefined,
+  isReversed: false,
   displayUnits: true,
   units: '',
   label: {
@@ -885,6 +886,13 @@ Label behavior:
 - If `label.text` is empty and units are enabled, the axis label renders just the units.
 - Use `label.fontColor` to control axis label color independently of tick label color.
 - Legacy `axes.*.title` is not used by axis rendering.
+
+`axes.*.isReversed` reverses the direction of the scale for that axis.
+
+- `false` (default): x axes ascend left-to-right; y axes ascend bottom-to-top.
+- `true`: x axes ascend right-to-left; y axes ascend top-to-bottom.
+- Works with all scale types: `linear`, `time`, `log`, `band`, and `threshold`.
+- Applies independently per axis, so you can reverse only `y` while keeping `x` in its default direction.
 
 Tick behavior:
 

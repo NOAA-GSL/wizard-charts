@@ -388,7 +388,7 @@ export const computeScales = (chartValues, axisConfig) => {
     if (!VALID_AXIS_KEYS.has(axisKey)) return;
 
     const axisOptions = config && typeof config === 'object' ? config : {};
-    const { type, domainMin, domainMax, nice } = axisOptions;
+    const { type, domainMin, domainMax, nice, isReversed } = axisOptions;
     // determine whether this is an x or y axis
     const isX = isXValueAxis(axisKey);
 
@@ -506,12 +506,9 @@ export const computeScales = (chartValues, axisConfig) => {
         domain = [safeMin, safeMax];
       }
     }
-    const scale = getScale(
-      scaleType,
-      domain,
-      getRange(axisKey, chartValues),
-      nice,
-    );
+    const baseRange = getRange(axisKey, chartValues);
+    const resolvedRange = isReversed ? [baseRange[1], baseRange[0]] : baseRange;
+    const scale = getScale(scaleType, domain, resolvedRange, nice);
     const finalDomain = scale.domain();
     const range = scale.range();
     scales[axisKey] = { scale, domain: finalDomain, range };

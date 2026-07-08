@@ -23,6 +23,7 @@ export const defaultAxisOptions = {
   // default domain will compute max and min from data
   domainMin: undefined, // optionally provide a min domain
   domainMax: undefined, // optionally provide a max domain
+  isReversed: false, // reverse the scale direction (e.g. right-to-left or top-to-bottom)
   displayUnits: true,
   units: '',
   label: {
