@@ -29,11 +29,18 @@ import Circle from './plotComponents/Circle';
 import Area from './plotComponents/Area';
 import Matrix from './plotComponents/Matrix';
 import Heatmap from './plotComponents/Heatmap';
+import ContourGrid from './plotComponents/ContourGrid';
 
 const SIZE_EPSILON = 0.25;
 const AUTO_SIZE = 'auto';
 const DEFAULT_AUTO_WIDTH = 800;
 const DEFAULT_AUTO_HEIGHT = 600;
+const CONTOUR_GRID_ALLOWED_MIX_TYPES = new Set([
+  'contourGrid',
+  'line',
+  'area',
+  'circle',
+]);
 
 function isAutoSizeValue(value) {
   return value == null || value === AUTO_SIZE;
@@ -111,6 +118,7 @@ function ChartContainer({
   const pendingHoverEventRef = useRef(null);
   const hoverRafRef = useRef(null);
   const hasWarnedMissingProviderRef = useRef(false);
+  const hasWarnedContourMixRef = useRef(false);
 
   const isAutoWidth = isAutoSizeValue(width);
   const isAutoHeight = isAutoSizeValue(height);
@@ -265,6 +273,31 @@ function ChartContainer({
     );
   }, [configuredHoverMode, hasHoverProvider]);
 
+  useEffect(() => {
+    const series = initialValues.options?.series || [];
+    const hasContourGrid = series.some(
+      (entry) => entry?.type === 'contourGrid',
+    );
+    if (!hasContourGrid) return;
+
+    const hasUnsupportedMix = series.some(
+      (entry) =>
+        entry?.type != null && !CONTOUR_GRID_ALLOWED_MIX_TYPES.has(entry.type),
+    );
+    if (!hasUnsupportedMix) return;
+    if (hasWarnedContourMixRef.current) return;
+
+    hasWarnedContourMixRef.current = true;
+
+    if (typeof console === 'undefined' || typeof console.debug !== 'function') {
+      return;
+    }
+
+    console.debug(
+      '[wizard-charts] contourGrid is currently validated for mixing with line/area/circle only. Other combinations may produce unexpected results.',
+    );
+  }, [initialValues.options?.series]);
+
   useEffect(
     () => () => {
       if (
@@ -396,6 +429,8 @@ function ChartContainer({
         return <Matrix key={s.id ?? i} seriesIndex={i} options={s} />;
       case 'heatmap':
         return <Heatmap key={s.id ?? i} seriesIndex={i} options={s} />;
+      case 'contourGrid':
+        return <ContourGrid key={s.id ?? i} seriesIndex={i} options={s} />;
       default:
         return null;
     }

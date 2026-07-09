@@ -1,0 +1,184 @@
+import { useMemo, useRef } from 'react';
+import { useChartHelpers } from '../hooks/useChartHelpers';
+import useAnimation from '../hooks/useAnimation';
+import { mergeDeep } from '../utilities/dataUtilities';
+import {
+  defaultContourGridOptions,
+  defaultHeatmapOptions,
+} from '../utilities/defaultOptions';
+import { resolveThresholds } from '../utilities/thresholdUtilities';
+import {
+  toTriggerPart,
+  getColorForThresholdIndex,
+} from '../utilities/heatmapMatrixHelpers';
+import {
+  buildStructuredContourModel,
+  buildStructuredGrid,
+} from '../utilities/contourGrid';
+
+function ContourGrid({ seriesIndex = 0, options = {} }) {
+  // Accept legacy heatmap options as fallback values for smoother migration.
+  const finalOptions = mergeDeep(
+    mergeDeep(defaultHeatmapOptions, defaultContourGridOptions),
+    options,
+  );
+
+  const {
+    className,
+    isVisible,
+    sx,
+    fill,
+    colors,
+    fillOpacity,
+    contourLineColor,
+    contourLineWidth,
+    contourLineOpacity,
+    showContourFill,
+    showContourLines,
+  } = finalOptions;
+
+  const { getAccessors, getSeriesData, getSeriesScales } = useChartHelpers();
+  const accessors = getAccessors(seriesIndex);
+  const seriesData = getSeriesData(seriesIndex);
+  const { xScale, yScale } = getSeriesScales(seriesIndex);
+
+  const animationTrigger = useMemo(() => {
+    if (!Array.isArray(seriesData) || seriesData.length === 0) return 'empty';
+
+    return seriesData
+      .map((d) => {
+        const xValue = accessors.x?.(d);
+        const yValue = accessors.y?.(d);
+        const value = accessors.valueKey?.(d);
+
+        return [
+          toTriggerPart(xValue),
+          toTriggerPart(yValue),
+          toTriggerPart(value),
+        ].join('|');
+      })
+      .join('||');
+  }, [accessors, seriesData]);
+
+  const groupRef = useRef(null);
+
+  useAnimation({
+    type: 'fadeIn',
+    ref: groupRef,
+    trigger: animationTrigger,
+  });
+
+  const xIsBand = typeof xScale?.bandwidth === 'function';
+  const yIsBand = typeof yScale?.bandwidth === 'function';
+
+  const grid = useMemo(
+    () => buildStructuredGrid({ seriesData, accessors }),
+    [seriesData, accessors],
+  );
+
+  const thresholds = resolveThresholds(
+    finalOptions.thresholds,
+    (grid?.rows || []).map((row) => row.value),
+    colors,
+  );
+
+  const contourModel =
+    !xScale || !yScale || xIsBand || yIsBand || !grid
+      ? null
+      : buildStructuredContourModel({
+          grid,
+          xScale,
+          yScale,
+          thresholds,
+        });
+
+  if (!xScale || !yScale || xIsBand || yIsBand || !contourModel || !grid) {
+    return null;
+  }
+
+  const xRange = xScale.range();
+  const yRange = yScale.range();
+  const xMin = Math.min(...xRange);
+  const yMin = Math.min(...yRange);
+  const plotWidth = Math.max(0, Math.abs(xRange[1] - xRange[0]));
+  const plotHeight = Math.max(0, Math.abs(yRange[1] - yRange[0]));
+  const clipPathId = `contour-grid-clip-${seriesIndex}`;
+
+  return (
+    <g
+      ref={groupRef}
+      className={className}
+      style={{ ...sx, visibility: isVisible ? 'visible' : 'hidden' }}
+    >
+      <defs>
+        <clipPath id={clipPathId}>
+          <rect x={xMin} y={yMin} width={plotWidth} height={plotHeight} />
+        </clipPath>
+      </defs>
+
+      <g clipPath={`url(#${clipPathId})`}>
+        {showContourFill && plotWidth > 0 && plotHeight > 0 && (
+          <rect
+            x={xMin}
+            y={yMin}
+            width={plotWidth}
+            height={plotHeight}
+            fill={getColorForThresholdIndex(0, thresholds, colors, fill)}
+            fillOpacity={fillOpacity}
+          />
+        )}
+
+        {showContourFill &&
+          contourModel.features.map((feature, index) => {
+            const path = contourModel.pathForFeature(feature);
+            if (!path) return null;
+
+            return (
+              <path
+                key={`${seriesIndex}-fill-${String(feature.value)}`}
+                d={path}
+                fill={getColorForThresholdIndex(
+                  index + 1,
+                  thresholds,
+                  colors,
+                  fill,
+                )}
+                fillOpacity={fillOpacity}
+                stroke="none"
+              />
+            );
+          })}
+
+        {showContourLines &&
+          contourModel.features.map((feature, index) => {
+            const path = contourModel.pathForFeature(feature);
+            if (!path) return null;
+
+            const lineColor =
+              contourLineColor ||
+              getColorForThresholdIndex(
+                index + 1,
+                thresholds,
+                colors,
+                '#111111',
+              );
+
+            return (
+              <path
+                key={`${seriesIndex}-line-${String(feature.value)}`}
+                d={path}
+                fill="none"
+                stroke={lineColor}
+                strokeWidth={contourLineWidth}
+                strokeOpacity={contourLineOpacity}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            );
+          })}
+      </g>
+    </g>
+  );
+}
+
+export default ContourGrid;

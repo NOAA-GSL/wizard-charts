@@ -16,6 +16,8 @@ const localChartTypes = [
   'matrixTime',
   'heatmap',
   'heatmapTime',
+  'contourGrid',
+  'contourGridNearest',
 ];
 
 const globalChartTypes = ['bar', 'multiLine', 'boxPlot', 'circle', 'area'];

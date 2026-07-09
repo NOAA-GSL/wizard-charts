@@ -7,6 +7,7 @@ import Bar from './plotComponents/Bar';
 import BoxPlot from './plotComponents/BoxPlot';
 import Matrix from './plotComponents/Matrix';
 import Heatmap from './plotComponents/Heatmap';
+import ContourGrid from './plotComponents/ContourGrid';
 import { HoverPointProvider } from './context/HoverPointProvider';
 import { dataVizColors } from './utilities/defaultOptions';
 
@@ -22,6 +23,7 @@ export {
   BoxPlot,
   Matrix,
   Heatmap,
+  ContourGrid,
   HoverPointProvider,
   dataVizColors,
 };

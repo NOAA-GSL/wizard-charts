@@ -4,7 +4,11 @@ import {
   getSeriesForAxis,
   isXValueAxis,
 } from './dataUtilities';
-import { defaultHeatmapOptions, defaultMatrixOptions } from './defaultOptions';
+import {
+  defaultContourGridOptions,
+  defaultHeatmapOptions,
+  defaultMatrixOptions,
+} from './defaultOptions';
 import { getNumericExtent, resolveThresholds } from './thresholdUtilities';
 import { toComparable } from './valueUtilities';
 
@@ -586,7 +590,11 @@ function buildColorbarLegendItem({
 }) {
   const type = series?.type;
   const defaults =
-    type === 'matrix' ? defaultMatrixOptions : defaultHeatmapOptions;
+    type === 'matrix'
+      ? defaultMatrixOptions
+      : type === 'contourGrid'
+        ? defaultContourGridOptions
+        : defaultHeatmapOptions;
   const label = getLegendLabel(series, index);
   const colorsFromSeries = Array.isArray(series?.colors) ? series.colors : null;
   const colorsFromDefaults = Array.isArray(defaults?.colors)
@@ -773,7 +781,11 @@ export function buildLegendLayout({ chartValues, axisLayout = {} }) {
         return null;
       }
 
-      if (entry.type === 'matrix' || entry.type === 'heatmap') {
+      if (
+        entry.type === 'matrix' ||
+        entry.type === 'heatmap' ||
+        entry.type === 'contourGrid'
+      ) {
         return buildColorbarLegendItem({
           series: entry,
           index,

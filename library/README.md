@@ -321,7 +321,7 @@ All column arrays must be the same length.
 - `false`: suppress unit suffixes in readout rows.
 - Readout units use series `units` first.
 - If a series `units` is empty, axis-linked series (`line`, `bar`, `boxPlot`, `area`, `circle`) fall back to their mapped y-axis `axes.y.units` or `axes.y2.units`.
-- `matrix` and `heatmap` values do not fall back to axis units; provide `series.units` when you want value units in those readouts.
+- `matrix`, `heatmap`, and `contourGrid` values do not fall back to axis units; provide `series.units` when you want value units in those readouts.
 - Units only render when both `readout.displayUnits` and `series.displayUnits` are true.
 - If no series units are provided, nothing is appended.
 
@@ -459,7 +459,7 @@ import { ChartContainer, HoverPointProvider } from '@noaa-gsl/wizard-charts';
 
 If `hoverMode` is `'global'` but no provider is present, charts fall back to local mode.
 
-When `readout.debug` is enabled, debug payloads include hover coordinates plus nearest values per chart. Supported series for nearest-value debug output are `line`, `bar`, `circle`, `area`, `boxPlot`, `matrix`, and `heatmap`.
+When `readout.debug` is enabled, debug payloads include hover coordinates plus nearest values per chart. Supported series for nearest-value debug output are `line`, `bar`, `circle`, `area`, `boxPlot`, `matrix`, `heatmap`, and `contourGrid`.
 
 ## Series Configuration
 
@@ -469,7 +469,7 @@ Each entry in `options.series` renders one plot layer.
 
 ```js
 {
-  type: 'line', // 'line' | 'bar' | 'boxPlot' | 'circle' | 'area' | 'matrix' | 'heatmap'
+  type: 'line', // 'line' | 'bar' | 'boxPlot' | 'circle' | 'area' | 'matrix' | 'heatmap' | 'contourGrid'
   name: undefined, // legend label; falls back to yKey
   xKey: 'x',
   yKey: 'y',
@@ -497,7 +497,7 @@ Legend behavior is enabled by default.
 - Set `options.legend.enabled: false` to hide legend rendering and skip legend auto-margin reservation.
 - Set `series.showInLegend: false` to hide a single series from legend output.
 - Series labels use `name` first, then fall back to `yKey`.
-- Matrix and heatmap series render a per-series colorbar legend entry instead of a marker.
+- Matrix, heatmap, and contourGrid series render a per-series colorbar legend entry instead of a marker.
 
 Example:
 
@@ -569,6 +569,7 @@ You can render multiple plot types in one chart by adding multiple entries to `o
 
 - Each series entry renders one layer.
 - You can mix `line`, `bar`, `boxPlot`, `area`, `circle`, `matrix`, and `heatmap` in the same chart.
+- `contourGrid` is currently validated for mixing with `line`, `area`, and `circle` in v1.
 - Render order follows array order: later series draw on top of earlier series.
 
 Example:
@@ -811,6 +812,57 @@ Heatmap notes:
 - Threshold color semantics match matrix: bins are interpreted in ascending order with `value <= threshold` for boundary inclusion.
 - When `thresholds` is omitted, heatmap computes evenly spaced thresholds across the data value range based on `colors.length - 1`.
 - For large datasets, start with moderate resolution values (for example `16`) and increase only when you need smoother contours.
+
+### ContourGrid
+
+ContourGrid renders contour fills/lines from structured gridded x/y/value data. Unlike `heatmap`, it does not run scattered-point IDW interpolation and is intended for fast, spatially consistent contouring on regular grids.
+
+```js
+{
+  xKey: 'x',
+  yKey: 'y',
+  valueKey: 'value',
+  thresholds: undefined,
+  colors: ['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c'],
+  fill: '#d6e6f2',
+  showContourFill: true,
+  fillOpacity: 0.85,
+  showContourLines: true,
+  contourLineColor: null,
+  contourLineWidth: 1,
+  contourLineOpacity: 0.85,
+  readoutSamplingMode: 'interpolate', // 'interpolate' | 'nearest'
+  isVisible: true,
+  sx: {},
+}
+```
+
+ContourGrid option details:
+
+| Property              | Type                        | Default                                                   | Description                                                                                                                              |
+| --------------------- | --------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `xKey`                | `string \| (row) => any`    | `'x'`                                                     | Accessor for x coordinates. Supports dot notation.                                                                                       |
+| `yKey`                | `string \| (row) => any`    | `'y'`                                                     | Accessor for y coordinates. Supports dot notation.                                                                                       |
+| `valueKey`            | `string \| (row) => number` | `'value'`                                                 | Numeric field used for contour thresholds and readout values.                                                                            |
+| `thresholds`          | `number[] \| undefined`     | `undefined`                                               | Optional contour levels. If omitted, thresholds are auto-generated from the value extent using `colors.length - 1` evenly spaced breaks. |
+| `colors`              | `string[]`                  | `['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c']` | Color bins for threshold bands. Recommended length is `thresholds.length + 1`.                                                           |
+| `fill`                | `string`                    | `'#d6e6f2'`                                               | Fallback base fill color when bins/colors are insufficient.                                                                              |
+| `showContourFill`     | `boolean`                   | `true`                                                    | Render filled contour bands.                                                                                                             |
+| `fillOpacity`         | `number`                    | `0.85`                                                    | Opacity applied to filled contour bands.                                                                                                 |
+| `showContourLines`    | `boolean`                   | `true`                                                    | Render contour line overlays on top of fills.                                                                                            |
+| `contourLineColor`    | `string \| null`            | `null`                                                    | Line color override. When null, each line uses its threshold-bin color.                                                                  |
+| `contourLineWidth`    | `number`                    | `1`                                                       | Contour line width in pixels.                                                                                                            |
+| `contourLineOpacity`  | `number`                    | `0.85`                                                    | Contour line opacity.                                                                                                                    |
+| `readoutSamplingMode` | `'interpolate' \| 'nearest'` | `'interpolate'`                                           | Hover sampling mode for readout value lookup at pointer x/y.                                                                            |
+| `className`           | `string`                    | `''`                                                      | Class applied to the contourGrid container `<g>`.                                                                                        |
+| `sx`                  | `object`                    | `{}`                                                      | Inline style object applied to the contourGrid container `<g>`.                                                                          |
+| `isVisible`           | `boolean`                   | `true`                                                    | Toggles contourGrid visibility while preserving layout/scales.                                                                           |
+
+ContourGrid notes:
+
+- ContourGrid assumes structured gridded data and currently supports continuous axes only (`linear`, `log`, `time`).
+- Band scales are not supported for contourGrid.
+- In mixed charts, contourGrid is currently validated for `line`, `area`, and `circle` overlays in v1.
 
 ### Line
 

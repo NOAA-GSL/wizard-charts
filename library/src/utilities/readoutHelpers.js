@@ -343,7 +343,11 @@ export function resolveSeriesReadoutEntries(summary, readoutOptions = {}) {
       }));
   }
 
-  if (summary?.seriesType === 'matrix' || summary?.seriesType === 'heatmap') {
+  if (
+    summary?.seriesType === 'matrix' ||
+    summary?.seriesType === 'heatmap' ||
+    summary?.seriesType === 'contourGrid'
+  ) {
     return [{ key: 'value', label: null, value: values.value }];
   }
 

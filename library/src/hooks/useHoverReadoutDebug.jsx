@@ -10,6 +10,10 @@ import {
   isPointInsideScaleRanges,
 } from '../utilities/heatmapMatrixHelpers';
 import {
+  buildStructuredGrid,
+  sampleStructuredGridValue,
+} from '../utilities/contourGrid';
+import {
   resolveSeriesReadoutEntries,
   resolveSeriesValue,
 } from '../utilities/readoutHelpers';
@@ -21,6 +25,7 @@ const SUPPORTED_SERIES_TYPES = new Set([
   'boxPlot',
   'circle',
   'heatmap',
+  'contourGrid',
   'line',
   'matrix',
 ]);
@@ -42,7 +47,11 @@ function resolveSeriesReadoutUnits({ series, axisKeys, chartValues }) {
   if (explicitSeriesUnits) return explicitSeriesUnits;
 
   // Matrix and heatmap values are value-field based, not y-axis quantity based.
-  if (series?.type === 'matrix' || series?.type === 'heatmap') {
+  if (
+    series?.type === 'matrix' ||
+    series?.type === 'heatmap' ||
+    series?.type === 'contourGrid'
+  ) {
     return '';
   }
 
@@ -585,6 +594,105 @@ function summarizeHeatmapSeriesPoint({
   };
 }
 
+function normalizeContourGridSamplingMode(rawMode) {
+  return rawMode === 'nearest' ? 'nearest' : 'interpolate';
+}
+
+function summarizeContourGridSeriesPoint({
+  accessors,
+  axisKeys,
+  seriesUnits,
+  hoverX,
+  hoverY,
+  series,
+  seriesData,
+  seriesIndex,
+  xScale,
+  yScale,
+}) {
+  if (!isPointInsideScaleRanges(hoverX, hoverY, xScale, yScale)) {
+    return null;
+  }
+
+  if (
+    typeof xScale?.bandwidth === 'function' ||
+    typeof yScale?.bandwidth === 'function'
+  ) {
+    return null;
+  }
+
+  const xValue = invertScaleAtPixel(xScale, hoverX);
+  const yValue = invertScaleAtPixel(yScale, hoverY);
+  const comparableX = toComparable(xValue);
+  const comparableY = toComparable(yValue);
+
+  if (comparableX == null || comparableY == null) return null;
+
+  const grid = buildStructuredGrid({ seriesData, accessors });
+  if (!grid) return null;
+
+  const samplingMode = normalizeContourGridSamplingMode(
+    series?.readoutSamplingMode,
+  );
+  const sampled = sampleStructuredGridValue({
+    grid,
+    xComparable: comparableX,
+    yComparable: comparableY,
+    mode: samplingMode,
+  });
+
+  if (!sampled || !Number.isFinite(sampled.value)) return null;
+
+  const nearestXComparable = sampled.nearestNode?.xComparable;
+  const nearestYComparable = sampled.nearestNode?.yComparable;
+
+  const nearestXRaw =
+    nearestXComparable != null
+      ? (grid.xRawByComparable.get(nearestXComparable) ?? nearestXComparable)
+      : null;
+  const nearestYRaw =
+    nearestYComparable != null
+      ? (grid.yRawByComparable.get(nearestYComparable) ?? nearestYComparable)
+      : null;
+
+  return {
+    axisKeys,
+    dataIndex: null,
+    distancePx: 0,
+    readoutColor: resolveSeriesReadoutColor(series),
+    seriesUnits,
+    seriesDisplayUnits: series?.displayUnits,
+    seriesReadoutPrecision: series?.readoutPrecision,
+    seriesIndex,
+    seriesName: series?.name || `Series ${seriesIndex + 1}`,
+    seriesType: 'contourGrid',
+    values: {
+      x: xValue,
+      y: yValue,
+      value: sampled.value,
+      samplingMode,
+      nearestNode:
+        nearestXRaw != null && nearestYRaw != null
+          ? {
+              x: nearestXRaw,
+              y: nearestYRaw,
+            }
+          : null,
+    },
+    xDistancePx: 0,
+    xPixel: hoverX,
+    yDistancePx: 0,
+    yPixel: hoverY,
+    markerPoints: [
+      {
+        id: 'sample',
+        xPixel: hoverX,
+        yPixel: hoverY,
+      },
+    ],
+  };
+}
+
 export function useHoverReadoutDebug({
   chartId,
   hoverEvent,
@@ -653,6 +761,21 @@ export function useHoverReadoutDebug({
 
         if (series.type === 'heatmap') {
           return summarizeHeatmapSeriesPoint({
+            accessors,
+            axisKeys,
+            seriesUnits,
+            hoverX: localX,
+            hoverY: localY,
+            series,
+            seriesData,
+            seriesIndex,
+            xScale,
+            yScale,
+          });
+        }
+
+        if (series.type === 'contourGrid') {
+          return summarizeContourGridSeriesPoint({
             accessors,
             axisKeys,
             seriesUnits,

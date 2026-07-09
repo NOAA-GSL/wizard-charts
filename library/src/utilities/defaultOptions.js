@@ -134,7 +134,7 @@ export const defaultOptions = {
 };
 
 export const defaultSeriesOptions = {
-  type: 'line', // line, bar, boxPlot, circle, area, matrix, heatmap
+  type: 'line', // line, bar, boxPlot, circle, area, matrix, heatmap, contourGrid
   name: undefined,
   xKey: 'x',
   yKey: 'y',
@@ -269,6 +269,26 @@ export const defaultHeatmapOptions = {
   contourLineColor: null,
   contourLineWidth: 1,
   contourLineOpacity: 0.85,
+  isVisible: true,
+  sx: {},
+};
+
+export const defaultContourGridOptions = {
+  className: '',
+  xKey: 'x',
+  yKey: 'y',
+  valueKey: 'value',
+  thresholds: undefined,
+  colors: ['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c'],
+  fill: '#d6e6f2',
+  showContourFill: true,
+  fillOpacity: 0.85,
+  showContourLines: true,
+  contourLineColor: null,
+  contourLineWidth: 1,
+  contourLineOpacity: 0.85,
+  // readout sampling strategy for values at pointer x/y
+  readoutSamplingMode: 'interpolate', // 'interpolate' | 'nearest'
   isVisible: true,
   sx: {},
 };

@@ -470,4 +470,92 @@ export const demoOptions = {
     },
     animationDuration: 1000,
   },
+  contourGrid: {
+    series: [
+      {
+        type: 'contourGrid',
+        name: 'Gridded Field',
+        data: heatmapData,
+        xKey: 'time',
+        yKey: 'level',
+        valueKey: 'value',
+        thresholds: [20, 26, 32, 38, 44],
+        colors: [
+          '#17324f',
+          '#1f5f82',
+          '#2f8f9d',
+          '#5ebf9a',
+          '#b7d77a',
+          '#f2de85',
+        ],
+        showContourFill: true,
+        showContourLines: true,
+        contourLineWidth: 1,
+        readoutSamplingMode: 'interpolate',
+      },
+      {
+        type: 'line',
+        name: 'Reference Line',
+        data: heatmapTimeSteps.map((timestamp, i) => ({
+          time: timestamp,
+          level: 3200 + Math.sin(i / 3) * 2200,
+        })),
+        xKey: 'time',
+        yKey: 'level',
+        stroke: '#f5f7fa',
+        strokeWidth: 2,
+      },
+    ],
+    axes: {
+      x: {
+        type: 'time',
+        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+      },
+      y: {
+        type: 'linear',
+      },
+    },
+    readout: {
+      hoverMode: 'local',
+    },
+    animationDuration: 1000,
+  },
+  contourGridNearest: {
+    series: [
+      {
+        type: 'contourGrid',
+        name: 'Gridded Field (Nearest)',
+        data: heatmapData,
+        xKey: 'time',
+        yKey: 'level',
+        valueKey: 'value',
+        thresholds: [20, 26, 32, 38, 44],
+        colors: [
+          '#17324f',
+          '#1f5f82',
+          '#2f8f9d',
+          '#5ebf9a',
+          '#b7d77a',
+          '#f2de85',
+        ],
+        showContourFill: false,
+        showContourLines: true,
+        contourLineWidth: 2,
+        readoutSamplingMode: 'nearest',
+      },
+    ],
+    axes: {
+      x: {
+        type: 'time',
+        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+      },
+      y: {
+        type: 'linear',
+      },
+    },
+    readout: {
+      hoverMode: 'local',
+    },
+    animationDuration: 1000,
+  },
 };
