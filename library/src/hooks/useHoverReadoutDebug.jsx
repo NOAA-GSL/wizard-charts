@@ -654,6 +654,17 @@ function summarizeContourGridSeriesPoint({
     nearestYComparable != null
       ? (grid.yRawByComparable.get(nearestYComparable) ?? nearestYComparable)
       : null;
+  const nearestXPixel = nearestXRaw != null ? xScale(nearestXRaw) : null;
+  const nearestYPixel = nearestYRaw != null ? yScale(nearestYRaw) : null;
+
+  const markerXPixel =
+    samplingMode === 'nearest' && Number.isFinite(nearestXPixel)
+      ? nearestXPixel
+      : hoverX;
+  const markerYPixel =
+    samplingMode === 'nearest' && Number.isFinite(nearestYPixel)
+      ? nearestYPixel
+      : hoverY;
 
   return {
     axisKeys,
@@ -680,14 +691,14 @@ function summarizeContourGridSeriesPoint({
           : null,
     },
     xDistancePx: 0,
-    xPixel: hoverX,
+    xPixel: markerXPixel,
     yDistancePx: 0,
-    yPixel: hoverY,
+    yPixel: markerYPixel,
     markerPoints: [
       {
         id: 'sample',
-        xPixel: hoverX,
-        yPixel: hoverY,
+        xPixel: markerXPixel,
+        yPixel: markerYPixel,
       },
     ],
   };
