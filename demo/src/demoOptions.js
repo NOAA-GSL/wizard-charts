@@ -53,6 +53,59 @@ const heatmapData = heatmapTimeSteps.flatMap((timestamp, xi) => {
   });
 });
 
+// --- Wind Barb Demo Data ---
+
+// Standalone: pressure-level time-height plot (850–200 hPa)
+const windBarbPressureLevels = [850, 700, 500, 300, 200];
+const windBarbStandaloneTimes = heatmapTimeSteps.filter((_, i) => i % 5 === 0);
+
+const windBarbStandaloneData = windBarbStandaloneTimes.flatMap(
+  (timestamp, xi) => {
+    const xNorm =
+      windBarbStandaloneTimes.length > 1
+        ? xi / (windBarbStandaloneTimes.length - 1)
+        : 0;
+    // yi=0 is 850 hPa (surface), yi=4 is 200 hPa (high altitude)
+    return windBarbPressureLevels.map((level, yi) => {
+      const heightFactor = yi / (windBarbPressureLevels.length - 1);
+      // Speed increases with altitude; gentle wave over time
+      const speed =
+        10 + heightFactor * 60 + 8 * Math.sin(xNorm * Math.PI * 2.5 + yi * 0.8);
+      // Direction veers clockwise with altitude (warm advection pattern)
+      const direction = (200 + heightFactor * 110 + xNorm * 45) % 360;
+      return {
+        time: timestamp,
+        level,
+        speed: Math.max(0, Math.round(speed)),
+        direction: Math.round(direction),
+      };
+    });
+  },
+);
+
+// Overlay: subsampled onto the heatmap coordinate system (level 0–6000)
+const windBarbOverlayLevels = [400, 1600, 2800, 4000, 5200];
+const windBarbOverlayTimes = heatmapTimeSteps.filter((_, i) => i % 5 === 0);
+
+const windBarbOverlayData = windBarbOverlayTimes.flatMap((timestamp, xi) => {
+  const xNorm =
+    windBarbOverlayTimes.length > 1
+      ? xi / (windBarbOverlayTimes.length - 1)
+      : 0;
+  return windBarbOverlayLevels.map((level, yi) => {
+    const heightFactor = yi / (windBarbOverlayLevels.length - 1);
+    const speed =
+      5 + heightFactor * 40 + 10 * Math.sin(xNorm * Math.PI * 2 + yi);
+    const direction = (180 + heightFactor * 120 + xNorm * 60) % 360;
+    return {
+      time: timestamp,
+      level,
+      speed: Math.max(0, Math.round(speed)),
+      direction: Math.round(direction),
+    };
+  });
+});
+
 export const demoOptions = {
   bar: {
     series: [
@@ -557,5 +610,88 @@ export const demoOptions = {
       hoverMode: 'local',
     },
     animationDuration: 1000,
+  },
+  windBarbs: {
+    series: [
+      {
+        type: 'windBarbs',
+        data: windBarbStandaloneData,
+        xKey: 'time',
+        yKey: 'level',
+        speedKey: 'speed',
+        directionKey: 'direction',
+        name: 'Wind',
+        color: '#e8e8e8',
+        size: 24,
+        strokeWidth: 1.5,
+        units: 'kt',
+      },
+    ],
+    axes: {
+      x: {
+        type: 'time',
+        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+      },
+      y: {
+        type: 'linear',
+        isReversed: true,
+        label: { text: 'Pressure' },
+        units: 'hPa',
+        nice: true,
+      },
+    },
+    animationDuration: 500,
+  },
+  windBarbsContourGrid: {
+    series: [
+      {
+        type: 'contourGrid',
+        name: 'Scalar Field',
+        data: heatmapData,
+        xKey: 'time',
+        yKey: 'level',
+        valueKey: 'value',
+        thresholds: [20, 26, 32, 38, 44],
+        colors: [
+          '#17324f',
+          '#1f5f82',
+          '#2f8f9d',
+          '#5ebf9a',
+          '#b7d77a',
+          '#f2de85',
+        ],
+        showContourFill: true,
+        showContourLines: true,
+        contourLineWidth: 1,
+        readoutSamplingMode: 'interpolate',
+      },
+      {
+        type: 'windBarbs',
+        data: windBarbOverlayData,
+        xKey: 'time',
+        yKey: 'level',
+        speedKey: 'speed',
+        directionKey: 'direction',
+        name: 'Wind',
+        color: '#111111',
+        size: 20,
+        strokeWidth: 1.5,
+        units: 'kt',
+      },
+    ],
+    axes: {
+      x: {
+        type: 'time',
+        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+      },
+      y: {
+        type: 'linear',
+        label: { text: 'Level' },
+      },
+    },
+    readout: {
+      hoverMode: 'local',
+    },
+    animationDuration: 500,
   },
 };

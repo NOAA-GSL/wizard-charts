@@ -18,6 +18,8 @@ const localChartTypes = [
   'heatmapTime',
   'contourGrid',
   'contourGridNearest',
+  'windBarbs',
+  'windBarbsContourGrid',
 ];
 
 const globalChartTypes = ['bar', 'multiLine', 'boxPlot', 'circle', 'area'];
