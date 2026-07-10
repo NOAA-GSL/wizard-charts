@@ -515,11 +515,13 @@ function resolveLegendColor(series) {
   const fill = series?.fill;
   const stroke = series?.stroke;
   const strokeWhisker = series?.strokeWhisker;
+  const color = series?.color;
   const type = series?.type;
   const hasFill = typeof fill === 'string' && fill !== 'none';
 
   if (type === 'line') return stroke || fill || 'currentColor';
   if (type === 'circle') return fill || stroke || 'currentColor';
+  if (type === 'windBarbs') return color || 'currentColor';
   if (type === 'area') {
     return hasFill ? fill : stroke || strokeWhisker || 'currentColor';
   }
@@ -527,7 +529,7 @@ function resolveLegendColor(series) {
     return hasFill ? fill : strokeWhisker || stroke || 'currentColor';
   }
 
-  return hasFill ? fill : stroke || 'currentColor';
+  return hasFill ? fill : stroke || color || 'currentColor';
 }
 
 function getMarkerShape(seriesType) {
