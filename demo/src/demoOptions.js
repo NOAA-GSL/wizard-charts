@@ -106,6 +106,26 @@ const windBarbOverlayData = windBarbOverlayTimes.flatMap((timestamp, xi) => {
   });
 });
 
+// Surface wind: single time series where y-position = speed value
+// speedKey and yKey both reference 'speed'; direction drives rotation.
+const surfaceWindTimes = heatmapTimeSteps.filter((_, i) => i % 2 === 0);
+
+const surfaceWindData = surfaceWindTimes.map((timestamp, i) => {
+  const t = i / (surfaceWindTimes.length - 1);
+  // Speed oscillates between ~5 and ~35 with a slower envelope and faster ripple
+  const speed =
+    18 +
+    12 * Math.sin(t * Math.PI * 2.2) +
+    5 * Math.sin(t * Math.PI * 7.5 + 1.2);
+  // Direction slowly backs then veers, staying in the SW–NW quadrant
+  const direction = (250 + 70 * Math.sin(t * Math.PI * 1.8)) % 360;
+  return {
+    time: timestamp,
+    speed: Math.max(0, Math.round(speed)),
+    direction: Math.round(((direction % 360) + 360) % 360),
+  };
+});
+
 export const demoOptions = {
   bar: {
     series: [
@@ -691,6 +711,40 @@ export const demoOptions = {
     },
     readout: {
       hoverMode: 'local',
+    },
+    animationDuration: 500,
+  },
+  windBarbsSurface: {
+    series: [
+      {
+        type: 'windBarbs',
+        data: surfaceWindData,
+        xKey: 'time',
+        // yKey and speedKey both reference 'speed': each barb sits at its own
+        // speed value on the y-axis so position, shape, and direction all
+        // encode wind information simultaneously.
+        yKey: 'speed',
+        speedKey: 'speed',
+        directionKey: 'direction',
+        name: 'Surface Wind',
+        color: '#e8e8e8',
+        size: 24,
+        strokeWidth: 1.5,
+        units: 'kt',
+      },
+    ],
+    axes: {
+      x: {
+        type: 'time',
+        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+      },
+      y: {
+        type: 'linear',
+        label: { text: 'Wind Speed' },
+        units: 'kt',
+        nice: true,
+        domainMin: 0,
+      },
     },
     animationDuration: 500,
   },

@@ -20,6 +20,7 @@ const localChartTypes = [
   'contourGridNearest',
   'windBarbs',
   'windBarbsContourGrid',
+  'windBarbsSurface',
 ];
 
 const globalChartTypes = ['bar', 'multiLine', 'boxPlot', 'circle', 'area'];
