@@ -14,11 +14,7 @@ const localChartTypes = [
   'area',
   'matrix',
   'matrixTime',
-  'heatmap',
-  'heatmapTime',
-  'contourGrid',
   'contourGridNearest',
-  'windBarbs',
   'windBarbsContourGrid',
   'windBarbsSurface',
 ];
