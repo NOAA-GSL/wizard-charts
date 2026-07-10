@@ -459,7 +459,7 @@ import { ChartContainer, HoverPointProvider } from '@noaa-gsl/wizard-charts';
 
 If `hoverMode` is `'global'` but no provider is present, charts fall back to local mode.
 
-When `readout.debug` is enabled, debug payloads include hover coordinates plus nearest values per chart. Supported series for nearest-value debug output are `line`, `bar`, `circle`, `area`, `boxPlot`, `matrix`, `heatmap`, and `contourGrid`.
+When `readout.debug` is enabled, debug payloads include hover coordinates plus nearest values per chart. Supported series for nearest-value debug output are `line`, `bar`, `circle`, `area`, `boxPlot`, `matrix`, `heatmap`, `contourGrid`, and `windBarbs`.
 
 ## Series Configuration
 
@@ -469,7 +469,7 @@ Each entry in `options.series` renders one plot layer.
 
 ```js
 {
-  type: 'line', // 'line' | 'bar' | 'boxPlot' | 'circle' | 'area' | 'matrix' | 'heatmap' | 'contourGrid'
+  type: 'line', // 'line' | 'bar' | 'boxPlot' | 'circle' | 'area' | 'matrix' | 'heatmap' | 'contourGrid' | 'windBarbs'
   name: undefined, // legend label; falls back to yKey
   xKey: 'x',
   yKey: 'y',
@@ -569,7 +569,7 @@ You can render multiple plot types in one chart by adding multiple entries to `o
 
 - Each series entry renders one layer.
 - You can mix `line`, `bar`, `boxPlot`, `area`, `circle`, `matrix`, and `heatmap` in the same chart.
-- `contourGrid` is currently validated for mixing with `line`, `area`, and `circle` in v1.
+- `contourGrid` is currently validated for mixing with `line`, `area`, `circle`, and `windBarbs` in v1.
 - Render order follows array order: later series draw on top of earlier series.
 
 Example:
@@ -862,7 +862,111 @@ ContourGrid notes:
 
 - ContourGrid assumes structured gridded data and currently supports continuous axes only (`linear`, `log`, `time`).
 - Band scales are not supported for contourGrid.
-- In mixed charts, contourGrid is currently validated for `line`, `area`, and `circle` overlays in v1.
+- In mixed charts, contourGrid is currently validated for `line`, `area`, `circle`, and `windBarbs` overlays in v1.
+
+### WindBarbs
+
+WindBarbs renders meteorological wind barbs at each data point. It works both as a standalone scatter-style overlay (like `circle`) and as a gridded overlay paired with `contourGrid`.
+
+Each datum requires an x position, a y position, a speed value, and a direction value. Speed maps to the barb shape in 5-unit buckets (unit-agnostic — the chart does not interpret or convert values; provide `series.units` for readout display). Direction uses the meteorological convention: degrees the wind comes **FROM**, clockwise from north (0 = north, 90 = east).
+
+Barb shapes are drawn as inline SVG paths. The `color` option controls the stroke and fill of all barb elements, so any valid CSS color value produces correctly colored barbs.
+
+```js
+{
+  xKey: 'x',
+  yKey: 'y',
+  speedKey: 'speed',
+  directionKey: 'direction',
+  color: '#404040',
+  size: 20,         // staff length in pixels
+  strokeWidth: 1.5,
+  isVisible: true,
+  className: '',
+  sx: {},
+}
+```
+
+WindBarbs option details:
+
+| Property       | Type                        | Default     | Description                                                                                                                                                         |
+| -------------- | --------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `xKey`         | `string \| (row) => any`    | `'x'`       | Accessor for x position. Supports dot notation.                                                                                                                    |
+| `yKey`         | `string \| (row) => any`    | `'y'`       | Accessor for y position. Supports dot notation.                                                                                                                    |
+| `speedKey`     | `string \| (row) => number` | `'speed'`   | Numeric wind speed. Maps to barb shape in 5-unit buckets: each 5 units adds one flag feature. Values below 2.5 render as a calm circle.                            |
+| `directionKey` | `string \| (row) => number` | `'direction'` | Wind direction in meteorological degrees (wind comes FROM this direction, clockwise from north). Controls the rotation of each barb.                              |
+| `color`        | `string`                    | `'#404040'` | Stroke color for the staff and barb lines, and fill color for pennant triangles. Accepts any CSS color value.                                                       |
+| `size`         | `number`                    | `20`        | Pixel length of the barb staff. All other barb geometry scales proportionally.                                                                                      |
+| `strokeWidth`  | `number`                    | `1.5`       | Stroke width in pixels for the staff, barb lines, and pennant outlines.                                                                                             |
+| `isVisible`    | `boolean`                   | `true`      | Toggles barb visibility while preserving layout and scales.                                                                                                         |
+| `className`    | `string`                    | `''`        | Class applied to the WindBarbs `<g>` container.                                                                                                                    |
+| `sx`           | `object`                    | `{}`        | Inline style object applied to the WindBarbs `<g>` container.                                                                                                      |
+
+WindBarbs data shape example:
+
+```js
+[
+  { validTime: new Date('2026-01-01T00:00Z'), pressure: 500, speed: 35, direction: 270 },
+  { validTime: new Date('2026-01-01T00:00Z'), pressure: 700, speed: 20, direction: 225 },
+  { validTime: new Date('2026-01-01T06:00Z'), pressure: 500, speed: 45, direction: 260 },
+]
+```
+
+Suggested series config:
+
+```js
+{
+  type: 'windBarbs',
+  xKey: 'validTime',
+  yKey: 'pressure',
+  speedKey: 'speed',
+  directionKey: 'direction',
+  color: '#1a1a2e',
+  size: 24,
+  units: 'kt',
+}
+```
+
+WindBarbs notes:
+
+- Speed values are unit-agnostic: every 5 units adds one barb feature. Use `series.units` (for example `'kt'`) if you want units shown in the hover readout.
+- Calm wind (speed below 2.5) renders as a small circle at the data point instead of a staff.
+- `size` is a fixed pixel value. In dense gridded charts, choose a size that keeps barbs from overlapping.
+- When used with `contourGrid`, place `windBarbs` after the contourGrid entry in `series` so it renders on top.
+- Hover readout shows speed on the primary row and direction (rounded to nearest degree) as an indented detail line.
+- Secondary axes are supported: use `isSecondaryXAxis` and `isSecondaryYAxis` as with other series types.
+
+### WindBarbs with ContourGrid
+
+Pair `windBarbs` with `contourGrid` to overlay barbs on a contoured scalar field. List `contourGrid` first so the fill renders beneath the barbs:
+
+```js
+const options = {
+  series: [
+    {
+      type: 'contourGrid',
+      xKey: 'validTime',
+      yKey: 'pressure',
+      valueKey: 'temperature',
+      colors: ['#313695', '#74add1', '#fed976', '#f46d43', '#a50026'],
+    },
+    {
+      type: 'windBarbs',
+      xKey: 'validTime',
+      yKey: 'pressure',
+      speedKey: 'windSpeed',
+      directionKey: 'windDir',
+      color: '#1a1a2e',
+      size: 20,
+      units: 'kt',
+    },
+  ],
+  axes: {
+    x: { type: 'time' },
+    y: { type: 'linear', isReversed: true }, // pressure decreases upward
+  },
+};
+```
 
 ### Line
 
@@ -1000,6 +1104,7 @@ All plot types support secondary-axis mapping:
 - `circle`
 - `matrix`
 - `heatmap`
+- `windBarbs`
 
 Axis rendering behavior:
 

@@ -351,6 +351,10 @@ export function resolveSeriesReadoutEntries(summary, readoutOptions = {}) {
     return [{ key: 'value', label: null, value: values.value }];
   }
 
+  if (summary?.seriesType === 'windBarbs') {
+    return [{ key: 'speed', label: null, value: values.speed }];
+  }
+
   return [{ key: 'y', label: null, value: values.y }];
 }
 
@@ -430,6 +434,18 @@ export function formatSeriesReadoutText(summary, readoutOptions = {}) {
 }
 
 export function resolveSeriesReadoutDetailLines(summary, readoutOptions = {}) {
+  if (summary?.seriesType === 'windBarbs') {
+    const direction = Number(summary?.values?.direction);
+    if (!Number.isFinite(direction)) return [];
+    return [
+      {
+        key: 'direction',
+        label: 'Dir',
+        text: `${Math.round(((direction % 360) + 360) % 360)}\u00b0`,
+      },
+    ];
+  }
+
   if (summary?.seriesType !== 'boxPlot' && summary?.seriesType !== 'area') {
     return [];
   }

@@ -160,7 +160,7 @@ export const defaultSeriesOptions = {
 export const seriesAccessorProps = {
   x: ['xKey', 'minXKey', 'q1XKey', 'medianXKey', 'q3XKey', 'maxXKey'],
   y: ['yKey', 'minYKey', 'q1YKey', 'medianYKey', 'q3YKey', 'maxYKey'],
-  value: ['valueKey', 'labelKey'],
+  value: ['valueKey', 'labelKey', 'speedKey', 'directionKey'],
 };
 
 /**
@@ -269,6 +269,21 @@ export const defaultHeatmapOptions = {
   contourLineColor: null,
   contourLineWidth: 1,
   contourLineOpacity: 0.85,
+  isVisible: true,
+  sx: {},
+};
+
+export const defaultWindBarbsOptions = {
+  className: '',
+  xKey: 'x',
+  yKey: 'y',
+  speedKey: 'speed',
+  directionKey: 'direction',
+  // color applies to all strokes and pennant fills
+  color: '#404040',
+  // pixel length of the barb staff
+  size: 20,
+  strokeWidth: 1.5,
   isVisible: true,
   sx: {},
 };

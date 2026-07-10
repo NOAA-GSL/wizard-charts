@@ -30,6 +30,7 @@ import Area from './plotComponents/Area';
 import Matrix from './plotComponents/Matrix';
 import Heatmap from './plotComponents/Heatmap';
 import ContourGrid from './plotComponents/ContourGrid';
+import WindBarbs from './plotComponents/WindBarbs';
 
 const SIZE_EPSILON = 0.25;
 const AUTO_SIZE = 'auto';
@@ -40,6 +41,7 @@ const CONTOUR_GRID_ALLOWED_MIX_TYPES = new Set([
   'line',
   'area',
   'circle',
+  'windBarbs',
 ]);
 
 function isAutoSizeValue(value) {
@@ -431,6 +433,8 @@ function ChartContainer({
         return <Heatmap key={s.id ?? i} seriesIndex={i} options={s} />;
       case 'contourGrid':
         return <ContourGrid key={s.id ?? i} seriesIndex={i} options={s} />;
+      case 'windBarbs':
+        return <WindBarbs key={s.id ?? i} seriesIndex={i} options={s} />;
       default:
         return null;
     }

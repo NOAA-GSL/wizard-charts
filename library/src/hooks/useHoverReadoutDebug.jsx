@@ -28,6 +28,7 @@ const SUPPORTED_SERIES_TYPES = new Set([
   'contourGrid',
   'line',
   'matrix',
+  'windBarbs',
 ]);
 
 function toNumberOrNull(value) {
@@ -50,7 +51,8 @@ function resolveSeriesReadoutUnits({ series, axisKeys, chartValues }) {
   if (
     series?.type === 'matrix' ||
     series?.type === 'heatmap' ||
-    series?.type === 'contourGrid'
+    series?.type === 'contourGrid' ||
+    series?.type === 'windBarbs'
   ) {
     return '';
   }
@@ -222,9 +224,22 @@ function buildValueSummary(seriesType, accessors, datum) {
     };
   }
 
+  if (seriesType === 'windBarbs') {
+    return buildWindBarbsValueSummary(accessors, datum);
+  }
+
   return {
     x,
     y: accessors.y?.(datum),
+  };
+}
+
+function buildWindBarbsValueSummary(accessors, datum) {
+  return {
+    x: accessors.x?.(datum),
+    y: accessors.y?.(datum),
+    speed: accessors.speedKey?.(datum),
+    direction: accessors.directionKey?.(datum),
   };
 }
 
@@ -284,6 +299,13 @@ function resolveSeriesReadoutColor(series) {
   if (series?.type === 'area') return whisker || stroke || fill || '#d4d4d4';
   if (series?.type === 'boxPlot') {
     return whisker || stroke || fill || '#d4d4d4';
+  }
+  if (series?.type === 'windBarbs') {
+    const barbColor =
+      typeof series?.color === 'string' && series.color !== 'none'
+        ? series.color
+        : null;
+    return barbColor || fill || stroke || '#d4d4d4';
   }
 
   return fill || stroke || '#d4d4d4';
