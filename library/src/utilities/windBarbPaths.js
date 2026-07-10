@@ -42,7 +42,6 @@ export function buildWindBarbElements(speed, size) {
 
   const barbLen = L * 0.5;
   const halfBarbLen = L * 0.25;
-  const barbAngleDown = L * 0.15; // vertical drop of barb tip relative to root
   const barbSpacing = L * 0.2; // spacing between flags along the staff
 
   const pennants = Math.floor(bucket / 10);
@@ -87,7 +86,7 @@ export function buildWindBarbElements(speed, size) {
       x1: 0,
       y1: y,
       x2: barbLen,
-      y2: y + barbAngleDown,
+      y2: y,
     });
     y += barbSpacing;
   }
@@ -103,7 +102,7 @@ export function buildWindBarbElements(speed, size) {
       x1: 0,
       y1: y,
       x2: halfBarbLen,
-      y2: y + barbAngleDown * 0.5,
+      y2: y,
     });
   }
 
