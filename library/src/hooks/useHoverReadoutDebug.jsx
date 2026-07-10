@@ -378,6 +378,14 @@ function summarizeSeriesPoint({
   if (!Number.isFinite(xPixel)) return null;
 
   const values = buildValueSummary(seriesType, accessors, datum);
+
+  // Apply readout precision rounding to windBarbs values (default to whole numbers)
+  if (seriesType === 'windBarbs') {
+    const precision = series?.readoutPrecision;
+    values.speed = applyReadoutPrecision(values.speed, precision);
+    values.direction = applyReadoutPrecision(values.direction, precision);
+  }
+
   const yPixel = getRepresentativeYPixel(
     seriesType,
     yScale,
@@ -646,6 +654,21 @@ function normalizeContourGridSamplingMode(rawMode) {
   return rawMode === 'nearest' ? 'nearest' : 'interpolate';
 }
 
+function applyReadoutPrecision(value, precision) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return numeric;
+
+  // If precision is undefined, default to 0 (whole number)
+  const decimalPlaces = Number.isFinite(precision) ? Math.max(0, precision) : 0;
+
+  if (decimalPlaces === 0) {
+    return Math.round(numeric);
+  }
+
+  const factor = Math.pow(10, decimalPlaces);
+  return Math.round(numeric * factor) / factor;
+}
+
 function summarizeWindBarbsInterpolatedPoint({
   accessors,
   axisKeys,
@@ -734,6 +757,14 @@ function summarizeWindBarbsInterpolatedPoint({
   const interpolatedDirection =
     ((((interpolatedDirRadians * 180) / Math.PI) % 360) + 360) % 360;
 
+  // Apply readout precision rounding
+  const precision = series?.readoutPrecision;
+  const roundedSpeed = applyReadoutPrecision(interpolatedSpeed, precision);
+  const roundedDirection = applyReadoutPrecision(
+    interpolatedDirection,
+    precision,
+  );
+
   // Try to invert scales to get data coordinates at hover point
   let xValue = hoverX;
   let yValue = hoverY;
@@ -766,8 +797,8 @@ function summarizeWindBarbsInterpolatedPoint({
     values: {
       x: xValue,
       y: yValue,
-      speed: interpolatedSpeed,
-      direction: interpolatedDirection,
+      speed: roundedSpeed,
+      direction: roundedDirection,
     },
     xDistancePx: 0,
     xPixel: hoverX,

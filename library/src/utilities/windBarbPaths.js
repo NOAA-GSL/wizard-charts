@@ -35,9 +35,14 @@ export function buildWindBarbElements(speed, size) {
   const L = Math.max(4, Number(size) || 20);
   const bucket = speedToBucket(speed);
 
-  // Calm: circle symbol only, no staff
+  // Calm: circle with short staff to show direction
   if (bucket === 0) {
-    return [{ type: 'circle', cx: 0, cy: 0, r: Math.max(2, L * 0.25) }];
+    const r = Math.max(2, L * 0.2);
+    const calmStaffLen = L * 0.5; // shorter staff for calm winds
+    return [
+      { type: 'circle', cx: 0, cy: 0, r: r },
+      { type: 'staff', x1: 0, y1: -r, x2: 0, y2: -(r + calmStaffLen) },
+    ];
   }
 
   const barbLen = L * 0.5;

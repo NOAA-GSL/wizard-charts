@@ -643,7 +643,7 @@ export const demoOptions = {
         name: 'Wind',
         color: '#e8e8e8',
         readoutSamplingMode: 'nearest',
-        size: 24,
+        size: 28,
         strokeWidth: 1.5,
         units: 'kt',
       },
@@ -661,7 +661,6 @@ export const demoOptions = {
         nice: true,
       },
     },
-    animationDuration: 500,
   },
   windBarbsContourGrid: {
     series: [
@@ -694,7 +693,7 @@ export const demoOptions = {
         speedKey: 'speed',
         directionKey: 'direction',
         name: 'Wind',
-        color: '#111111',
+        color: '#578df1',
         size: 20,
         strokeWidth: 1.5,
         units: 'kt',
@@ -714,7 +713,6 @@ export const demoOptions = {
     readout: {
       hoverMode: 'local',
     },
-    animationDuration: 500,
   },
   windBarbsSurface: {
     series: [
@@ -752,6 +750,5 @@ export const demoOptions = {
     readout: {
       titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
     },
-    animationDuration: 500,
   },
 };
