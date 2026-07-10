@@ -352,7 +352,10 @@ export function resolveSeriesReadoutEntries(summary, readoutOptions = {}) {
   }
 
   if (summary?.seriesType === 'windBarbs') {
-    return [{ key: 'speed', label: null, value: values.speed }];
+    return [
+      { key: 'speed', label: 'Speed', value: values.speed },
+      { key: 'direction', label: 'Dir', value: values.direction },
+    ];
   }
 
   return [{ key: 'y', label: null, value: values.y }];
@@ -434,19 +437,11 @@ export function formatSeriesReadoutText(summary, readoutOptions = {}) {
 }
 
 export function resolveSeriesReadoutDetailLines(summary, readoutOptions = {}) {
-  if (summary?.seriesType === 'windBarbs') {
-    const direction = Number(summary?.values?.direction);
-    if (!Number.isFinite(direction)) return [];
-    return [
-      {
-        key: 'direction',
-        label: 'Dir',
-        text: `${Math.round(((direction % 360) + 360) % 360)}\u00b0`,
-      },
-    ];
-  }
-
-  if (summary?.seriesType !== 'boxPlot' && summary?.seriesType !== 'area') {
+  if (
+    summary?.seriesType !== 'boxPlot' &&
+    summary?.seriesType !== 'area' &&
+    summary?.seriesType !== 'windBarbs'
+  ) {
     return [];
   }
 
@@ -455,18 +450,28 @@ export function resolveSeriesReadoutDetailLines(summary, readoutOptions = {}) {
 
   return entries
     .filter((entry) => entry?.label && Number.isFinite(Number(entry?.value)))
-    .map((entry) => ({
-      key: entry.key,
-      label: String(entry.label),
-      text: formatReadoutNumber(
-        entry.value,
-        valueFormatter,
-        buildReadoutValueFormatterContext(
-          summary,
-          entry,
-          'detail',
-          readoutOptions,
-        ),
-      ),
-    }));
+    .map((entry) => {
+      let text;
+      if (summary?.seriesType === 'windBarbs' && entry.key === 'direction') {
+        const direction = Number(entry.value);
+        const normalizedDir = Math.round(((direction % 360) + 360) % 360);
+        text = `${normalizedDir}°`;
+      } else {
+        text = formatReadoutNumber(
+          entry.value,
+          valueFormatter,
+          buildReadoutValueFormatterContext(
+            summary,
+            entry,
+            'detail',
+            readoutOptions,
+          ),
+        );
+      }
+      return {
+        key: entry.key,
+        label: String(entry.label),
+        text,
+      };
+    });
 }
