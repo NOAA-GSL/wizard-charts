@@ -746,6 +746,9 @@ export const demoOptions = {
         domainMin: 0,
       },
     },
+    readout: {
+      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
+    },
     animationDuration: 500,
   },
 };

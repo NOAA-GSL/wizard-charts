@@ -284,6 +284,8 @@ export const defaultWindBarbsOptions = {
   // pixel length of the barb staff
   size: 20,
   strokeWidth: 1.5,
+  // readout sampling strategy for values at pointer x/y
+  readoutSamplingMode: 'nearest', // 'interpolate' | 'nearest'
   isVisible: true,
   sx: {},
 };

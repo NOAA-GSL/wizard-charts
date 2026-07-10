@@ -246,6 +246,12 @@ function buildWindBarbsValueSummary(accessors, datum) {
 function getRepresentativeYPixel(seriesType, yScale, summary, readoutOptions) {
   if (!yScale) return null;
 
+  // For windBarbs, always use the actual y coordinate, not the speed value
+  if (seriesType === 'windBarbs') {
+    const y = toNumberOrNull(summary.y);
+    return y != null ? yScale(y) : null;
+  }
+
   const configuredValue = toNumberOrNull(
     resolveSeriesValue({ seriesType, values: summary }, readoutOptions),
   );
