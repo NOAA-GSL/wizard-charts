@@ -1,4 +1,4 @@
-export const testData = [
+export const testDataCfs = [
   {
     date: 1783339200000,
     series: {
@@ -567,6 +567,72 @@ export const testData = [
       p50: 21056.514,
       p75: 36073.047,
       p90: 55971.8,
+    },
+  },
+];
+
+export const testDataWind = [
+  {
+    date: 1783339200000,
+    series: {
+      speed: 22,
+      direction: 230,
+    },
+  },
+  {
+    date: 1783360800000,
+    series: {
+      speed: 30,
+      direction: 280,
+    },
+  },
+  {
+    date: 1783382400000,
+    series: {
+      speed: 41,
+      direction: 330,
+    },
+  },
+  {
+    date: 1783404000000,
+    series: {
+      speed: 34,
+      direction: 10,
+    },
+  },
+  {
+    date: 1783425600000,
+    series: {
+      speed: 29,
+      direction: 40,
+    },
+  },
+  {
+    date: 1783447200000,
+    series: {
+      speed: 26,
+      direction: 60,
+    },
+  },
+  {
+    date: 1783468800000,
+    series: {
+      speed: 18,
+      direction: 80,
+    },
+  },
+  {
+    date: 1783490400000,
+    series: {
+      speed: 11,
+      direction: 110,
+    },
+  },
+  {
+    date: 1783512000000,
+    series: {
+      speed: 2,
+      direction: 140,
     },
   },
 ];

@@ -37,7 +37,7 @@ export function buildWindBarbElements(speed, size) {
 
   // Calm: circle with short staff to show direction
   if (bucket === 0) {
-    const r = Math.max(2, L * 0.2);
+    const r = Math.max(2, L * 0.15);
     const calmStaffLen = L * 0.6; // shorter staff for calm winds
     return [
       { type: 'circle', cx: 0, cy: 0, r: r },
@@ -45,9 +45,9 @@ export function buildWindBarbElements(speed, size) {
     ];
   }
 
-  const barbLen = L * 0.5;
-  const halfBarbLen = L * 0.25;
-  const barbSpacing = L * 0.2; // spacing between flags along the staff
+  const barbLen = L * 0.4;
+  const halfBarbLen = L * 0.2;
+  const barbSpacing = L * 0.15; // spacing between flags along the staff
 
   const pennants = Math.floor(bucket / 10);
   const remaining = bucket % 10;
