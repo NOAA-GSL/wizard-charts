@@ -839,24 +839,24 @@ ContourGrid renders contour fills/lines from structured gridded x/y/value data. 
 
 ContourGrid option details:
 
-| Property              | Type                        | Default                                                   | Description                                                                                                                              |
-| --------------------- | --------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `xKey`                | `string \| (row) => any`    | `'x'`                                                     | Accessor for x coordinates. Supports dot notation.                                                                                       |
-| `yKey`                | `string \| (row) => any`    | `'y'`                                                     | Accessor for y coordinates. Supports dot notation.                                                                                       |
-| `valueKey`            | `string \| (row) => number` | `'value'`                                                 | Numeric field used for contour thresholds and readout values.                                                                            |
-| `thresholds`          | `number[] \| undefined`     | `undefined`                                               | Optional contour levels. If omitted, thresholds are auto-generated from the value extent using `colors.length - 1` evenly spaced breaks. |
-| `colors`              | `string[]`                  | `['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c']` | Color bins for threshold bands. Recommended length is `thresholds.length + 1`.                                                           |
-| `fill`                | `string`                    | `'#d6e6f2'`                                               | Fallback base fill color when bins/colors are insufficient.                                                                              |
-| `showContourFill`     | `boolean`                   | `true`                                                    | Render filled contour bands.                                                                                                             |
-| `fillOpacity`         | `number`                    | `0.85`                                                    | Opacity applied to filled contour bands.                                                                                                 |
-| `showContourLines`    | `boolean`                   | `true`                                                    | Render contour line overlays on top of fills.                                                                                            |
-| `contourLineColor`    | `string \| null`            | `null`                                                    | Line color override. When null, each line uses its threshold-bin color.                                                                  |
-| `contourLineWidth`    | `number`                    | `1`                                                       | Contour line width in pixels.                                                                                                            |
-| `contourLineOpacity`  | `number`                    | `0.85`                                                    | Contour line opacity.                                                                                                                    |
-| `readoutSamplingMode` | `'interpolate' \| 'nearest'` | `'interpolate'`                                           | Hover sampling mode for readout value lookup at pointer x/y.                                                                            |
-| `className`           | `string`                    | `''`                                                      | Class applied to the contourGrid container `<g>`.                                                                                        |
-| `sx`                  | `object`                    | `{}`                                                      | Inline style object applied to the contourGrid container `<g>`.                                                                          |
-| `isVisible`           | `boolean`                   | `true`                                                    | Toggles contourGrid visibility while preserving layout/scales.                                                                           |
+| Property              | Type                         | Default                                                   | Description                                                                                                                              |
+| --------------------- | ---------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `xKey`                | `string \| (row) => any`     | `'x'`                                                     | Accessor for x coordinates. Supports dot notation.                                                                                       |
+| `yKey`                | `string \| (row) => any`     | `'y'`                                                     | Accessor for y coordinates. Supports dot notation.                                                                                       |
+| `valueKey`            | `string \| (row) => number`  | `'value'`                                                 | Numeric field used for contour thresholds and readout values.                                                                            |
+| `thresholds`          | `number[] \| undefined`      | `undefined`                                               | Optional contour levels. If omitted, thresholds are auto-generated from the value extent using `colors.length - 1` evenly spaced breaks. |
+| `colors`              | `string[]`                   | `['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c']` | Color bins for threshold bands. Recommended length is `thresholds.length + 1`.                                                           |
+| `fill`                | `string`                     | `'#d6e6f2'`                                               | Fallback base fill color when bins/colors are insufficient.                                                                              |
+| `showContourFill`     | `boolean`                    | `true`                                                    | Render filled contour bands.                                                                                                             |
+| `fillOpacity`         | `number`                     | `0.85`                                                    | Opacity applied to filled contour bands.                                                                                                 |
+| `showContourLines`    | `boolean`                    | `true`                                                    | Render contour line overlays on top of fills.                                                                                            |
+| `contourLineColor`    | `string \| null`             | `null`                                                    | Line color override. When null, each line uses its threshold-bin color.                                                                  |
+| `contourLineWidth`    | `number`                     | `1`                                                       | Contour line width in pixels.                                                                                                            |
+| `contourLineOpacity`  | `number`                     | `0.85`                                                    | Contour line opacity.                                                                                                                    |
+| `readoutSamplingMode` | `'interpolate' \| 'nearest'` | `'interpolate'`                                           | Hover sampling mode for readout value lookup at pointer x/y.                                                                             |
+| `className`           | `string`                     | `''`                                                      | Class applied to the contourGrid container `<g>`.                                                                                        |
+| `sx`                  | `object`                     | `{}`                                                      | Inline style object applied to the contourGrid container `<g>`.                                                                          |
+| `isVisible`           | `boolean`                    | `true`                                                    | Toggles contourGrid visibility while preserving layout/scales.                                                                           |
 
 ContourGrid notes:
 
@@ -868,7 +868,7 @@ ContourGrid notes:
 
 WindBarbs renders meteorological wind barbs at each data point. It works both as a standalone scatter-style overlay (like `circle`) and as a gridded overlay paired with `contourGrid`.
 
-Each datum requires an x position, a y position, a speed value, and a direction value. Speed maps to the barb shape in 5-unit buckets (unit-agnostic — the chart does not interpret or convert values; provide `series.units` for readout display). Direction uses the meteorological convention: degrees the wind comes **FROM**, clockwise from north (0 = north, 90 = east).
+Each datum requires an x position, a y position, a speed value, and a direction value. Speed maps to the barb shape in 5-unit buckets (unit-agnostic — the chart does not interpret or convert values; provide `series.units` for readout display).
 
 Barb shapes are drawn as inline SVG paths. The `color` option controls the stroke and fill of all barb elements, so any valid CSS color value produces correctly colored barbs.
 
@@ -889,27 +889,42 @@ Barb shapes are drawn as inline SVG paths. The `color` option controls the strok
 
 WindBarbs option details:
 
-| Property       | Type                        | Default     | Description                                                                                                                                                         |
-| -------------- | --------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `xKey`         | `string \| (row) => any`    | `'x'`       | Accessor for x position. Supports dot notation.                                                                                                                    |
-| `yKey`         | `string \| (row) => any`    | `'y'`       | Accessor for y position. Supports dot notation.                                                                                                                    |
-| `speedKey`     | `string \| (row) => number` | `'speed'`   | Numeric wind speed. Maps to barb shape in 5-unit buckets: each 5 units adds one flag feature. Values below 2.5 render as a calm circle.                            |
-| `directionKey` | `string \| (row) => number` | `'direction'` | Wind direction in meteorological degrees (wind comes FROM this direction, clockwise from north). Controls the rotation of each barb.                              |
-| `color`        | `string`                    | `'#404040'` | Stroke color for the staff and barb lines, and fill color for pennant triangles. Accepts any CSS color value.                                                       |
-| `size`         | `number`                    | `20`        | Pixel length of the barb staff. All other barb geometry scales proportionally.                                                                                      |
-| `strokeWidth`  | `number`                    | `1.5`       | Stroke width in pixels for the staff, barb lines, and pennant outlines.                                                                                             |
-| `isVisible`    | `boolean`                   | `true`      | Toggles barb visibility while preserving layout and scales.                                                                                                         |
-| `className`    | `string`                    | `''`        | Class applied to the WindBarbs `<g>` container.                                                                                                                    |
-| `sx`           | `object`                    | `{}`        | Inline style object applied to the WindBarbs `<g>` container.                                                                                                      |
+| Property       | Type                        | Default       | Description                                                                                                                             |
+| -------------- | --------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `xKey`         | `string \| (row) => any`    | `'x'`         | Accessor for x position. Supports dot notation.                                                                                         |
+| `yKey`         | `string \| (row) => any`    | `'y'`         | Accessor for y position. Supports dot notation.                                                                                         |
+| `speedKey`     | `string \| (row) => number` | `'speed'`     | Numeric wind speed. Maps to barb shape in 5-unit buckets: each 5 units adds one flag feature. Values below 2.5 render as a calm circle. |
+| `directionKey` | `string \| (row) => number` | `'direction'` | Wind direction in meteorological degrees (wind comes FROM this direction, clockwise from north). Controls the rotation of each barb.    |
+| `color`        | `string`                    | `'#404040'`   | Stroke color for the staff and barb lines, and fill color for pennant triangles. Accepts any CSS color value.                           |
+| `size`         | `number`                    | `20`          | Pixel length of the barb staff. All other barb geometry scales proportionally.                                                          |
+| `strokeWidth`  | `number`                    | `1.5`         | Stroke width in pixels for the staff, barb lines, and pennant outlines.                                                                 |
+| `isVisible`    | `boolean`                   | `true`        | Toggles barb visibility while preserving layout and scales.                                                                             |
+| `className`    | `string`                    | `''`          | Class applied to the WindBarbs `<g>` container.                                                                                         |
+| `sx`           | `object`                    | `{}`          | Inline style object applied to the WindBarbs `<g>` container.                                                                           |
 
 WindBarbs data shape example:
 
 ```js
 [
-  { validTime: new Date('2026-01-01T00:00Z'), pressure: 500, speed: 35, direction: 270 },
-  { validTime: new Date('2026-01-01T00:00Z'), pressure: 700, speed: 20, direction: 225 },
-  { validTime: new Date('2026-01-01T06:00Z'), pressure: 500, speed: 45, direction: 260 },
-]
+  {
+    validTime: new Date('2026-01-01T00:00Z'),
+    pressure: 500,
+    speed: 35,
+    direction: 270,
+  },
+  {
+    validTime: new Date('2026-01-01T00:00Z'),
+    pressure: 700,
+    speed: 20,
+    direction: 225,
+  },
+  {
+    validTime: new Date('2026-01-01T06:00Z'),
+    pressure: 500,
+    speed: 45,
+    direction: 260,
+  },
+];
 ```
 
 Suggested series config:
