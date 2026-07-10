@@ -698,7 +698,7 @@ export const demoOptions = {
         size: 20,
         strokeWidth: 1.5,
         units: 'kt',
-        readoutSamplingMode: 'nearest',
+        readoutSamplingMode: 'interpolate',
       },
     ],
     axes: {
@@ -708,7 +708,7 @@ export const demoOptions = {
       },
       y: {
         type: 'linear',
-        label: { text: 'Level' },
+        label: { text: 'Altitude (m AGL)' },
       },
     },
     readout: {

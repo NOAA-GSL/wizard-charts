@@ -646,6 +646,143 @@ function normalizeContourGridSamplingMode(rawMode) {
   return rawMode === 'nearest' ? 'nearest' : 'interpolate';
 }
 
+function summarizeWindBarbsInterpolatedPoint({
+  accessors,
+  axisKeys,
+  seriesUnits,
+  hoverX,
+  hoverY,
+  series,
+  seriesData,
+  seriesIndex,
+  xScale,
+  yScale,
+}) {
+  // Collect all windBarb points with their distances from hover position
+  const neighbors = [];
+
+  seriesData.forEach((datum, dataIndex) => {
+    const xValue = accessors.x?.(datum);
+    const yValue = accessors.y?.(datum);
+
+    if (xValue == null || yValue == null) return;
+
+    const xPixel = xScale(xValue);
+    const yPixel = yScale(yValue);
+
+    if (!Number.isFinite(xPixel) || !Number.isFinite(yPixel)) return;
+
+    const distance = Math.hypot(xPixel - hoverX, yPixel - hoverY);
+    neighbors.push({
+      datum,
+      dataIndex,
+      distance,
+      xPixel,
+      yPixel,
+      xValue,
+      yValue,
+    });
+  });
+
+  if (neighbors.length === 0) return null;
+
+  // Sort by distance and use k-nearest for interpolation
+  neighbors.sort((a, b) => a.distance - b.distance);
+  const k = Math.min(8, neighbors.length);
+  const kNearest = neighbors.slice(0, k);
+
+  // Interpolate speed and direction using IDW (inverse distance weighting)
+  let totalWeight = 0;
+  let weightedSpeed = 0;
+  let weightedDirX = 0; // for circular mean: sum of cos(direction)
+  let weightedDirY = 0; // for circular mean: sum of sin(direction)
+
+  kNearest.forEach(({ datum, distance }) => {
+    // If extremely close to a point, just use that point's values
+    if (distance < 0.5) {
+      const speed = Number(accessors.speedKey?.(datum)) ?? 0;
+      const direction = Number(accessors.directionKey?.(datum)) ?? 0;
+      return {
+        interpolated: true,
+        speed,
+        direction: ((direction % 360) + 360) % 360,
+      };
+    }
+
+    // IDW weight: 1 / distance^2
+    const weight = 1 / (distance * distance);
+    const speed = Number(accessors.speedKey?.(datum)) ?? 0;
+    const direction = Number(accessors.directionKey?.(datum)) ?? 0;
+
+    totalWeight += weight;
+    weightedSpeed += weight * speed;
+
+    // Convert direction to unit vector for circular interpolation
+    const dirRadians = (direction * Math.PI) / 180;
+    weightedDirX += weight * Math.cos(dirRadians);
+    weightedDirY += weight * Math.sin(dirRadians);
+  });
+
+  // Interpolated speed is simple average
+  const interpolatedSpeed = totalWeight > 0 ? weightedSpeed / totalWeight : 0;
+
+  // Interpolated direction is circular mean (atan2 of averaged vectors)
+  const interpolatedDirRadians = Math.atan2(
+    weightedDirY / totalWeight,
+    weightedDirX / totalWeight,
+  );
+  const interpolatedDirection =
+    ((((interpolatedDirRadians * 180) / Math.PI) % 360) + 360) % 360;
+
+  // Try to invert scales to get data coordinates at hover point
+  let xValue = hoverX;
+  let yValue = hoverY;
+  if (typeof xScale.invert === 'function') {
+    try {
+      xValue = xScale.invert(hoverX);
+    } catch {
+      // keep original
+    }
+  }
+  if (typeof yScale.invert === 'function') {
+    try {
+      yValue = yScale.invert(hoverY);
+    } catch {
+      // keep original
+    }
+  }
+
+  return {
+    axisKeys,
+    dataIndex: null,
+    distancePx: 0,
+    readoutColor: resolveSeriesReadoutColor(series),
+    seriesUnits,
+    seriesDisplayUnits: series?.displayUnits,
+    seriesReadoutPrecision: series?.readoutPrecision,
+    seriesIndex,
+    seriesName: series?.name || `Series ${seriesIndex + 1}`,
+    seriesType: 'windBarbs',
+    values: {
+      x: xValue,
+      y: yValue,
+      speed: interpolatedSpeed,
+      direction: interpolatedDirection,
+    },
+    xDistancePx: 0,
+    xPixel: hoverX,
+    yDistancePx: 0,
+    yPixel: hoverY,
+    markerPoints: [
+      {
+        id: 'windBarb',
+        xPixel: hoverX,
+        yPixel: hoverY,
+      },
+    ],
+  };
+}
+
 function summarizeContourGridSeriesPoint({
   accessors,
   axisKeys,
@@ -846,6 +983,26 @@ export function useHoverReadoutDebug({
             xScale,
             yScale,
           });
+        }
+
+        // Special handling for windBarbs with interpolate mode
+        const rawMode = series?.readoutSamplingMode;
+        const windBarbsInterpolate =
+          series.type === 'windBarbs' && rawMode === 'interpolate';
+        if (windBarbsInterpolate) {
+          const interpolated = summarizeWindBarbsInterpolatedPoint({
+            accessors,
+            axisKeys,
+            seriesUnits,
+            hoverX: localX,
+            hoverY: localY,
+            series,
+            seriesData,
+            seriesIndex,
+            xScale,
+            yScale,
+          });
+          if (interpolated) return interpolated;
         }
 
         let nearest = null;
