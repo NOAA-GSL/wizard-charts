@@ -384,13 +384,33 @@ function summarizeSeriesPoint({
     values,
     readoutOptions,
   );
-  const markerPoints = buildSeriesMarkerPoints({
-    seriesType,
-    values,
-    xPixel,
-    yScale,
-    readoutOptions,
-  });
+
+  // For windBarbs, position marker based on readoutSamplingMode:
+  // 'nearest' = marker at data point, 'interpolate' = marker at mouse position
+  let markerPoints;
+  if (seriesType === 'windBarbs') {
+    const rawMode = series?.readoutSamplingMode;
+    const samplingMode = rawMode === 'interpolate' ? 'interpolate' : 'nearest';
+    const markerXPixel =
+      samplingMode === 'nearest' && Number.isFinite(xPixel) ? xPixel : hoverX;
+    const markerYPixel =
+      samplingMode === 'nearest' && Number.isFinite(yPixel) ? yPixel : hoverY;
+    markerPoints = [
+      {
+        id: 'windBarb',
+        xPixel: markerXPixel,
+        yPixel: markerYPixel,
+      },
+    ];
+  } else {
+    markerPoints = buildSeriesMarkerPoints({
+      seriesType,
+      values,
+      xPixel,
+      yScale,
+      readoutOptions,
+    });
+  }
 
   const xDistancePx = Math.abs(xPixel - hoverX);
   const yDistancePx = Number.isFinite(yPixel)

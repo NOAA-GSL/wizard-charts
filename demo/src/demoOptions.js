@@ -642,6 +642,7 @@ export const demoOptions = {
         directionKey: 'direction',
         name: 'Wind',
         color: '#e8e8e8',
+        readoutSamplingMode: 'nearest',
         size: 24,
         strokeWidth: 1.5,
         units: 'kt',
@@ -697,6 +698,7 @@ export const demoOptions = {
         size: 20,
         strokeWidth: 1.5,
         units: 'kt',
+        readoutSamplingMode: 'nearest',
       },
     ],
     axes: {
@@ -728,6 +730,7 @@ export const demoOptions = {
         directionKey: 'direction',
         name: 'Surface Wind',
         color: '#e8e8e8',
+        readoutSamplingMode: 'nearest',
         size: 24,
         strokeWidth: 1.5,
         units: 'kt',
