@@ -35,12 +35,14 @@ export const defaultAxisOptions = {
   },
   hasAxisLine: true,
   hasGridLines: false,
+  includeLineMarkersInDomain: false,
   nice: false,
   className: '',
   strokeAxis: '#404040',
   strokeGrid: '#404040',
   strokeWidth: 1,
   sx: {},
+  lineMarkers: [],
   // tick props
   ticks: {
     values: [],
@@ -57,6 +59,28 @@ export const defaultAxisOptions = {
     fontColor: 'currentColor',
     formatter: null, // optional formatting function for ticks
   },
+};
+
+export const defaultLineMarkerOptions = {
+  isVisible: true,
+  stroke: '#404040',
+  strokeWidth: 1,
+  strokeDasharray: null,
+  className: '',
+  sx: {},
+  label: '',
+  placement: 'top-right',
+  padding: 8,
+  fontFamily: 'sans-serif',
+  fontSize: 12,
+  fontWeight: 700,
+  fontColor: 'currentColor',
+  labelBackgroundFill: '',
+  labelBackgroundOpacity: 1,
+  labelBackgroundStroke: '',
+  labelBackgroundStrokeWidth: 1,
+  labelCornerRadius: 4,
+  labelPadding: 4,
 };
 
 export const defaultOptions = {

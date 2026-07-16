@@ -31,6 +31,7 @@ import Matrix from './plotComponents/Matrix';
 import Heatmap from './plotComponents/Heatmap';
 import ContourGrid from './plotComponents/ContourGrid';
 import WindBarbs from './plotComponents/WindBarbs';
+import LineMarker from './plotComponents/LineMarker';
 
 const SIZE_EPSILON = 0.25;
 const AUTO_SIZE = 'auto';
@@ -442,6 +443,9 @@ function ChartContainer({
 
   const axes = initialValues.options.axes || {};
   const series = initialValues.options.series || [];
+  const hasAxisLineMarkers = (axisOptions) =>
+    Array.isArray(axisOptions?.lineMarkers) &&
+    axisOptions.lineMarkers.length > 0;
 
   // Phase 1: render only an SVG shell so we can measure content-box size first.
   const svgNode = (
@@ -469,6 +473,20 @@ function ChartContainer({
             <YAxis options={axes.y2} axisKey="y2" />
           )}
           {seriesNodes}
+          {axes.x && hasAxisLineMarkers(axes.x) && (
+            <LineMarker options={axes.x} axisKey="x" />
+          )}
+          {axes.x2 && hasAxisLineMarkers(axes.x2) && (
+            <LineMarker options={axes.x2} axisKey="x2" />
+          )}
+          {axes.y && hasAxisLineMarkers(axes.y) && (
+            <LineMarker options={axes.y} axisKey="y" />
+          )}
+          {axes.y2 && hasAxisLineMarkers(axes.y2) && (
+            <LineMarker options={axes.y2} axisKey="y2" />
+          )}
+          <Legend />
+          {children}
           <HoverReadoutLayer
             chartId={chartId}
             hoverStore={activeHoverStore}
@@ -477,8 +495,6 @@ function ChartContainer({
             plotBoundsRef={plotBoundsRef}
             xValueResolverRef={xValueResolverRef}
           />
-          <Legend />
-          {children}
         </>
       )}
     </svg>

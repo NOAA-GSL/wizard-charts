@@ -210,8 +210,14 @@ All column arrays must be the same length.
 {
   series: [],
   axes: {
-    x: {},
-    y: {},
+    x: {
+      // optional reference lines for this axis
+      lineMarkers: [],
+    },
+    y: {
+      // optional reference lines for this axis
+      lineMarkers: [],
+    },
     // optional secondary axes
     // x2: {},
     // y2: {},
@@ -1024,12 +1030,38 @@ Axis defaults:
   },
   hasAxisLine: true,
   hasGridLines: false,
+  includeLineMarkersInDomain: false,
   nice: false,
   strokeAxis: '#404040',
   strokeGrid: '#404040',
   strokeWidth: 1,
   className: '',
   sx: {},
+  lineMarkers: [
+    {
+      value: 32,
+      label: 'Freezing Point',
+      placement: 'top-right', // 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+      padding: 8, // number | { edge, line }
+      includeInDomain: false,
+      isVisible: true,
+      stroke: '#404040',
+      strokeWidth: 1,
+      strokeDasharray: null,
+      fontFamily: 'sans-serif',
+      fontSize: 12,
+      fontWeight: 700,
+      fontColor: 'currentColor',
+      labelBackgroundFill: '',
+      labelBackgroundOpacity: 1,
+      labelBackgroundStroke: '#404040',
+      labelBackgroundStrokeWidth: 1,
+      labelCornerRadius: 4,
+      labelPadding: 4,
+      className: '',
+      sx: {},
+    },
+  ],
   ticks: {
     values: [],
     labels: [],
@@ -1077,6 +1109,18 @@ Tick behavior:
   - `'reduce'`: keep orientation and reduce tick count.
   - `'none'`: disable automatic collision handling.
 - `ticks.collisionMinGap` sets the minimum pixel gap between adjacent label bounds before labels are considered colliding.
+
+Line marker behavior:
+
+- Add axis-level marker lines with `axes.*.lineMarkers`.
+- `x`/`x2` markers render vertical lines; `y`/`y2` markers render horizontal lines.
+- Markers render across the plot area from one side of the chart to the other.
+- `label` draws text inside the plot area using `placement` (`'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'`).
+- `padding` controls label offset from the plot edge and from the marker line (`number` or `{ edge, line }`).
+- Label text can be rendered in a boxed annotation using `labelBackgroundFill`, `labelBackgroundOpacity`, `labelBackgroundStroke`, `labelBackgroundStrokeWidth`, `labelCornerRadius`, and `labelPadding`.
+- Out-of-domain markers are hidden by default.
+- Set `axes.*.includeLineMarkersInDomain: true` to include all line marker values in domain calculation.
+- Set `lineMarkers[].includeInDomain` to override domain inclusion for a single marker.
 
 Example:
 

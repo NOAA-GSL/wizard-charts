@@ -254,6 +254,27 @@ function computeStackedExtent(data = [], series = []) {
   return extent(totals);
 }
 
+function getAxisLineMarkers(axisOptions = {}) {
+  const lineMarkers = axisOptions?.lineMarkers;
+  return Array.isArray(lineMarkers) ? lineMarkers : [];
+}
+
+function shouldIncludeLineMarkerInDomain(marker, axisOptions = {}) {
+  if (marker && marker.includeInDomain != null) {
+    return Boolean(marker.includeInDomain);
+  }
+
+  return Boolean(axisOptions?.includeLineMarkersInDomain);
+}
+
+function getLineMarkerDomainValues(axisOptions = {}) {
+  return getAxisLineMarkers(axisOptions)
+    .filter((marker) => marker?.isVisible !== false)
+    .filter((marker) => shouldIncludeLineMarkerInDomain(marker, axisOptions))
+    .map((marker) => marker?.value)
+    .filter((value) => value != null);
+}
+
 function getContinuousXDomainPadding(series = [], domain = []) {
   const [domainStart, domainEnd] = domain;
 
@@ -401,6 +422,7 @@ export const computeScales = (chartValues, axisConfig) => {
 
     let domain;
     const scaleType = type || 'linear';
+    const lineMarkerDomainValues = getLineMarkerDomainValues(axisOptions);
 
     if (scaleType === 'band') {
       // For band scales we need an array of categorical values (preserve order, unique)
@@ -417,6 +439,10 @@ export const computeScales = (chartValues, axisConfig) => {
           });
         });
       });
+      lineMarkerDomainValues.forEach((value) => {
+        if (!vals.includes(value)) vals.push(value);
+      });
+
       domain = vals.length ? vals : [];
     } else {
       let minComparable = Infinity;
@@ -443,6 +469,26 @@ export const computeScales = (chartValues, axisConfig) => {
         if (seriesMaxComparable > maxComparable) {
           maxComparable = seriesMaxComparable;
           maxValue = seriesMax;
+        }
+      });
+
+      domain =
+        Number.isFinite(minComparable) && Number.isFinite(maxComparable)
+          ? [minValue, maxValue]
+          : [0, 1];
+
+      lineMarkerDomainValues.forEach((value) => {
+        const comparable = toComparable(value);
+        if (comparable == null) return;
+
+        if (!Number.isFinite(minComparable) || comparable < minComparable) {
+          minComparable = comparable;
+          minValue = value;
+        }
+
+        if (!Number.isFinite(maxComparable) || comparable > maxComparable) {
+          maxComparable = comparable;
+          maxValue = value;
         }
       });
 
