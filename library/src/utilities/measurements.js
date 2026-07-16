@@ -29,6 +29,38 @@ const canvas =
   typeof document !== 'undefined' ? document.createElement('canvas') : null;
 const context = canvas ? canvas.getContext('2d') : null;
 
+function resolveInheritedFontFamily(fallbackFamily = 'sans-serif') {
+  if (
+    typeof window === 'undefined' ||
+    typeof document === 'undefined' ||
+    typeof window.getComputedStyle !== 'function' ||
+    !document.body
+  ) {
+    return fallbackFamily;
+  }
+
+  const bodyFamily = window.getComputedStyle(document.body).fontFamily;
+  if (typeof bodyFamily === 'string' && bodyFamily.trim().length > 0) {
+    return bodyFamily;
+  }
+
+  return fallbackFamily;
+}
+
+function normalizeCanvasFontString(font, fallbackFamily = 'sans-serif') {
+  const fontString = String(font ?? '').trim();
+  if (!fontString) {
+    return `400 12px ${fallbackFamily}`;
+  }
+
+  if (!/\binherit\b/i.test(fontString)) {
+    return fontString;
+  }
+
+  const resolvedFamily = resolveInheritedFontFamily(fallbackFamily);
+  return fontString.replace(/\binherit\b/gi, resolvedFamily);
+}
+
 function toNumber(value, fallback = 0) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
@@ -1213,9 +1245,11 @@ export function getAutoMarginFromAxisLayout(
  * console.log(metrics.width);
  */
 export function getTextDimensions(text, font, rotate = 0) {
+  const resolvedFont = normalizeCanvasFontString(font, 'sans-serif');
+
   if (!context) {
     const numericSize = toNonNegativeNumber(
-      String(font).match(/(\d+(?:\.\d+)?)px/)?.[1],
+      resolvedFont.match(/(\d+(?:\.\d+)?)px/)?.[1],
       12,
     );
     const width = String(text ?? '').length * numericSize * 0.6;
@@ -1231,13 +1265,13 @@ export function getTextDimensions(text, font, rotate = 0) {
   }
 
   context.save();
-  context.font = font;
+  context.font = resolvedFont;
   const metrics = context.measureText(text);
   const { width } = metrics;
   const height =
     metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent ||
     metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent ||
-    toNonNegativeNumber(String(font).match(/(\d+(?:\.\d+)?)px/)?.[1], 12);
+    toNonNegativeNumber(resolvedFont.match(/(\d+(?:\.\d+)?)px/)?.[1], 12);
   // now we need to calculate the rotated width and height
   const radians = (rotate * Math.PI) / 180;
   const rotatedWidth =

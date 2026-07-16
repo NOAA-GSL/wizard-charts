@@ -16,6 +16,37 @@ const textMeasureContext = textMeasureCanvas
   ? textMeasureCanvas.getContext('2d')
   : null;
 
+function resolveInheritedFontFamily(fallbackFamily = 'sans-serif') {
+  if (
+    typeof window === 'undefined' ||
+    typeof document === 'undefined' ||
+    typeof window.getComputedStyle !== 'function' ||
+    !document.body
+  ) {
+    return fallbackFamily;
+  }
+
+  const bodyFamily = window.getComputedStyle(document.body).fontFamily;
+  if (typeof bodyFamily === 'string' && bodyFamily.trim().length > 0) {
+    return bodyFamily;
+  }
+
+  return fallbackFamily;
+}
+
+function normalizeMeasureFontFamily(fontFamily, fallbackFamily = 'sans-serif') {
+  if (typeof fontFamily !== 'string') {
+    return fallbackFamily;
+  }
+
+  const trimmed = fontFamily.trim();
+  if (!trimmed || trimmed.toLowerCase() === 'inherit') {
+    return resolveInheritedFontFamily(fallbackFamily);
+  }
+
+  return trimmed;
+}
+
 function clamp(value, min, max) {
   if (!Number.isFinite(value)) return min;
   return Math.max(min, Math.min(max, value));
@@ -106,7 +137,10 @@ function getLabelMetrics(text, marker) {
   const safeFontSize = Number.isFinite(labelFontSize) ? labelFontSize : 12;
   const labelPadding = getLabelPadding(marker.labelPadding, 4);
   const safeFontWeight = marker.fontWeight ?? 700;
-  const safeFontFamily = marker.fontFamily || 'sans-serif';
+  const safeFontFamily = normalizeMeasureFontFamily(
+    marker.fontFamily,
+    'sans-serif',
+  );
 
   let estimatedWidth = Math.max(0, text.length * safeFontSize * 0.6);
   let estimatedHeight = safeFontSize;

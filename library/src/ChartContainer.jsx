@@ -454,7 +454,7 @@ function ChartContainer({
       height={svgHeight}
       width={svgWidth}
       className={className}
-      style={sx}
+      style={{ fontFamily: 'inherit', ...sx }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
