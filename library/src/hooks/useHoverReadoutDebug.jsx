@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useChartHelpers } from './useChartHelpers';
+import { createAccessor } from '../utilities/dataUtilities';
 import {
   buildContinuousXMap,
   buildPreparedHeatmapPoints,
@@ -21,6 +22,7 @@ import { toComparable } from '../utilities/valueUtilities';
 
 const SUPPORTED_SERIES_TYPES = new Set([
   'area',
+  'areaStacked',
   'bar',
   'boxPlot',
   'circle',
@@ -224,6 +226,13 @@ function buildValueSummary(seriesType, accessors, datum) {
     };
   }
 
+  if (seriesType === 'areaStacked') {
+    return {
+      x,
+      y: accessors.y?.(datum),
+    };
+  }
+
   if (seriesType === 'windBarbs') {
     return buildWindBarbsValueSummary(accessors, datum);
   }
@@ -272,7 +281,7 @@ function getRepresentativeYPixel(seriesType, yScale, summary, readoutOptions) {
     return null;
   }
 
-  if (seriesType === 'area') {
+  if (seriesType === 'area' || seriesType === 'areaStacked') {
     const lower = toNumberOrNull(summary.lower);
     const upper = toNumberOrNull(summary.upper);
     if (lower != null && upper != null) {
@@ -303,6 +312,22 @@ function resolveSeriesReadoutColor(series) {
 
   if (series?.type === 'line') return stroke || fill || '#d4d4d4';
   if (series?.type === 'area') return whisker || stroke || fill || '#d4d4d4';
+  if (series?.type === 'areaStacked') {
+    const medianLineColor =
+      typeof series?.medianStroke === 'string' && series.medianStroke !== 'none'
+        ? series.medianStroke
+        : null;
+    const bandColors = Array.isArray(series?.bands)
+      ? series.bands
+          .map((band) => band?.stroke || band?.fill)
+          .filter((value) => typeof value === 'string' && value !== 'none')
+      : [];
+    const topBandColor = bandColors.length
+      ? bandColors[bandColors.length - 1]
+      : null;
+
+    return medianLineColor || topBandColor || stroke || fill || '#d4d4d4';
+  }
   if (series?.type === 'boxPlot') {
     return whisker || stroke || fill || '#d4d4d4';
   }
@@ -315,6 +340,17 @@ function resolveSeriesReadoutColor(series) {
   }
 
   return fill || stroke || '#d4d4d4';
+}
+
+function toAreaStackedFieldIdFromKey(key) {
+  if (typeof key !== 'string') return '';
+
+  const trimmed = key.trim();
+  if (!trimmed) return '';
+
+  const segments = trimmed.split('.');
+  const lastSegment = segments[segments.length - 1] || trimmed;
+  return lastSegment.toLowerCase();
 }
 
 function buildSeriesMarkerPoints({
@@ -378,6 +414,104 @@ function summarizeSeriesPoint({
   if (!Number.isFinite(xPixel)) return null;
 
   const values = buildValueSummary(seriesType, accessors, datum);
+
+  if (seriesType === 'areaStacked') {
+    const bands = Array.isArray(series?.bands) ? series.bands : [];
+    const fields = [];
+    const lowerOrder = [];
+    const upperOrder = [];
+
+    bands.forEach((band, bandIndex) => {
+      const lowerKey =
+        typeof band?.lowerKey === 'string' && band.lowerKey.trim().length > 0
+          ? band.lowerKey.trim()
+          : null;
+      const upperKey =
+        typeof band?.upperKey === 'string' && band.upperKey.trim().length > 0
+          ? band.upperKey.trim()
+          : null;
+
+      if (!lowerKey || !upperKey) return;
+
+      const lowerAccessor = createAccessor(lowerKey);
+      const upperAccessor = createAccessor(upperKey);
+
+      const lowerField = toAreaStackedFieldIdFromKey(lowerKey);
+      const upperField = toAreaStackedFieldIdFromKey(upperKey);
+
+      const lowerLabel =
+        typeof band?.lowerLabel === 'string' &&
+        band.lowerLabel.trim().length > 0
+          ? band.lowerLabel.trim()
+          : lowerField;
+      const upperLabel =
+        typeof band?.upperLabel === 'string' &&
+        band.upperLabel.trim().length > 0
+          ? band.upperLabel.trim()
+          : upperField;
+
+      const lowerValue = lowerAccessor(datum);
+      const upperValue = upperAccessor(datum);
+
+      fields.push({
+        key: lowerField,
+        label: lowerLabel,
+        value: lowerValue,
+        aliases: [lowerKey.toLowerCase()],
+      });
+      fields.push({
+        key: upperField,
+        label: upperLabel,
+        value: upperValue,
+        aliases: [upperKey.toLowerCase()],
+      });
+
+      lowerOrder.push(lowerField);
+      upperOrder.push(upperField);
+
+      if (bandIndex === bands.length - 1) {
+        values.lower = lowerValue;
+        values.upper = upperValue;
+      }
+    });
+
+    const medianKey =
+      typeof series?.medianKey === 'string' &&
+      series.medianKey.trim().length > 0
+        ? series.medianKey.trim()
+        : null;
+    const medianAccessor = medianKey
+      ? createAccessor(medianKey)
+      : accessors.medianYKey;
+    const medianField =
+      typeof series?.medianField === 'string' &&
+      series.medianField.trim().length > 0
+        ? series.medianField.trim().toLowerCase()
+        : medianKey
+          ? toAreaStackedFieldIdFromKey(medianKey)
+          : 'median';
+    const medianLabel =
+      typeof series?.medianLabel === 'string' &&
+      series.medianLabel.trim().length > 0
+        ? series.medianLabel.trim()
+        : 'Median';
+
+    if (typeof medianAccessor === 'function') {
+      const medianValue = medianAccessor(datum);
+      values.y = medianValue;
+      fields.push({
+        key: medianField,
+        label: medianLabel,
+        value: medianValue,
+        aliases: medianKey ? [medianKey.toLowerCase()] : [],
+      });
+      values.medianField = medianField;
+    }
+
+    values.areaStackedFields = fields;
+    values.areaStackedLowerOrder = lowerOrder;
+    values.areaStackedUpperOrder = upperOrder;
+  }
 
   // Apply readout precision rounding to windBarbs values (default to whole numbers)
   if (seriesType === 'windBarbs') {
@@ -723,8 +857,8 @@ function summarizeWindBarbsInterpolatedPoint({
   kNearest.forEach(({ datum, distance }) => {
     // If extremely close to a point, just use that point's values
     if (distance < 0.5) {
-      const speed = Number(accessors.speedKey?.(datum)) ?? 0;
-      const direction = Number(accessors.directionKey?.(datum)) ?? 0;
+      const speed = toNumberOrNull(accessors.speedKey?.(datum)) ?? 0;
+      const direction = toNumberOrNull(accessors.directionKey?.(datum)) ?? 0;
       return {
         interpolated: true,
         speed,
@@ -734,8 +868,8 @@ function summarizeWindBarbsInterpolatedPoint({
 
     // IDW weight: 1 / distance^2
     const weight = 1 / (distance * distance);
-    const speed = Number(accessors.speedKey?.(datum)) ?? 0;
-    const direction = Number(accessors.directionKey?.(datum)) ?? 0;
+    const speed = toNumberOrNull(accessors.speedKey?.(datum)) ?? 0;
+    const direction = toNumberOrNull(accessors.directionKey?.(datum)) ?? 0;
 
     totalWeight += weight;
     weightedSpeed += weight * speed;

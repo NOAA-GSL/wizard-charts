@@ -326,7 +326,7 @@ All column arrays must be the same length.
 - `true` (default): append units when available.
 - `false`: suppress unit suffixes in readout rows.
 - Readout units use series `units` first.
-- If a series `units` is empty, axis-linked series (`line`, `bar`, `boxPlot`, `area`, `circle`) fall back to their mapped y-axis `axes.y.units` or `axes.y2.units`.
+- If a series `units` is empty, axis-linked series (`line`, `bar`, `boxPlot`, `area`, `areaStacked`, `circle`) fall back to their mapped y-axis `axes.y.units` or `axes.y2.units`.
 - `matrix`, `heatmap`, and `contourGrid` values do not fall back to axis units; provide `series.units` when you want value units in those readouts.
 - Units only render when both `readout.displayUnits` and `series.displayUnits` are true.
 - If no series units are provided, nothing is appended.
@@ -351,6 +351,14 @@ All column arrays must be the same length.
 - `'auto'` (default): uses `y` when available, then falls back to band midpoint.
 - `string` or `string[]`: choose from `'y'`, `'q1'`, `'q3'`, `'min'`, `'max'`.
 - aliases: `'median'` -> `'y'`, `'q1'` -> `'lower'`, `'q3'` -> `'upper'`.
+
+For `areaStacked`, `areaFields` accepts field ids derived from each band key plus optional `medianField`.
+
+- Band field ids are inferred from key suffixes: `series1.p05` -> `p05`, `series1.p95` -> `p95`.
+- Full keys are also accepted as aliases in `areaFields` (for example `series1.p05`).
+
+- `'auto'` (default): orders fields as lower bounds in configured band order, then median, then upper bounds in reverse order.
+- `string` or `string[]`: explicit field id order (for example `['p05', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95']`).
 
 When multiple fields are configured for `boxPlot`/`area`, the tooltip renders labeled values on indented sub-lines with an aligned value column.
 The first valid configured field also drives marker y-position and distance ranking.
@@ -412,7 +420,7 @@ Row labels and values share the same `row` font settings.
 
 - `true` (default): show marker circles.
 - `false`: hide marker circles.
-- For `boxPlot` and `area`, markers follow configured readout fields: when multiple fields are selected (for example `['q1', 'q3']`), one marker is rendered per field.
+- For `boxPlot`, `area`, and `areaStacked`, markers follow configured readout fields: when multiple fields are selected (for example `['q1', 'q3']`), one marker is rendered per field.
 - For `area` and `line` series on continuous x-scales, marker x-position follows the raw x-scale value.
 - For `bar`/`boxPlot` series, marker x-position follows the rendered rectangle center (including alignment and width).
 
@@ -465,7 +473,7 @@ import { ChartContainer, HoverPointProvider } from '@noaa-gsl/wizard-charts';
 
 If `hoverMode` is `'global'` but no provider is present, charts fall back to local mode.
 
-When `readout.debug` is enabled, debug payloads include hover coordinates plus nearest values per chart. Supported series for nearest-value debug output are `line`, `bar`, `circle`, `area`, `boxPlot`, `matrix`, `heatmap`, `contourGrid`, and `windBarbs`.
+When `readout.debug` is enabled, debug payloads include hover coordinates plus nearest values per chart. Supported series for nearest-value debug output are `line`, `bar`, `circle`, `area`, `areaStacked`, `boxPlot`, `matrix`, `heatmap`, `contourGrid`, and `windBarbs`.
 
 ## Series Configuration
 
@@ -475,7 +483,7 @@ Each entry in `options.series` renders one plot layer.
 
 ```js
 {
-  type: 'line', // 'line' | 'bar' | 'boxPlot' | 'circle' | 'area' | 'matrix' | 'heatmap' | 'contourGrid' | 'windBarbs'
+  type: 'line', // 'line' | 'bar' | 'boxPlot' | 'circle' | 'area' | 'areaStacked' | 'matrix' | 'heatmap' | 'contourGrid' | 'windBarbs'
   name: undefined, // legend label; falls back to yKey
   xKey: 'x',
   yKey: 'y',
@@ -574,8 +582,8 @@ For bar series:
 You can render multiple plot types in one chart by adding multiple entries to `options.series`.
 
 - Each series entry renders one layer.
-- You can mix `line`, `bar`, `boxPlot`, `area`, `circle`, `matrix`, and `heatmap` in the same chart.
-- `contourGrid` is currently validated for mixing with `line`, `area`, `circle`, and `windBarbs` in v1.
+- You can mix `line`, `bar`, `boxPlot`, `area`, `areaStacked`, `circle`, `matrix`, and `heatmap` in the same chart.
+- `contourGrid` is currently validated for mixing with `line`, `area`, `areaStacked`, `circle`, and `windBarbs` in v1.
 - Render order follows array order: later series draw on top of earlier series.
 
 Example:
@@ -638,6 +646,53 @@ Use these as references when building options.
   sx: {},
 }
 ```
+
+### AreaStacked
+
+`areaStacked` is designed for layered probabilistic bands in a single series.
+
+```js
+{
+  xKey: 'date',
+  bands: [
+    {
+      lowerKey: 'series1.p05',
+      upperKey: 'series1.p95',
+      lowerLabel: '5th',
+      upperLabel: '95th',
+      fill: '#F6851122',
+    },
+    {
+      lowerKey: 'series1.p10',
+      upperKey: 'series1.p90',
+      lowerLabel: '10th',
+      upperLabel: '90th',
+      fill: '#F6851133',
+    },
+    {
+      lowerKey: 'series1.p25',
+      upperKey: 'series1.p75',
+      lowerLabel: '25th',
+      upperLabel: '75th',
+      fill: '#F6851155',
+    },
+  ],
+  medianKey: 'series1.p50',
+  medianField: 'p50',
+  medianLabel: '50th',
+  medianStroke: dataVizColors.palatinateBlue,
+  medianStrokeWidth: 2,
+  medianIsVisible: true,
+  className: '',
+  isVisible: true,
+  fill: `${dataVizColors.tropicalIndigo}33`, // can also be per-band array
+  stroke: 'none', // can also be per-band array
+  strokeWidth: 1,
+  sx: {},
+}
+```
+
+Recommended band order is outer-to-inner (for example `5-95`, `10-90`, `25-75`) so the smallest interval renders on top.
 
 ### Bar
 
@@ -1160,6 +1215,7 @@ All plot types support secondary-axis mapping:
 - `bar`
 - `boxPlot`
 - `area`
+- `areaStacked`
 - `circle`
 - `matrix`
 - `heatmap`

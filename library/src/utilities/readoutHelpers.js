@@ -284,6 +284,117 @@ function resolveAreaFieldValue(values = {}, field) {
   return undefined;
 }
 
+function normalizeAreaStackedField(field) {
+  if (typeof field !== 'string') return null;
+
+  const normalized = field.trim().toLowerCase();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function resolveAreaStackedRequestedFields(readoutOptions = {}) {
+  return resolveConfiguredFields(
+    readoutOptions?.areaFields,
+    normalizeAreaStackedField,
+    ['auto'],
+  );
+}
+
+function resolveAreaStackedFields(values = {}) {
+  const entries = Array.isArray(values?.areaStackedFields)
+    ? values.areaStackedFields
+    : [];
+  const fieldMap = new Map();
+  const aliasMap = new Map();
+
+  entries.forEach((entry) => {
+    const key = normalizeAreaStackedField(entry?.key);
+    if (!key) return;
+
+    fieldMap.set(key, {
+      key,
+      label: typeof entry?.label === 'string' ? entry.label : key,
+      value: entry?.value,
+    });
+
+    const aliases = Array.isArray(entry?.aliases) ? entry.aliases : [];
+    aliases.forEach((alias) => {
+      const normalizedAlias = normalizeAreaStackedField(alias);
+      if (!normalizedAlias) return;
+      aliasMap.set(normalizedAlias, key);
+    });
+  });
+
+  const lowerOrder = Array.isArray(values?.areaStackedLowerOrder)
+    ? values.areaStackedLowerOrder
+        .map((field) => normalizeAreaStackedField(field))
+        .filter(Boolean)
+    : [];
+  const upperOrder = Array.isArray(values?.areaStackedUpperOrder)
+    ? values.areaStackedUpperOrder
+        .map((field) => normalizeAreaStackedField(field))
+        .filter(Boolean)
+    : [];
+
+  const medianField = normalizeAreaStackedField(values?.medianField);
+
+  return {
+    fieldMap,
+    aliasMap,
+    lowerOrder,
+    upperOrder,
+    medianField,
+  };
+}
+
+function resolveAreaStackedAutoFieldOrder(values = {}) {
+  const { fieldMap, lowerOrder, upperOrder, medianField } =
+    resolveAreaStackedFields(values);
+
+  const ordered = [
+    ...lowerOrder,
+    ...(medianField ? [medianField] : []),
+    ...upperOrder.slice().reverse(),
+  ];
+
+  const deduped = dedupeFields(ordered);
+  return deduped.filter((key) => fieldMap.has(key));
+}
+
+function resolveAreaStackedEntries(values = {}, readoutOptions = {}) {
+  const { fieldMap, aliasMap } = resolveAreaStackedFields(values);
+  if (fieldMap.size === 0) {
+    return [{ key: 'auto', label: null, value: values.y }];
+  }
+
+  const requestedFields = resolveAreaStackedRequestedFields(readoutOptions);
+  const requestedAutoOnly =
+    requestedFields.length === 1 && requestedFields[0] === 'auto';
+  const orderedFieldKeys = requestedAutoOnly
+    ? resolveAreaStackedAutoFieldOrder(values)
+    : requestedFields
+        .filter((field) => field !== 'auto')
+        .map((field) => {
+          if (fieldMap.has(field)) return field;
+          return aliasMap.get(field) || field;
+        });
+
+  const entries = orderedFieldKeys
+    .map((field) => fieldMap.get(field))
+    .filter(Boolean);
+
+  if (entries.length > 0) return entries;
+
+  const fallbackAutoEntries = resolveAreaStackedAutoFieldOrder(values)
+    .map((field) => fieldMap.get(field))
+    .filter(Boolean);
+  if (fallbackAutoEntries.length > 0) return fallbackAutoEntries;
+
+  const firstEntry = fieldMap.values().next().value;
+  return firstEntry
+    ? [firstEntry]
+    : [{ key: 'auto', label: null, value: values.y }];
+}
+
 function resolveAutoBoxPlotValue(values = {}) {
   if (Number.isFinite(Number(values.median))) return values.median;
   if (
@@ -308,6 +419,10 @@ function resolveAutoAreaValue(values = {}) {
 
 export function resolveSeriesReadoutEntries(summary, readoutOptions = {}) {
   const values = summary?.values || {};
+
+  if (summary?.seriesType === 'areaStacked') {
+    return resolveAreaStackedEntries(values, readoutOptions);
+  }
 
   if (summary?.seriesType === 'boxPlot') {
     const fields = resolveBoxPlotFields(readoutOptions);
@@ -440,6 +555,7 @@ export function resolveSeriesReadoutDetailLines(summary, readoutOptions = {}) {
   if (
     summary?.seriesType !== 'boxPlot' &&
     summary?.seriesType !== 'area' &&
+    summary?.seriesType !== 'areaStacked' &&
     summary?.seriesType !== 'windBarbs'
   ) {
     return [];

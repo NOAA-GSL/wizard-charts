@@ -27,6 +27,7 @@ import Bar from './plotComponents/Bar';
 import BoxPlot from './plotComponents/BoxPlot';
 import Circle from './plotComponents/Circle';
 import Area from './plotComponents/Area';
+import AreaStacked from './plotComponents/AreaStacked';
 import Matrix from './plotComponents/Matrix';
 import Heatmap from './plotComponents/Heatmap';
 import ContourGrid from './plotComponents/ContourGrid';
@@ -41,6 +42,7 @@ const CONTOUR_GRID_ALLOWED_MIX_TYPES = new Set([
   'contourGrid',
   'line',
   'area',
+  'areaStacked',
   'circle',
   'windBarbs',
 ]);
@@ -420,6 +422,8 @@ function ChartContainer({
     switch (s.type) {
       case 'area':
         return <Area key={s.id ?? i} seriesIndex={i} options={s} />;
+      case 'areaStacked':
+        return <AreaStacked key={s.id ?? i} seriesIndex={i} options={s} />;
       case 'bar':
         return <Bar key={s.id ?? i} seriesIndex={i} options={s} />;
       case 'boxPlot':
