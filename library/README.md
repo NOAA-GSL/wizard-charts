@@ -5,6 +5,7 @@ WIZARD Charts is a React charting library built on top of D3 for weather and for
 ## Table of Contents
 
 - [Installation](#installation)
+- [Release Notes](#release-notes)
 - [Quick Start](#quick-start)
 - [ChartContainer Props](#chartcontainer-props)
 - [Dynamic Margins](#dynamic-margins)
@@ -27,6 +28,10 @@ WIZARD Charts is a React charting library built on top of D3 for weather and for
 ```bash
 npm install @noaa-gsl/wizard-charts d3
 ```
+
+## Release Notes
+
+See [CHANGELOG.md](./CHANGELOG.md) for user-facing updates by release.
 
 ## Quick Start
 
@@ -349,8 +354,10 @@ All column arrays must be the same length.
 `options.readout.areaFields` controls which area values render in the readout row.
 
 - `'auto'` (default): uses `y` when available, then falls back to band midpoint.
-- `string` or `string[]`: choose from `'y'`, `'q1'`, `'q3'`, `'min'`, `'max'`.
-- aliases: `'median'` -> `'y'`, `'q1'` -> `'lower'`, `'q3'` -> `'upper'`.
+- `string` or `string[]`: accepts field ids.
+- built-in aliases: `'median'` -> `'y'`, `'q1'` -> `'lower'`, `'q3'` -> `'upper'`.
+- for plain `area`, you can keep using legacy ids (`'y'`, `'lower'`, `'upper'`, `'min'`, `'max'`) or define custom ids/labels on the series via `lowerField`, `lowerLabel`, `medianField`, `medianLabel`, `upperField`, `upperLabel`, `minField`, `minLabel`, `maxField`, `maxLabel`.
+- for custom area ids derived from data keys, full accessor keys are accepted as aliases (for example `series1.p25`).
 
 For `areaStacked`, `areaFields` accepts field ids derived from each band key plus optional `medianField`.
 
@@ -360,7 +367,7 @@ For `areaStacked`, `areaFields` accepts field ids derived from each band key plu
 - `'auto'` (default): orders fields as lower bounds in configured band order, then median, then upper bounds in reverse order.
 - `string` or `string[]`: explicit field id order (for example `['p05', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95']`).
 
-When multiple fields are configured for `boxPlot`/`area`, the tooltip renders labeled values on indented sub-lines with an aligned value column.
+When multiple fields are configured for `boxPlot`/`area`/`areaStacked`, the tooltip renders labeled values on indented sub-lines with an aligned value column.
 The first valid configured field also drives marker y-position and distance ranking.
 
 `options.readout.titleFormatter` optionally formats the x-value shown in the tooltip title.
@@ -637,6 +644,16 @@ Use these as references when building options.
   medianYKey: 'series1.p50',
   q3YKey: 'series1.p75',
   maxYKey: 'series1.p90',
+  lowerField: 'p25',
+  lowerLabel: '25th',
+  medianField: 'p50',
+  medianLabel: '50th',
+  upperField: 'p75',
+  upperLabel: '75th',
+  minField: 'p10',
+  minLabel: '10th',
+  maxField: 'p90',
+  maxLabel: '90th',
   className: '',
   fill: `${dataVizColors.tropicalIndigo}88`,
   isVisible: true,

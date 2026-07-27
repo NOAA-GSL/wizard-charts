@@ -129,7 +129,7 @@ export const defaultOptions = {
     displayUnits: true,
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
     boxPlotFields: 'auto', // 'auto' | key | key[]
-    areaFields: 'auto', // area: 'auto' | y/q1/q3/min/max aliases; areaStacked: 'auto' | field id | field id[]
+    areaFields: 'auto', // area + areaStacked: 'auto' | field id | field id[] (area also supports legacy y/q1/q3/min/max aliases)
     titleFormatter: null, // optional formatting function for title x value
     valueFormatter: null, // optional formatting function for row values
     padding: { x: 8, y: 8 },
@@ -244,6 +244,18 @@ export const defaultAreaOptions = {
   className: '',
   fill: `${dataVizColors.tropicalIndigo}88`,
   isVisible: true,
+  // Optional field ids/labels used by readout.areaFields selection.
+  // When omitted, ids default to lower/median/upper/min/max semantics.
+  lowerField: undefined,
+  lowerLabel: undefined,
+  medianField: undefined,
+  medianLabel: undefined,
+  upperField: undefined,
+  upperLabel: undefined,
+  minField: undefined,
+  minLabel: undefined,
+  maxField: undefined,
+  maxLabel: undefined,
   // `stroke` applies to outline of area
   stroke: 'none',
   strokeWhisker: dataVizColors.tropicalIndigo,

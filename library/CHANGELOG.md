@@ -1,0 +1,26 @@
+# Changelog
+
+All notable user-facing changes to this package are documented in this file.
+
+## Unreleased
+
+### Added
+
+- Area readout now supports custom field ids and labels to align with areaStacked patterns.
+- New optional `area` series options for readout metadata:
+  - `lowerField`, `lowerLabel`
+  - `medianField`, `medianLabel`
+  - `upperField`, `upperLabel`
+  - `minField`, `minLabel`
+  - `maxField`, `maxLabel`
+
+### Changed
+
+- `readout.areaFields` now accepts flexible field ids for both `area` and `areaStacked`.
+- `readout.areaFields` remains backward compatible with existing `area` aliases (`y`, `q1`, `q3`, `lower`, `upper`, `min`, `max`, `median`).
+- Area readout value selection now uses `medianYKey` when `yKey` is not present.
+
+### Migration Notes
+
+- No migration required for existing configs.
+- If you want percentile-style readout naming in `area`, define field ids/labels on the series and reference those ids in `readout.areaFields`.

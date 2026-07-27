@@ -211,14 +211,16 @@ function buildValueSummary(seriesType, accessors, datum) {
 
   if (seriesType === 'area') {
     const baseY = accessors.y?.(datum);
-    const lower = accessors.q1YKey ? accessors.q1YKey(datum) : baseY;
-    const upper = accessors.q3YKey ? accessors.q3YKey(datum) : baseY;
+    const median = accessors.medianYKey ? accessors.medianYKey(datum) : baseY;
+    const resolvedY = baseY ?? median;
+    const lower = accessors.q1YKey ? accessors.q1YKey(datum) : resolvedY;
+    const upper = accessors.q3YKey ? accessors.q3YKey(datum) : resolvedY;
     const min = accessors.minYKey ? accessors.minYKey(datum) : undefined;
     const max = accessors.maxYKey ? accessors.maxYKey(datum) : undefined;
 
     return {
       x,
-      y: baseY,
+      y: resolvedY,
       lower,
       upper,
       min,
@@ -414,6 +416,85 @@ function summarizeSeriesPoint({
   if (!Number.isFinite(xPixel)) return null;
 
   const values = buildValueSummary(seriesType, accessors, datum);
+
+  if (seriesType === 'area') {
+    const resolveSeriesKey = (key) =>
+      typeof key === 'string' && key.trim().length > 0 ? key.trim() : null;
+    const resolveFieldId = (explicitField, fromKey, fallback) => {
+      if (
+        typeof explicitField === 'string' &&
+        explicitField.trim().length > 0
+      ) {
+        return explicitField.trim().toLowerCase();
+      }
+      if (fromKey) return toAreaStackedFieldIdFromKey(fromKey);
+      return fallback;
+    };
+    const resolveFieldLabel = (explicitLabel, fallback) => {
+      if (
+        typeof explicitLabel === 'string' &&
+        explicitLabel.trim().length > 0
+      ) {
+        return explicitLabel.trim();
+      }
+      return fallback;
+    };
+
+    const q1Key = resolveSeriesKey(series?.q1YKey);
+    const q3Key = resolveSeriesKey(series?.q3YKey);
+    const yKey = resolveSeriesKey(series?.yKey);
+    const medianKey = resolveSeriesKey(series?.medianYKey);
+    const minKey = resolveSeriesKey(series?.minYKey);
+    const maxKey = resolveSeriesKey(series?.maxYKey);
+
+    const lowerField = resolveFieldId(series?.lowerField, q1Key, 'lower');
+    const upperField = resolveFieldId(series?.upperField, q3Key, 'upper');
+    const medianField = resolveFieldId(
+      series?.medianField,
+      medianKey || yKey,
+      'y',
+    );
+    const minField = resolveFieldId(series?.minField, minKey, 'min');
+    const maxField = resolveFieldId(series?.maxField, maxKey, 'max');
+
+    values.areaFields = [
+      {
+        key: lowerField,
+        label: resolveFieldLabel(series?.lowerLabel, 'Q1'),
+        value: values.lower,
+        aliases: ['lower', 'q1', ...(q1Key ? [q1Key.toLowerCase()] : [])],
+      },
+      {
+        key: medianField,
+        label: resolveFieldLabel(series?.medianLabel, 'Median'),
+        value: values.y,
+        aliases: [
+          'y',
+          'median',
+          ...(yKey ? [yKey.toLowerCase()] : []),
+          ...(medianKey ? [medianKey.toLowerCase()] : []),
+        ],
+      },
+      {
+        key: upperField,
+        label: resolveFieldLabel(series?.upperLabel, 'Q3'),
+        value: values.upper,
+        aliases: ['upper', 'q3', ...(q3Key ? [q3Key.toLowerCase()] : [])],
+      },
+      {
+        key: minField,
+        label: resolveFieldLabel(series?.minLabel, 'Min'),
+        value: values.min,
+        aliases: ['min', ...(minKey ? [minKey.toLowerCase()] : [])],
+      },
+      {
+        key: maxField,
+        label: resolveFieldLabel(series?.maxLabel, 'Max'),
+        value: values.max,
+        aliases: ['max', ...(maxKey ? [maxKey.toLowerCase()] : [])],
+      },
+    ];
+  }
 
   if (seriesType === 'areaStacked') {
     const bands = Array.isArray(series?.bands) ? series.bands : [];
