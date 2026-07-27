@@ -559,21 +559,30 @@ function resolveLegendColor(series) {
     return hasFill ? fill : stroke || strokeWhisker || 'currentColor';
   }
   if (type === 'areaStacked') {
-    const hasMedianStroke =
-      typeof medianStroke === 'string' && medianStroke !== 'none';
+    const resolveStyleColor = (value) => {
+      const candidate = Array.isArray(value) ? value[value.length - 1] : value;
+      if (typeof candidate !== 'string') return null;
+      const trimmed = candidate.trim();
+      return trimmed && trimmed !== 'none' ? trimmed : null;
+    };
+
+    const medianColor = resolveStyleColor(medianStroke);
     const bandColors = Array.isArray(series?.bands)
       ? series.bands
-          .map((band) => band?.stroke || band?.fill)
-          .filter((value) => typeof value === 'string' && value !== 'none')
+          .map((band) => resolveStyleColor(band?.stroke ?? band?.fill))
+          .filter(Boolean)
       : [];
     const topBandColor = bandColors.length
       ? bandColors[bandColors.length - 1]
       : null;
 
-    if (hasMedianStroke) return medianStroke;
-    if (topBandColor) return topBandColor;
-
-    return hasFill ? fill : stroke || 'currentColor';
+    return (
+      medianColor ||
+      topBandColor ||
+      resolveStyleColor(fill) ||
+      resolveStyleColor(stroke) ||
+      'currentColor'
+    );
   }
   if (type === 'boxPlot') {
     return hasFill ? fill : strokeWhisker || stroke || 'currentColor';

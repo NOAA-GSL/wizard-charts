@@ -315,20 +315,33 @@ function resolveSeriesReadoutColor(series) {
   if (series?.type === 'line') return stroke || fill || '#d4d4d4';
   if (series?.type === 'area') return whisker || stroke || fill || '#d4d4d4';
   if (series?.type === 'areaStacked') {
-    const medianLineColor =
-      typeof series?.medianStroke === 'string' && series.medianStroke !== 'none'
-        ? series.medianStroke
-        : null;
+    const resolveStyleColor = (value) => {
+      const candidate = Array.isArray(value) ? value[value.length - 1] : value;
+      if (typeof candidate !== 'string') return null;
+      const trimmed = candidate.trim();
+      return trimmed && trimmed !== 'none' ? trimmed : null;
+    };
+
+    const medianLineColor = resolveStyleColor(series?.medianStroke);
     const bandColors = Array.isArray(series?.bands)
       ? series.bands
-          .map((band) => band?.stroke || band?.fill)
-          .filter((value) => typeof value === 'string' && value !== 'none')
+          .map((band) => resolveStyleColor(band?.stroke ?? band?.fill))
+          .filter(Boolean)
       : [];
     const topBandColor = bandColors.length
       ? bandColors[bandColors.length - 1]
       : null;
 
-    return medianLineColor || topBandColor || stroke || fill || '#d4d4d4';
+    const fallbackFill = fill ?? resolveStyleColor(series?.fill);
+    const fallbackStroke = stroke ?? resolveStyleColor(series?.stroke);
+
+    return (
+      medianLineColor ||
+      topBandColor ||
+      fallbackStroke ||
+      fallbackFill ||
+      '#d4d4d4'
+    );
   }
   if (series?.type === 'boxPlot') {
     return whisker || stroke || fill || '#d4d4d4';
