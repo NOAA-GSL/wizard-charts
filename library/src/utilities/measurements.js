@@ -547,6 +547,7 @@ function resolveLegendColor(series) {
   const fill = series?.fill;
   const stroke = series?.stroke;
   const strokeWhisker = series?.strokeWhisker;
+  const medianStroke = series?.medianStroke;
   const color = series?.color;
   const type = series?.type;
   const hasFill = typeof fill === 'string' && fill !== 'none';
@@ -556,6 +557,23 @@ function resolveLegendColor(series) {
   if (type === 'windBarbs') return color || 'currentColor';
   if (type === 'area') {
     return hasFill ? fill : stroke || strokeWhisker || 'currentColor';
+  }
+  if (type === 'areaStacked') {
+    const hasMedianStroke =
+      typeof medianStroke === 'string' && medianStroke !== 'none';
+    const bandColors = Array.isArray(series?.bands)
+      ? series.bands
+          .map((band) => band?.stroke || band?.fill)
+          .filter((value) => typeof value === 'string' && value !== 'none')
+      : [];
+    const topBandColor = bandColors.length
+      ? bandColors[bandColors.length - 1]
+      : null;
+
+    if (hasMedianStroke) return medianStroke;
+    if (topBandColor) return topBandColor;
+
+    return hasFill ? fill : stroke || 'currentColor';
   }
   if (type === 'boxPlot') {
     return hasFill ? fill : strokeWhisker || stroke || 'currentColor';
