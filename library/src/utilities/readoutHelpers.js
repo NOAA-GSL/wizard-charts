@@ -227,18 +227,7 @@ function normalizeAreaField(field) {
   if (normalized === 'q1') return 'lower';
   if (normalized === 'q3') return 'upper';
 
-  if (
-    normalized === 'auto' ||
-    normalized === 'y' ||
-    normalized === 'lower' ||
-    normalized === 'upper' ||
-    normalized === 'min' ||
-    normalized === 'max'
-  ) {
-    return normalized;
-  }
-
-  return null;
+  return normalized.length > 0 ? normalized : null;
 }
 
 function resolveConfiguredFields(input, normalizeField, fallback = ['auto']) {
@@ -284,6 +273,191 @@ function resolveAreaFieldValue(values = {}, field) {
   return undefined;
 }
 
+function resolveAreaFieldsFromValues(values = {}) {
+  const entries = Array.isArray(values?.areaFields) ? values.areaFields : [];
+  const fieldMap = new Map();
+  const aliasMap = new Map([
+    ['median', 'y'],
+    ['q1', 'lower'],
+    ['q3', 'upper'],
+  ]);
+
+  if (entries.length > 0) {
+    entries.forEach((entry) => {
+      const key = normalizeAreaField(entry?.key);
+      if (!key) return;
+
+      const fallbackLabel = AREA_FIELD_LABELS[key] || key;
+      fieldMap.set(key, {
+        key,
+        label:
+          typeof entry?.label === 'string' && entry.label.trim().length > 0
+            ? entry.label.trim()
+            : fallbackLabel,
+        value: entry?.value,
+      });
+
+      const aliases = Array.isArray(entry?.aliases) ? entry.aliases : [];
+      aliases.forEach((alias) => {
+        const normalizedAlias = normalizeAreaField(alias);
+        if (!normalizedAlias) return;
+        aliasMap.set(normalizedAlias, key);
+      });
+    });
+
+    return { fieldMap, aliasMap };
+  }
+
+  ['y', 'lower', 'upper', 'min', 'max'].forEach((key) => {
+    fieldMap.set(key, {
+      key,
+      label: AREA_FIELD_LABELS[key] || key,
+      value: resolveAreaFieldValue(values, key),
+    });
+  });
+
+  return { fieldMap, aliasMap };
+}
+
+function resolveAreaEntries(values = {}, readoutOptions = {}) {
+  const { fieldMap, aliasMap } = resolveAreaFieldsFromValues(values);
+  const requestedFields = resolveAreaFields(readoutOptions);
+
+  if (requestedFields.length === 1 && requestedFields[0] === 'auto') {
+    return [{ key: 'auto', label: null, value: resolveAutoAreaValue(values) }];
+  }
+
+  const orderedFieldKeys = requestedFields
+    .filter((field) => field !== 'auto')
+    .map((field) => {
+      if (fieldMap.has(field)) return field;
+      return aliasMap.get(field) || field;
+    });
+
+  const entries = orderedFieldKeys
+    .map((field) => fieldMap.get(field))
+    .filter(Boolean);
+  if (entries.length > 0) return entries;
+
+  const fallbackEntries = ['lower', 'y', 'upper', 'min', 'max']
+    .map((field) => fieldMap.get(field))
+    .filter(Boolean);
+  if (fallbackEntries.length > 0) return fallbackEntries;
+
+  return [{ key: 'auto', label: null, value: resolveAutoAreaValue(values) }];
+}
+
+function normalizeAreaStackedField(field) {
+  if (typeof field !== 'string') return null;
+
+  const normalized = field.trim().toLowerCase();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function resolveAreaStackedRequestedFields(readoutOptions = {}) {
+  return resolveConfiguredFields(
+    readoutOptions?.areaFields,
+    normalizeAreaStackedField,
+    ['auto'],
+  );
+}
+
+function resolveAreaStackedFields(values = {}) {
+  const entries = Array.isArray(values?.areaStackedFields)
+    ? values.areaStackedFields
+    : [];
+  const fieldMap = new Map();
+  const aliasMap = new Map();
+
+  entries.forEach((entry) => {
+    const key = normalizeAreaStackedField(entry?.key);
+    if (!key) return;
+
+    fieldMap.set(key, {
+      key,
+      label: typeof entry?.label === 'string' ? entry.label : key,
+      value: entry?.value,
+    });
+
+    const aliases = Array.isArray(entry?.aliases) ? entry.aliases : [];
+    aliases.forEach((alias) => {
+      const normalizedAlias = normalizeAreaStackedField(alias);
+      if (!normalizedAlias) return;
+      aliasMap.set(normalizedAlias, key);
+    });
+  });
+
+  const lowerOrder = Array.isArray(values?.areaStackedLowerOrder)
+    ? values.areaStackedLowerOrder
+        .map((field) => normalizeAreaStackedField(field))
+        .filter(Boolean)
+    : [];
+  const upperOrder = Array.isArray(values?.areaStackedUpperOrder)
+    ? values.areaStackedUpperOrder
+        .map((field) => normalizeAreaStackedField(field))
+        .filter(Boolean)
+    : [];
+
+  const medianField = normalizeAreaStackedField(values?.medianField);
+
+  return {
+    fieldMap,
+    aliasMap,
+    lowerOrder,
+    upperOrder,
+    medianField,
+  };
+}
+
+function resolveAreaStackedAutoFieldOrder(values = {}) {
+  const { fieldMap, lowerOrder, upperOrder, medianField } =
+    resolveAreaStackedFields(values);
+
+  const ordered = [
+    ...lowerOrder,
+    ...(medianField ? [medianField] : []),
+    ...upperOrder.slice().reverse(),
+  ];
+
+  const deduped = dedupeFields(ordered);
+  return deduped.filter((key) => fieldMap.has(key));
+}
+
+function resolveAreaStackedEntries(values = {}, readoutOptions = {}) {
+  const { fieldMap, aliasMap } = resolveAreaStackedFields(values);
+  if (fieldMap.size === 0) {
+    return [{ key: 'auto', label: null, value: values.y }];
+  }
+
+  const requestedFields = resolveAreaStackedRequestedFields(readoutOptions);
+  const requestedAutoOnly =
+    requestedFields.length === 1 && requestedFields[0] === 'auto';
+  const orderedFieldKeys = requestedAutoOnly
+    ? resolveAreaStackedAutoFieldOrder(values)
+    : requestedFields
+        .filter((field) => field !== 'auto')
+        .map((field) => {
+          if (fieldMap.has(field)) return field;
+          return aliasMap.get(field) || field;
+        });
+
+  const entries = orderedFieldKeys
+    .map((field) => fieldMap.get(field))
+    .filter(Boolean);
+
+  if (entries.length > 0) return entries;
+
+  const fallbackAutoEntries = resolveAreaStackedAutoFieldOrder(values)
+    .map((field) => fieldMap.get(field))
+    .filter(Boolean);
+  if (fallbackAutoEntries.length > 0) return fallbackAutoEntries;
+
+  const firstEntry = fieldMap.values().next().value;
+  return firstEntry
+    ? [firstEntry]
+    : [{ key: 'auto', label: null, value: values.y }];
+}
+
 function resolveAutoBoxPlotValue(values = {}) {
   if (Number.isFinite(Number(values.median))) return values.median;
   if (
@@ -309,6 +483,10 @@ function resolveAutoAreaValue(values = {}) {
 export function resolveSeriesReadoutEntries(summary, readoutOptions = {}) {
   const values = summary?.values || {};
 
+  if (summary?.seriesType === 'areaStacked') {
+    return resolveAreaStackedEntries(values, readoutOptions);
+  }
+
   if (summary?.seriesType === 'boxPlot') {
     const fields = resolveBoxPlotFields(readoutOptions);
     if (fields.length === 1 && fields[0] === 'auto') {
@@ -327,20 +505,7 @@ export function resolveSeriesReadoutEntries(summary, readoutOptions = {}) {
   }
 
   if (summary?.seriesType === 'area') {
-    const fields = resolveAreaFields(readoutOptions);
-    if (fields.length === 1 && fields[0] === 'auto') {
-      return [
-        { key: 'auto', label: null, value: resolveAutoAreaValue(values) },
-      ];
-    }
-
-    return fields
-      .filter((field) => field !== 'auto')
-      .map((field) => ({
-        key: field,
-        label: AREA_FIELD_LABELS[field],
-        value: resolveAreaFieldValue(values, field),
-      }));
+    return resolveAreaEntries(values, readoutOptions);
   }
 
   if (
@@ -440,6 +605,7 @@ export function resolveSeriesReadoutDetailLines(summary, readoutOptions = {}) {
   if (
     summary?.seriesType !== 'boxPlot' &&
     summary?.seriesType !== 'area' &&
+    summary?.seriesType !== 'areaStacked' &&
     summary?.seriesType !== 'windBarbs'
   ) {
     return [];

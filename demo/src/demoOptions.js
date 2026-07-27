@@ -472,6 +472,66 @@ export const demoOptions = {
     },
     animationDuration: 1000, // in ms
   },
+  areaStacked: {
+    series: [
+      {
+        type: 'areaStacked',
+        xKey: 'date',
+        name: 'Temperature Probability',
+        bands: [
+          {
+            lowerKey: 'series1.p05',
+            upperKey: 'series1.p95',
+            lowerLabel: '5th',
+            upperLabel: '95th',
+            fill: `${dataVizColors.tangerine}55`,
+          },
+          {
+            lowerKey: 'series1.p10',
+            upperKey: 'series1.p90',
+            lowerLabel: '10th',
+            upperLabel: '90th',
+            fill: dataVizColors.tangerine,
+          },
+          {
+            lowerKey: 'series1.p25',
+            upperKey: 'series1.p75',
+            lowerLabel: '25th',
+            upperLabel: '75th',
+            fill: dataVizColors.alloyOrange,
+          },
+        ],
+        medianKey: 'series1.p50',
+        medianField: 'p50',
+        medianLabel: '50th',
+        medianStroke: dataVizColors.palatinateBlue,
+        medianStrokeWidth: 2.5,
+      },
+    ],
+    axes: {
+      x: {
+        type: 'linear',
+        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+        nice: false,
+        hasGridLines: true,
+      },
+      y: {
+        type: 'linear',
+        label: { text: 'Temperature' },
+        ticks: { values: [], labels: [], amount: 10 },
+        nice: true,
+        hasAxisLine: false,
+        hasGridLines: true,
+        units: 'F',
+      },
+    },
+    readout: {
+      hoverMode: 'local',
+      areaFields: ['p05', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95'],
+      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
+    },
+    animationDuration: 1000,
+  },
   matrix: {
     series: [
       {

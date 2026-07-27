@@ -398,6 +398,31 @@ function getContinuousXDomainPadding(series = [], domain = []) {
   return { start: padStart, end: padEnd };
 }
 
+function getAreaStackedDomainAccessorKeys(series = {}, isX = false) {
+  if (isX || series?.type !== 'areaStacked') return [];
+
+  const keys = [];
+  const bands = Array.isArray(series?.bands) ? series.bands : [];
+
+  bands.forEach((band) => {
+    if (typeof band?.lowerKey === 'string' && band.lowerKey.trim().length > 0) {
+      keys.push(band.lowerKey.trim());
+    }
+    if (typeof band?.upperKey === 'string' && band.upperKey.trim().length > 0) {
+      keys.push(band.upperKey.trim());
+    }
+  });
+
+  if (
+    typeof series?.medianKey === 'string' &&
+    series.medianKey.trim().length > 0
+  ) {
+    keys.push(series.medianKey.trim());
+  }
+
+  return Array.from(new Set(keys));
+}
+
 export const computeScales = (chartValues, axisConfig) => {
   const scales = {};
   const series = chartValues.options?.series || [];
@@ -452,7 +477,10 @@ export const computeScales = (chartValues, axisConfig) => {
 
       matchingSeries.forEach((s) => {
         const seriesData = getSeriesData(s);
-        const accessorKeys = valueProps.map((p) => s?.[p]).filter(Boolean);
+        const accessorKeys = [
+          ...valueProps.map((p) => s?.[p]).filter(Boolean),
+          ...getAreaStackedDomainAccessorKeys(s, isX),
+        ];
         if (accessorKeys.length === 0) return;
         const [seriesMin, seriesMax] = combineNumericExtent(
           seriesData,

@@ -12,6 +12,7 @@ const localChartTypes = [
   'boxPlot',
   'circle',
   'area',
+  'areaStacked',
   'matrix',
   'matrixTime',
   'contourGridNearest',
@@ -35,11 +36,13 @@ const makeFinalData = (numSeries, numPoints) => {
       const otherVariance = 2;
       return {
         mean,
+        p05: mean - Math.random() * 3.5 * otherVariance,
         p10: mean - Math.random() * 2.5 * otherVariance,
         p25: mean - Math.random() * 1 * otherVariance,
         p50: mean + (Math.random() * 0.4 - 0.2) * Math.random() * otherVariance,
         p75: mean + Math.random() * 1 * otherVariance,
         p90: mean + Math.random() * 2.5 * otherVariance,
+        p95: mean + Math.random() * 3.5 * otherVariance,
       };
     });
   }

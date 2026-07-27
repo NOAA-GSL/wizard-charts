@@ -129,7 +129,7 @@ export const defaultOptions = {
     displayUnits: true,
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
     boxPlotFields: 'auto', // 'auto' | key | key[]
-    areaFields: 'auto', // 'auto' | key | key[]
+    areaFields: 'auto', // area + areaStacked: 'auto' | field id | field id[] (area also supports legacy y/q1/q3/min/max aliases)
     titleFormatter: null, // optional formatting function for title x value
     valueFormatter: null, // optional formatting function for row values
     padding: { x: 8, y: 8 },
@@ -158,7 +158,7 @@ export const defaultOptions = {
 };
 
 export const defaultSeriesOptions = {
-  type: 'line', // line, bar, boxPlot, circle, area, matrix, heatmap, contourGrid
+  type: 'line', // line, bar, boxPlot, circle, area, areaStacked, matrix, heatmap, contourGrid
   name: undefined,
   xKey: 'x',
   yKey: 'y',
@@ -244,10 +244,41 @@ export const defaultAreaOptions = {
   className: '',
   fill: `${dataVizColors.tropicalIndigo}88`,
   isVisible: true,
+  // Optional field ids/labels used by readout.areaFields selection.
+  // When omitted, ids default to lower/median/upper/min/max semantics.
+  lowerField: undefined,
+  lowerLabel: undefined,
+  medianField: undefined,
+  medianLabel: undefined,
+  upperField: undefined,
+  upperLabel: undefined,
+  minField: undefined,
+  minLabel: undefined,
+  maxField: undefined,
+  maxLabel: undefined,
   // `stroke` applies to outline of area
   stroke: 'none',
   strokeWhisker: dataVizColors.tropicalIndigo,
   strokeWidth: 2,
+  sx: {},
+};
+
+export const defaultAreaStackedOptions = {
+  className: '',
+  isVisible: true,
+  // Supports string or per-band array values.
+  fill: `${dataVizColors.tropicalIndigo}33`,
+  stroke: 'none',
+  strokeWidth: 1,
+  // AreaStacked uses explicit band definitions rather than q1/q3 keys.
+  bands: [],
+  // Optional median line rendered above the stacked bands.
+  medianKey: undefined,
+  medianField: undefined,
+  medianLabel: '50th',
+  medianStroke: dataVizColors.tropicalIndigo,
+  medianStrokeWidth: 2,
+  medianIsVisible: true,
   sx: {},
 };
 
