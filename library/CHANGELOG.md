@@ -2,10 +2,11 @@
 
 All notable user-facing changes to this package are documented in this file.
 
-## Unreleased
+## 1.1.0
 
 ### Added
 
+- New `areaStacked` chart added. This allows multiple area charts to be layered for displaying percentile data. Only requires one series, where previous creation of this chart required multple `area` series.
 - Area readout now supports custom field ids and labels to align with areaStacked patterns.
 - New optional `area` series options for readout metadata:
   - `lowerField`, `lowerLabel`
