@@ -31,7 +31,7 @@ npm install @noaa-gsl/wizard-charts d3
 
 ## Release Notes
 
-See [CHANGELOG.md](./CHANGELOG.md) for user-facing updates by release.
+See [CHANGELOG.md](https://github.com/NOAA-GSL/wizard-charts/blob/main/library/CHANGELOG.md) for user-facing updates by release.
 
 ## Quick Start
 
