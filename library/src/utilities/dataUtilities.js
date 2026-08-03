@@ -13,13 +13,13 @@ const VALID_AXIS_KEYS = new Set(['x', 'y', 'x2', 'y2']);
 const warnedPaddingFactorMessages = new Set();
 
 function warnPaddingFactor(message) {
-  if (warnedPaddingFactorMessages.has(message)) return;
-  warnedPaddingFactorMessages.add(message);
-
   // eslint-disable-next-line no-console
   if (typeof console === 'undefined' || typeof console.warn !== 'function') {
     return;
   }
+
+  if (warnedPaddingFactorMessages.has(message)) return;
+  warnedPaddingFactorMessages.add(message);
 
   // eslint-disable-next-line no-console
   console.warn(message);
@@ -36,9 +36,8 @@ export function normalizePaddingFactor(
   } = {},
 ) {
   const numericDefault = Number(defaultValue);
-  const fallback = Number.isFinite(numericDefault)
-    ? Math.min(max, Math.max(min, numericDefault))
-    : 0.8;
+  const fallbackSource = Number.isFinite(numericDefault) ? numericDefault : 0.8;
+  const fallback = Math.min(max, Math.max(min, fallbackSource));
 
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) {
