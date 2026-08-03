@@ -10,6 +10,7 @@ All notable user-facing changes to this package are documented in this file.
 
 ### Changed
 
+- `axes.*.ticks.amount` is now treated as a hint rather than an exact count for `linear` and `time` axes. D3 tick generation uses the value as a target and will adjust the count to produce evenly spaced ticks that span the full axis domain. Labels that still collide after generation are rotated or reduced using the configured `collisionStrategy`.
 - `bar` and `boxPlot` `paddingFactor` is now clamped to the range `0..1`.
 - When an out-of-range or non-numeric `paddingFactor` is provided, the chart logs a `console.warn` message and uses the clamped/fallback value.
 - Internal x-domain padding and hover readout bar/box center calculations now use the same normalized `paddingFactor` behavior as plot rendering.
