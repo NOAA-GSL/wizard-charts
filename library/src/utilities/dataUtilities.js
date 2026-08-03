@@ -473,11 +473,47 @@ function getAreaStackedDomainAccessorKeys(series = {}, isX = false) {
   return Array.from(new Set(keys));
 }
 
+function normalizeDomainOverride(domainOverride, scaleType) {
+  if (!Array.isArray(domainOverride) || domainOverride.length !== 2) {
+    return null;
+  }
+
+  if (scaleType === 'time') {
+    const startValue =
+      domainOverride[0] instanceof Date
+        ? domainOverride[0]
+        : new Date(domainOverride[0]);
+    const endValue =
+      domainOverride[1] instanceof Date
+        ? domainOverride[1]
+        : new Date(domainOverride[1]);
+
+    const startTime = startValue.getTime();
+    const endTime = endValue.getTime();
+    if (!Number.isFinite(startTime) || !Number.isFinite(endTime)) return null;
+    if (endTime <= startTime) return null;
+    return [startValue, endValue];
+  }
+
+  if (scaleType === 'linear') {
+    const startValue = Number(domainOverride[0]);
+    const endValue = Number(domainOverride[1]);
+    if (!Number.isFinite(startValue) || !Number.isFinite(endValue)) {
+      return null;
+    }
+    if (endValue <= startValue) return null;
+    return [startValue, endValue];
+  }
+
+  return null;
+}
+
 export const computeScales = (chartValues, axisConfig) => {
   const scales = {};
   const series = chartValues.options?.series || [];
   const data = chartValues.data || [];
   const rootData = Array.isArray(data) ? data : [];
+  const domainOverrides = chartValues.domainOverrides || {};
 
   // loop through each axis in the config and compute the corresponding scale
   Object.entries(axisConfig).forEach(([axisKey, config]) => {
@@ -628,6 +664,16 @@ export const computeScales = (chartValues, axisConfig) => {
             : safeMin * 10;
 
         domain = [safeMin, safeMax];
+      }
+
+      if (isX && (scaleType === 'linear' || scaleType === 'time')) {
+        const domainOverride = normalizeDomainOverride(
+          domainOverrides?.[axisKey],
+          scaleType,
+        );
+        if (domainOverride) {
+          domain = domainOverride;
+        }
       }
     }
     const baseRange = getRange(axisKey, chartValues);

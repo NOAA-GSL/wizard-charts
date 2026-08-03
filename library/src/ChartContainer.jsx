@@ -38,6 +38,15 @@ const SIZE_EPSILON = 0.25;
 const AUTO_SIZE = 'auto';
 const DEFAULT_AUTO_WIDTH = 800;
 const DEFAULT_AUTO_HEIGHT = 600;
+const DEFAULT_WHEEL_ZOOM_SPEED = 0.1;
+const DEFAULT_ZOOM_MIN_WINDOW = 0;
+const SUPPORTED_ZOOM_MODIFIER_KEYS = new Set([
+  'ctrl',
+  'shift',
+  'alt',
+  'meta',
+  'none',
+]);
 const CONTOUR_GRID_ALLOWED_MIX_TYPES = new Set([
   'contourGrid',
   'line',
@@ -59,6 +68,141 @@ function toNumericSize(value, fallback = 0) {
 function parseCssPixelValue(value) {
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+}
+
+function isContinuousZoomAxisType(type) {
+  return type === 'linear' || type === 'time';
+}
+
+function normalizeZoomOptions(zoomOptions = {}) {
+  const modifierRaw = String(zoomOptions?.modifierKey || 'ctrl').toLowerCase();
+  const modifierKey = SUPPORTED_ZOOM_MODIFIER_KEYS.has(modifierRaw)
+    ? modifierRaw
+    : 'ctrl';
+
+  const wheelZoomSpeed = Number(zoomOptions?.wheelZoomSpeed);
+  const minWindow = Number(zoomOptions?.minWindow);
+
+  return {
+    enabled: zoomOptions?.enabled !== false,
+    wheelEnabled: zoomOptions?.wheelEnabled !== false,
+    modifierKey,
+    wheelZoomSpeed:
+      Number.isFinite(wheelZoomSpeed) && wheelZoomSpeed > 0
+        ? wheelZoomSpeed
+        : DEFAULT_WHEEL_ZOOM_SPEED,
+    minWindow:
+      Number.isFinite(minWindow) && minWindow > 0
+        ? minWindow
+        : DEFAULT_ZOOM_MIN_WINDOW,
+  };
+}
+
+function isZoomModifierPressed(event, modifierKey) {
+  switch (modifierKey) {
+    case 'none':
+      return true;
+    case 'shift':
+      return event.shiftKey;
+    case 'alt':
+      return event.altKey;
+    case 'meta':
+      return event.metaKey;
+    case 'ctrl':
+    default:
+      return event.ctrlKey;
+  }
+}
+
+function toDomainNumber(value) {
+  if (value instanceof Date) return value.getTime();
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function convertDomainValue(sampleValue, numericValue) {
+  if (!Number.isFinite(numericValue)) return null;
+  if (sampleValue instanceof Date) return new Date(numericValue);
+  return numericValue;
+}
+
+function normalizeDomainBounds(bounds) {
+  if (!Array.isArray(bounds) || bounds.length !== 2) return null;
+
+  const start = toDomainNumber(bounds[0]);
+  const end = toDomainNumber(bounds[1]);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+    return null;
+  }
+
+  return { start, end };
+}
+
+function buildZoomedDomain(
+  scale,
+  anchorPixel,
+  zoomFactor,
+  minWindow = 0,
+  bounds = null,
+) {
+  if (!scale || typeof scale.invert !== 'function') return null;
+
+  const domain = scale.domain?.();
+  if (!Array.isArray(domain) || domain.length !== 2) return null;
+
+  const domainStart = toDomainNumber(domain[0]);
+  const domainEnd = toDomainNumber(domain[1]);
+  if (!Number.isFinite(domainStart) || !Number.isFinite(domainEnd)) return null;
+
+  const span = domainEnd - domainStart;
+  if (!Number.isFinite(span) || span <= 0) return null;
+
+  const anchorValue = scale.invert(anchorPixel);
+  const anchorNumber = toDomainNumber(anchorValue);
+  if (!Number.isFinite(anchorNumber)) return null;
+
+  const anchorRatio = (anchorNumber - domainStart) / span;
+  const normalizedAnchorRatio = Number.isFinite(anchorRatio)
+    ? Math.min(1, Math.max(0, anchorRatio))
+    : 0.5;
+
+  const requestedSpan = span * zoomFactor;
+  const normalizedBounds = normalizeDomainBounds(bounds);
+  const boundsSpan = normalizedBounds
+    ? normalizedBounds.end - normalizedBounds.start
+    : null;
+  const maxSpan = Number.isFinite(boundsSpan) ? boundsSpan : Infinity;
+  const nextSpan = Math.min(maxSpan, Math.max(minWindow, requestedSpan));
+  if (!Number.isFinite(nextSpan) || nextSpan <= 0) return null;
+
+  let nextStart = anchorNumber - normalizedAnchorRatio * nextSpan;
+  let nextEnd = nextStart + nextSpan;
+
+  if (normalizedBounds) {
+    if (nextStart < normalizedBounds.start) {
+      const shift = normalizedBounds.start - nextStart;
+      nextStart += shift;
+      nextEnd += shift;
+    }
+
+    if (nextEnd > normalizedBounds.end) {
+      const shift = nextEnd - normalizedBounds.end;
+      nextStart -= shift;
+      nextEnd -= shift;
+    }
+
+    nextStart = Math.max(normalizedBounds.start, nextStart);
+    nextEnd = Math.min(normalizedBounds.end, nextEnd);
+  }
+
+  if (!Number.isFinite(nextStart) || !Number.isFinite(nextEnd)) return null;
+  if (nextEnd <= nextStart) return null;
+
+  const startValue = convertDomainValue(domain[0], nextStart);
+  const endValue = convertDomainValue(domain[1], nextEnd);
+  if (startValue == null || endValue == null) return null;
+
+  return [startValue, endValue];
 }
 
 function measureSvgContentSize(svgNode, fallbackWidth, fallbackHeight) {
@@ -156,6 +300,9 @@ function ChartContainer({
   const hoverRafRef = useRef(null);
   const hasWarnedMissingProviderRef = useRef(false);
   const hasWarnedContourMixRef = useRef(false);
+  const xScaleRef = useRef(null);
+  const x2ScaleRef = useRef(null);
+  const zoomBoundsRef = useRef({ x: null, x2: null });
 
   const isAutoWidth = isAutoSizeValue(width);
   const isAutoHeight = isAutoSizeValue(height);
@@ -169,6 +316,10 @@ function ChartContainer({
   const svgHeight = isAutoHeight ? '100%' : requestedHeight;
   // Content-box size drives scales/margins, while width/height remain outer SVG size.
   const [measuredContentSize, setMeasuredContentSize] = useState(null);
+  const [xDomainOverrides, setXDomainOverrides] = useState({
+    x: null,
+    x2: null,
+  });
 
   const updateContentSize = useCallback(
     (nextSize) => {
@@ -273,6 +424,40 @@ function ChartContainer({
     updateContentSize,
   ]);
 
+  const mergedOptions = useMemo(
+    () => mergeDeep(defaultOptions, options),
+    [options],
+  );
+
+  const zoomOptions = useMemo(
+    () => normalizeZoomOptions(mergedOptions.zoom),
+    [mergedOptions.zoom],
+  );
+
+  const zoomableAxes = useMemo(() => {
+    const axes = mergedOptions.axes || {};
+    const series = mergedOptions.series || [];
+
+    return {
+      x:
+        axisHasMappedSeries(series, 'x') &&
+        isContinuousZoomAxisType(axes.x?.type || 'linear'),
+      x2:
+        axisHasMappedSeries(series, 'x2') &&
+        isContinuousZoomAxisType(axes.x2?.type || 'linear'),
+    };
+  }, [mergedOptions.axes, mergedOptions.series]);
+
+  const isWheelZoomActive =
+    zoomOptions.enabled &&
+    zoomOptions.wheelEnabled &&
+    (zoomableAxes.x || zoomableAxes.x2);
+
+  const appliedDomainOverrides = useMemo(
+    () => (isWheelZoomActive ? xDomainOverrides : { x: null, x2: null }),
+    [isWheelZoomActive, xDomainOverrides],
+  );
+
   // useMemo to avoid unnecessary re-renders in the useEffect hook of ChartProvider
   const initialValues = useMemo(
     () => ({
@@ -280,12 +465,20 @@ function ChartContainer({
       width: contentSize.width,
       baseMargin: margin,
       data,
-      options: mergeDeep(defaultOptions, options),
+      options: mergedOptions,
+      domainOverrides: appliedDomainOverrides,
     }),
-    [contentSize.height, contentSize.width, margin, data, options],
+    [
+      contentSize.height,
+      contentSize.width,
+      margin,
+      data,
+      mergedOptions,
+      appliedDomainOverrides,
+    ],
   );
 
-  const configuredHoverMode = initialValues.options?.readout?.hoverMode;
+  const configuredHoverMode = mergedOptions?.readout?.hoverMode;
   const shouldUseGlobalHover =
     configuredHoverMode === 'global' && hasHoverProvider;
   // Global mode is opt-in and only active when the provider is present.
@@ -374,6 +567,123 @@ function ChartContainer({
     });
   };
 
+  const handleWheel = useCallback(
+    (event) => {
+      if (!zoomOptions.enabled || !zoomOptions.wheelEnabled) return;
+      if (!isZoomModifierPressed(event, zoomOptions.modifierKey)) return;
+
+      const svgNode = svgReadoutRef.current;
+      if (!svgNode) return;
+
+      const rect = svgNode.getBoundingClientRect();
+      const isInsideChart =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom;
+
+      if (!isInsideChart) return;
+
+      // When modifier-wheel zoom is active over the chart, suppress page/browser wheel behavior.
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (!isWheelZoomActive) return;
+
+      const plotBounds = plotBoundsRef.current;
+      if (!plotBounds) return;
+
+      const [localX, localY] = pointer(event, svgNode);
+      const isInsidePlot =
+        localX >= plotBounds.left &&
+        localX <= plotBounds.right &&
+        localY >= plotBounds.top &&
+        localY <= plotBounds.bottom;
+
+      if (!isInsidePlot) return;
+
+      const deltaY = Number(event.deltaY);
+      if (!Number.isFinite(deltaY) || deltaY === 0) return;
+
+      const zoomFactor = Math.exp(
+        (deltaY > 0 ? 1 : -1) * zoomOptions.wheelZoomSpeed,
+      );
+
+      const nextOverrides = { x: null, x2: null };
+
+      if (zoomableAxes.x) {
+        if (zoomBoundsRef.current.x == null) {
+          const xDomain = xScaleRef.current?.domain?.();
+          if (Array.isArray(xDomain) && xDomain.length === 2) {
+            zoomBoundsRef.current.x = [xDomain[0], xDomain[1]];
+          }
+        }
+
+        nextOverrides.x = buildZoomedDomain(
+          xScaleRef.current,
+          localX,
+          zoomFactor,
+          zoomOptions.minWindow,
+          zoomBoundsRef.current.x,
+        );
+      }
+
+      if (zoomableAxes.x2) {
+        if (zoomBoundsRef.current.x2 == null) {
+          const x2Domain = x2ScaleRef.current?.domain?.();
+          if (Array.isArray(x2Domain) && x2Domain.length === 2) {
+            zoomBoundsRef.current.x2 = [x2Domain[0], x2Domain[1]];
+          }
+        }
+
+        nextOverrides.x2 = buildZoomedDomain(
+          x2ScaleRef.current,
+          localX,
+          zoomFactor,
+          zoomOptions.minWindow,
+          zoomBoundsRef.current.x2,
+        );
+      }
+
+      if (nextOverrides.x == null && nextOverrides.x2 == null) return;
+
+      setXDomainOverrides((prev) => {
+        const xUnchanged =
+          prev.x?.[0]?.valueOf?.() === nextOverrides.x?.[0]?.valueOf?.() &&
+          prev.x?.[1]?.valueOf?.() === nextOverrides.x?.[1]?.valueOf?.();
+        const x2Unchanged =
+          prev.x2?.[0]?.valueOf?.() === nextOverrides.x2?.[0]?.valueOf?.() &&
+          prev.x2?.[1]?.valueOf?.() === nextOverrides.x2?.[1]?.valueOf?.();
+
+        if (xUnchanged && x2Unchanged) return prev;
+        return nextOverrides;
+      });
+    },
+    [
+      isWheelZoomActive,
+      zoomOptions.enabled,
+      zoomOptions.minWindow,
+      zoomOptions.modifierKey,
+      zoomOptions.wheelEnabled,
+      zoomOptions.wheelZoomSpeed,
+      zoomableAxes.x,
+      zoomableAxes.x2,
+    ],
+  );
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    window.addEventListener('wheel', handleWheel, {
+      passive: false,
+      capture: true,
+    });
+
+    return () => {
+      window.removeEventListener('wheel', handleWheel, true);
+    };
+  }, [handleWheel, hasMeasuredContentSize]);
+
   const handleMouseMove = (event) => {
     const svgNode = svgReadoutRef.current;
     if (!svgNode) return;
@@ -450,7 +760,7 @@ function ChartContainer({
   };
 
   // switch statement to render different series types based on options
-  const seriesNodes = initialValues.options.series.map((s, i) => {
+  const seriesNodes = mergedOptions.series.map((s, i) => {
     switch (s.type) {
       case 'area':
         return <Area key={s.id ?? i} seriesIndex={i} options={s} />;
@@ -477,8 +787,8 @@ function ChartContainer({
     }
   });
 
-  const axes = initialValues.options.axes || {};
-  const series = initialValues.options.series || [];
+  const axes = mergedOptions.axes || {};
+  const series = mergedOptions.series || [];
   const hasAxisLineMarkers = (axisOptions) =>
     Array.isArray(axisOptions?.lineMarkers) &&
     axisOptions.lineMarkers.length > 0;
@@ -529,9 +839,11 @@ function ChartContainer({
             chartId={chartId}
             hoverStore={activeHoverStore}
             mode={effectiveHoverMode}
-            readoutOptions={initialValues.options?.readout}
+            readoutOptions={mergedOptions?.readout}
             plotBoundsRef={plotBoundsRef}
             xValueResolverRef={xValueResolverRef}
+            xScaleRef={xScaleRef}
+            x2ScaleRef={x2ScaleRef}
           />
         </>
       )}

@@ -7,6 +7,15 @@ All notable user-facing changes to this package are documented in this file.
 ### Added
 
 - Plot rendering now applies an inner-chart SVG clip area so series layers and axis line markers are visually constrained to the plot region.
+- New stage-1 chart zoom support via `options.zoom`.
+- Wheel zoom is now supported with configurable controls:
+  - `enabled`
+  - `wheelEnabled`
+  - `modifierKey` (`ctrl` default)
+  - `wheelZoomSpeed`
+  - `minWindow`
+- Wheel zoom focuses around the pointer position on the x-axis and updates x-domains only (`y`/`y2` remain fixed).
+- Zoom interaction is gated to continuous x-axis types (`linear` and `time`).
 
 ### Changed
 
@@ -14,6 +23,8 @@ All notable user-facing changes to this package are documented in this file.
 - `bar` and `boxPlot` `paddingFactor` is now clamped to the range `0..1`.
 - When an out-of-range or non-numeric `paddingFactor` is provided, the chart logs a `console.warn` message and uses the clamped/fallback value.
 - Internal x-domain padding and hover readout bar/box center calculations now use the same normalized `paddingFactor` behavior as plot rendering.
+- While modifier-wheel zoom is active over a chart, the chart now captures wheel events to prevent page/document scrolling.
+- Wheel zoom domain expansion is now clamped to the chart's starting x-domain extent, preventing zoom-out beyond the initial data window.
 
 ## 1.1.0
 

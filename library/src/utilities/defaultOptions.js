@@ -111,6 +111,13 @@ export const defaultOptions = {
     className: '',
     sx: {},
   },
+  zoom: {
+    enabled: true,
+    wheelEnabled: true,
+    modifierKey: 'ctrl', // 'ctrl' | 'shift' | 'alt' | 'meta' | 'none'
+    wheelZoomSpeed: 0.1,
+    minWindow: 0,
+  },
   readout: {
     hoverMode: 'local',
     showVerticalLine: true,
