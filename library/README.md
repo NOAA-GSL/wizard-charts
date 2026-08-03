@@ -253,9 +253,16 @@ All column arrays must be the same length.
   zoom: {
     enabled: true,
     wheelEnabled: true,
+    dragEnabled: true,
     modifierKey: 'ctrl', // 'ctrl' | 'shift' | 'alt' | 'meta' | 'none'
     wheelZoomSpeed: 0.1,
     minWindow: 0, // minimum x-domain span; 0 disables clamping
+    minDragPixels: 4,
+    dragBox: {
+      fill: '#147AF333',
+      stroke: '#147AF3',
+      strokeWidth: 1,
+    },
   },
   readout: {
     hoverMode: 'local',
@@ -306,22 +313,29 @@ All column arrays must be the same length.
 
 ## Zoom
 
-Stage 1 zoom supports wheel-only interaction and updates x-domains only.
+Zoom currently supports wheel zoom and drag-select zoom-in, and updates x-domains only.
 
 - Zoom is enabled by default through `options.zoom.enabled: true`.
 - Wheel zoom is controlled by `options.zoom.wheelEnabled` (`true` by default).
+- Drag-select zoom is controlled by `options.zoom.dragEnabled` (`true` by default).
 - Y-axis domains remain fixed while zooming; only `x`/`x2` domains change.
 - Zoom focus is anchored to the pointer x-position in the plot area.
 - Wheel zoom requires a modifier key by default (`modifierKey: 'ctrl'`).
+- Drag-select zoom uses plain left-click drag in the plot area by default.
 - Supported zoom axis scale types are `linear` and `time` only.
 
 Zoom options:
 
 - `enabled` (`boolean`, default `true`): master toggle for zoom features.
 - `wheelEnabled` (`boolean`, default `true`): enables/disables wheel zoom.
+- `dragEnabled` (`boolean`, default `true`): enables/disables drag-select zoom.
 - `modifierKey` (`'ctrl' | 'shift' | 'alt' | 'meta' | 'none'`, default `'ctrl'`): required key while scrolling.
 - `wheelZoomSpeed` (`number`, default `0.1`): zoom sensitivity. Larger values zoom faster per wheel step.
 - `minWindow` (`number`, default `0`): minimum x-domain span. Use `0` to disable minimum-span clamping.
+- `minDragPixels` (`number`, default `4`): minimum horizontal drag distance in pixels before drag zoom is applied.
+- `dragBox.fill` (`string`, default `'#147AF333'`): fill color for the drag selection rectangle.
+- `dragBox.stroke` (`string`, default `'#147AF3'`): stroke color for the drag selection rectangle.
+- `dragBox.strokeWidth` (`number`, default `1`): stroke width in pixels for the drag selection rectangle.
 
 Examples:
 
@@ -333,9 +347,16 @@ Examples:
     zoom: {
       enabled: true,
       wheelEnabled: true,
+      dragEnabled: true,
       modifierKey: 'ctrl',
       wheelZoomSpeed: 0.08,
       minWindow: 0,
+      minDragPixels: 4,
+      dragBox: {
+        fill: '#147AF333',
+        stroke: '#147AF3',
+        strokeWidth: 1,
+      },
     },
   }}
 />

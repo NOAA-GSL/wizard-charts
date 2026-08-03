@@ -114,9 +114,16 @@ export const defaultOptions = {
   zoom: {
     enabled: true,
     wheelEnabled: true,
+    dragEnabled: true,
     modifierKey: 'ctrl', // 'ctrl' | 'shift' | 'alt' | 'meta' | 'none'
     wheelZoomSpeed: 0.1,
     minWindow: 0,
+    minDragPixels: 4,
+    dragBox: {
+      fill: '#147AF333',
+      stroke: '#147AF3',
+      strokeWidth: 1,
+    },
   },
   readout: {
     hoverMode: 'local',

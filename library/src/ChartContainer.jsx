@@ -40,6 +40,10 @@ const DEFAULT_AUTO_WIDTH = 800;
 const DEFAULT_AUTO_HEIGHT = 600;
 const DEFAULT_WHEEL_ZOOM_SPEED = 0.1;
 const DEFAULT_ZOOM_MIN_WINDOW = 0;
+const DEFAULT_DRAG_MIN_PIXELS = 4;
+const DEFAULT_DRAG_BOX_FILL = '#147AF333';
+const DEFAULT_DRAG_BOX_STROKE = '#147AF3';
+const DEFAULT_DRAG_BOX_STROKE_WIDTH = 1;
 const SUPPORTED_ZOOM_MODIFIER_KEYS = new Set([
   'ctrl',
   'shift',
@@ -70,6 +74,10 @@ function parseCssPixelValue(value) {
   return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
 }
 
+function clampToRange(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
 function isContinuousZoomAxisType(type) {
   return type === 'linear' || type === 'time';
 }
@@ -82,10 +90,13 @@ function normalizeZoomOptions(zoomOptions = {}) {
 
   const wheelZoomSpeed = Number(zoomOptions?.wheelZoomSpeed);
   const minWindow = Number(zoomOptions?.minWindow);
+  const minDragPixels = Number(zoomOptions?.minDragPixels);
+  const dragBoxStrokeWidth = Number(zoomOptions?.dragBox?.strokeWidth);
 
   return {
     enabled: zoomOptions?.enabled !== false,
     wheelEnabled: zoomOptions?.wheelEnabled !== false,
+    dragEnabled: zoomOptions?.dragEnabled !== false,
     modifierKey,
     wheelZoomSpeed:
       Number.isFinite(wheelZoomSpeed) && wheelZoomSpeed > 0
@@ -95,6 +106,26 @@ function normalizeZoomOptions(zoomOptions = {}) {
       Number.isFinite(minWindow) && minWindow > 0
         ? minWindow
         : DEFAULT_ZOOM_MIN_WINDOW,
+    minDragPixels:
+      Number.isFinite(minDragPixels) && minDragPixels >= 0
+        ? minDragPixels
+        : DEFAULT_DRAG_MIN_PIXELS,
+    dragBox: {
+      fill:
+        typeof zoomOptions?.dragBox?.fill === 'string' &&
+        zoomOptions.dragBox.fill.trim().length > 0
+          ? zoomOptions.dragBox.fill
+          : DEFAULT_DRAG_BOX_FILL,
+      stroke:
+        typeof zoomOptions?.dragBox?.stroke === 'string' &&
+        zoomOptions.dragBox.stroke.trim().length > 0
+          ? zoomOptions.dragBox.stroke
+          : DEFAULT_DRAG_BOX_STROKE,
+      strokeWidth:
+        Number.isFinite(dragBoxStrokeWidth) && dragBoxStrokeWidth >= 0
+          ? dragBoxStrokeWidth
+          : DEFAULT_DRAG_BOX_STROKE_WIDTH,
+    },
   };
 }
 
@@ -205,6 +236,94 @@ function buildZoomedDomain(
   return [startValue, endValue];
 }
 
+function buildDomainFromPixelWindow(
+  scale,
+  pixelStart,
+  pixelEnd,
+  minWindow = 0,
+  bounds = null,
+) {
+  if (!scale || typeof scale.invert !== 'function') return null;
+
+  const domain = scale.domain?.();
+  if (!Array.isArray(domain) || domain.length !== 2) return null;
+
+  const windowStartPixel = Math.min(pixelStart, pixelEnd);
+  const windowEndPixel = Math.max(pixelStart, pixelEnd);
+  if (!Number.isFinite(windowStartPixel) || !Number.isFinite(windowEndPixel)) {
+    return null;
+  }
+
+  const startValueRaw = scale.invert(windowStartPixel);
+  const endValueRaw = scale.invert(windowEndPixel);
+  const startNumberRaw = toDomainNumber(startValueRaw);
+  const endNumberRaw = toDomainNumber(endValueRaw);
+
+  if (!Number.isFinite(startNumberRaw) || !Number.isFinite(endNumberRaw)) {
+    return null;
+  }
+
+  let nextStart = Math.min(startNumberRaw, endNumberRaw);
+  let nextEnd = Math.max(startNumberRaw, endNumberRaw);
+
+  const normalizedBounds = normalizeDomainBounds(bounds);
+  const boundsSpan = normalizedBounds
+    ? normalizedBounds.end - normalizedBounds.start
+    : null;
+
+  if (normalizedBounds) {
+    nextStart = clampToRange(
+      nextStart,
+      normalizedBounds.start,
+      normalizedBounds.end,
+    );
+    nextEnd = clampToRange(
+      nextEnd,
+      normalizedBounds.start,
+      normalizedBounds.end,
+    );
+  }
+
+  let span = nextEnd - nextStart;
+  if (!Number.isFinite(span) || span <= 0) return null;
+
+  const safeMinWindow = Number.isFinite(minWindow) ? Math.max(0, minWindow) : 0;
+  if (safeMinWindow > 0 && span < safeMinWindow) {
+    const targetSpan = Number.isFinite(boundsSpan)
+      ? Math.min(boundsSpan, safeMinWindow)
+      : safeMinWindow;
+    const center = (nextStart + nextEnd) / 2;
+    nextStart = center - targetSpan / 2;
+    nextEnd = center + targetSpan / 2;
+
+    if (normalizedBounds) {
+      if (nextStart < normalizedBounds.start) {
+        const shift = normalizedBounds.start - nextStart;
+        nextStart += shift;
+        nextEnd += shift;
+      }
+
+      if (nextEnd > normalizedBounds.end) {
+        const shift = nextEnd - normalizedBounds.end;
+        nextStart -= shift;
+        nextEnd -= shift;
+      }
+
+      nextStart = Math.max(normalizedBounds.start, nextStart);
+      nextEnd = Math.min(normalizedBounds.end, nextEnd);
+    }
+
+    span = nextEnd - nextStart;
+    if (!Number.isFinite(span) || span <= 0) return null;
+  }
+
+  const startValue = convertDomainValue(domain[0], nextStart);
+  const endValue = convertDomainValue(domain[1], nextEnd);
+  if (startValue == null || endValue == null) return null;
+
+  return [startValue, endValue];
+}
+
 function measureSvgContentSize(svgNode, fallbackWidth, fallbackHeight) {
   const safeFallbackWidth = toNumericSize(fallbackWidth, 0);
   const safeFallbackHeight = toNumericSize(fallbackHeight, 0);
@@ -303,6 +422,15 @@ function ChartContainer({
   const xScaleRef = useRef(null);
   const x2ScaleRef = useRef(null);
   const zoomBoundsRef = useRef({ x: null, x2: null });
+  const dragZoomStateRef = useRef({
+    isActive: false,
+    startX: 0,
+    startY: 0,
+    currentX: 0,
+    currentY: 0,
+    plotTop: 0,
+    plotBottom: 0,
+  });
 
   const isAutoWidth = isAutoSizeValue(width);
   const isAutoHeight = isAutoSizeValue(height);
@@ -319,6 +447,15 @@ function ChartContainer({
   const [xDomainOverrides, setXDomainOverrides] = useState({
     x: null,
     x2: null,
+  });
+  const [dragZoomState, setDragZoomState] = useState({
+    isActive: false,
+    startX: 0,
+    startY: 0,
+    currentX: 0,
+    currentY: 0,
+    plotTop: 0,
+    plotBottom: 0,
   });
 
   const updateContentSize = useCallback(
@@ -453,10 +590,22 @@ function ChartContainer({
     zoomOptions.wheelEnabled &&
     (zoomableAxes.x || zoomableAxes.x2);
 
+  const isDragZoomActive =
+    zoomOptions.enabled &&
+    zoomOptions.dragEnabled &&
+    (zoomableAxes.x || zoomableAxes.x2);
+
+  const isZoomDomainOverrideActive = isWheelZoomActive || isDragZoomActive;
+
   const appliedDomainOverrides = useMemo(
-    () => (isWheelZoomActive ? xDomainOverrides : { x: null, x2: null }),
-    [isWheelZoomActive, xDomainOverrides],
+    () =>
+      isZoomDomainOverrideActive ? xDomainOverrides : { x: null, x2: null },
+    [isZoomDomainOverrideActive, xDomainOverrides],
   );
+
+  useEffect(() => {
+    dragZoomStateRef.current = dragZoomState;
+  }, [dragZoomState]);
 
   // useMemo to avoid unnecessary re-renders in the useEffect hook of ChartProvider
   const initialValues = useMemo(
@@ -566,6 +715,156 @@ function ChartContainer({
       pendingHoverEventRef.current = null;
     });
   };
+
+  const finalizeDragZoom = useCallback(
+    (event) => {
+      const dragState = dragZoomStateRef.current;
+      if (!dragState?.isActive) return;
+
+      const svgNode = svgReadoutRef.current;
+      const plotBounds = plotBoundsRef.current;
+
+      if (!svgNode || !plotBounds || !isDragZoomActive) {
+        setDragZoomState((prev) => ({
+          ...prev,
+          isActive: false,
+        }));
+        return;
+      }
+
+      const [releaseX, releaseY] = pointer(event, svgNode);
+      const endX = Number.isFinite(releaseX) ? releaseX : dragState.currentX;
+      const endY = Number.isFinite(releaseY) ? releaseY : dragState.currentY;
+
+      const startX = clampToRange(
+        dragState.startX,
+        plotBounds.left,
+        plotBounds.right,
+      );
+      const clampedEndX = clampToRange(endX, plotBounds.left, plotBounds.right);
+
+      const selectedWidth = Math.abs(clampedEndX - startX);
+
+      setDragZoomState((prev) => ({
+        ...prev,
+        isActive: false,
+        currentX: clampedEndX,
+        currentY: clampToRange(endY, plotBounds.top, plotBounds.bottom),
+      }));
+
+      if (selectedWidth < zoomOptions.minDragPixels) {
+        return;
+      }
+
+      const nextOverrides = { x: null, x2: null };
+
+      if (zoomableAxes.x) {
+        if (zoomBoundsRef.current.x == null) {
+          const xDomain = xScaleRef.current?.domain?.();
+          if (Array.isArray(xDomain) && xDomain.length === 2) {
+            zoomBoundsRef.current.x = [xDomain[0], xDomain[1]];
+          }
+        }
+
+        nextOverrides.x = buildDomainFromPixelWindow(
+          xScaleRef.current,
+          startX,
+          clampedEndX,
+          zoomOptions.minWindow,
+          zoomBoundsRef.current.x,
+        );
+      }
+
+      if (zoomableAxes.x2) {
+        if (zoomBoundsRef.current.x2 == null) {
+          const x2Domain = x2ScaleRef.current?.domain?.();
+          if (Array.isArray(x2Domain) && x2Domain.length === 2) {
+            zoomBoundsRef.current.x2 = [x2Domain[0], x2Domain[1]];
+          }
+        }
+
+        nextOverrides.x2 = buildDomainFromPixelWindow(
+          x2ScaleRef.current,
+          startX,
+          clampedEndX,
+          zoomOptions.minWindow,
+          zoomBoundsRef.current.x2,
+        );
+      }
+
+      if (nextOverrides.x == null && nextOverrides.x2 == null) {
+        return;
+      }
+
+      setXDomainOverrides((prev) => {
+        const xUnchanged =
+          prev.x?.[0]?.valueOf?.() === nextOverrides.x?.[0]?.valueOf?.() &&
+          prev.x?.[1]?.valueOf?.() === nextOverrides.x?.[1]?.valueOf?.();
+        const x2Unchanged =
+          prev.x2?.[0]?.valueOf?.() === nextOverrides.x2?.[0]?.valueOf?.() &&
+          prev.x2?.[1]?.valueOf?.() === nextOverrides.x2?.[1]?.valueOf?.();
+
+        if (xUnchanged && x2Unchanged) return prev;
+        return nextOverrides;
+      });
+    },
+    [
+      isDragZoomActive,
+      zoomOptions.minDragPixels,
+      zoomOptions.minWindow,
+      zoomableAxes.x,
+      zoomableAxes.x2,
+    ],
+  );
+
+  const handleMouseDown = useCallback(
+    (event) => {
+      if (event.button !== 0) return;
+      if (!isDragZoomActive) return;
+
+      const svgNode = svgReadoutRef.current;
+      const plotBounds = plotBoundsRef.current;
+      if (!svgNode || !plotBounds) return;
+
+      const [localX, localY] = pointer(event, svgNode);
+      const isInsidePlot =
+        localX >= plotBounds.left &&
+        localX <= plotBounds.right &&
+        localY >= plotBounds.top &&
+        localY <= plotBounds.bottom;
+
+      if (!isInsidePlot) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      setDragZoomState({
+        isActive: true,
+        startX: localX,
+        startY: localY,
+        currentX: localX,
+        currentY: localY,
+        plotTop: plotBounds.top,
+        plotBottom: plotBounds.bottom,
+      });
+    },
+    [isDragZoomActive],
+  );
+
+  useEffect(() => {
+    if (!dragZoomState.isActive) return;
+    if (typeof window === 'undefined') return;
+
+    const handleWindowMouseUp = (event) => {
+      finalizeDragZoom(event);
+    };
+
+    window.addEventListener('mouseup', handleWindowMouseUp, true);
+
+    return () => {
+      window.removeEventListener('mouseup', handleWindowMouseUp, true);
+    };
+  }, [dragZoomState.isActive, finalizeDragZoom]);
 
   const handleWheel = useCallback(
     (event) => {
@@ -688,6 +987,26 @@ function ChartContainer({
     const svgNode = svgReadoutRef.current;
     if (!svgNode) return;
 
+    if (dragZoomState.isActive) {
+      const [dragX, dragY] = pointer(event, svgNode);
+      const plotBounds = plotBoundsRef.current;
+
+      if (!plotBounds) return;
+
+      setDragZoomState((prev) => {
+        if (!prev.isActive) return prev;
+
+        return {
+          ...prev,
+          currentX: clampToRange(dragX, plotBounds.left, plotBounds.right),
+          currentY: clampToRange(dragY, plotBounds.top, plotBounds.bottom),
+        };
+      });
+
+      queueHoverSnapshot(null);
+      return;
+    }
+
     const plotBounds = plotBoundsRef.current;
     if (!plotBounds || plotBounds.width <= 0 || plotBounds.height <= 0) {
       queueHoverSnapshot(null);
@@ -747,6 +1066,13 @@ function ChartContainer({
   const handleMouseLeave = () => {
     pendingHoverEventRef.current = null;
 
+    if (dragZoomStateRef.current?.isActive) {
+      setDragZoomState((prev) => ({
+        ...prev,
+        isActive: false,
+      }));
+    }
+
     if (
       hoverRafRef.current != null &&
       typeof window !== 'undefined' &&
@@ -793,6 +1119,32 @@ function ChartContainer({
     Array.isArray(axisOptions?.lineMarkers) &&
     axisOptions.lineMarkers.length > 0;
 
+  const dragSelectionRect = useMemo(() => {
+    if (!dragZoomState.isActive) return null;
+
+    const x1 = Math.min(dragZoomState.startX, dragZoomState.currentX);
+    const x2 = Math.max(dragZoomState.startX, dragZoomState.currentX);
+    const y1 = Math.min(dragZoomState.plotTop, dragZoomState.plotBottom);
+    const y2 = Math.max(dragZoomState.plotTop, dragZoomState.plotBottom);
+
+    const rectWidth = Math.max(0, x2 - x1);
+    const rectHeight = Math.max(0, y2 - y1);
+    if (rectWidth <= 0 || rectHeight <= 0) return null;
+
+    return {
+      x: x1,
+      y: y1,
+      width: rectWidth,
+      height: rectHeight,
+    };
+  }, [
+    dragZoomState.currentX,
+    dragZoomState.isActive,
+    dragZoomState.plotBottom,
+    dragZoomState.plotTop,
+    dragZoomState.startX,
+  ]);
+
   // Phase 1: render only an SVG shell so we can measure content-box size first.
   const svgNode = (
     <svg
@@ -801,6 +1153,7 @@ function ChartContainer({
       width={svgWidth}
       className={className}
       style={{ fontFamily: 'inherit', ...sx }}
+      onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
@@ -831,6 +1184,18 @@ function ChartContainer({
             )}
             {axes.y2 && hasAxisLineMarkers(axes.y2) && (
               <LineMarker options={axes.y2} axisKey="y2" />
+            )}
+            {dragSelectionRect && (
+              <rect
+                x={dragSelectionRect.x}
+                y={dragSelectionRect.y}
+                width={dragSelectionRect.width}
+                height={dragSelectionRect.height}
+                fill={zoomOptions.dragBox.fill}
+                stroke={zoomOptions.dragBox.stroke}
+                strokeWidth={zoomOptions.dragBox.strokeWidth}
+                pointerEvents="none"
+              />
             )}
           </PlotAreaClipGroup>
           <Legend />

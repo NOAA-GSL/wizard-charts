@@ -11,10 +11,17 @@ All notable user-facing changes to this package are documented in this file.
 - Wheel zoom is now supported with configurable controls:
   - `enabled`
   - `wheelEnabled`
+  - `dragEnabled`
   - `modifierKey` (`ctrl` default)
   - `wheelZoomSpeed`
   - `minWindow`
+- Drag-select zoom-in is now supported with configurable controls:
+  - `minDragPixels`
+  - `dragBox.fill`
+  - `dragBox.stroke`
+  - `dragBox.strokeWidth`
 - Wheel zoom focuses around the pointer position on the x-axis and updates x-domains only (`y`/`y2` remain fixed).
+- Drag-select zoom applies the selected horizontal window to x-domains (`y`/`y2` remain fixed).
 - Zoom interaction is gated to continuous x-axis types (`linear` and `time`).
 
 ### Changed
