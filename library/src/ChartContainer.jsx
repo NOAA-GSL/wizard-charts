@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { ChartProvider } from './context/ChartProvider';
+import { ChartContext, ChartProvider } from './context/ChartProvider';
 import {
   createHoverStore,
   HoverProviderContext,
@@ -100,6 +100,38 @@ function measureSvgContentSize(svgNode, fallbackWidth, fallbackHeight) {
       ? Math.max(0, measuredHeight)
       : safeFallbackHeight,
   };
+}
+
+function PlotAreaClipGroup({ chartId, children }) {
+  const { chartValues } = useContext(ChartContext);
+  const margin = chartValues?.margin || {};
+  const clipX = toNumericSize(margin.left, 0);
+  const clipY = toNumericSize(margin.top, 0);
+  const clipWidth = toNumericSize(chartValues?.innerWidth, 0);
+  const clipHeight = toNumericSize(chartValues?.innerHeight, 0);
+
+  const clipPathId = useMemo(() => {
+    const normalizedId = String(chartId || 'chart').replace(
+      /[^a-zA-Z0-9_-]/g,
+      '',
+    );
+    return `wizard-charts-plot-clip-${normalizedId || 'default'}`;
+  }, [chartId]);
+
+  if (clipWidth <= 0 || clipHeight <= 0) {
+    return children;
+  }
+
+  return (
+    <>
+      <defs>
+        <clipPath id={clipPathId} clipPathUnits="userSpaceOnUse">
+          <rect x={clipX} y={clipY} width={clipWidth} height={clipHeight} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clipPathId})`}>{children}</g>
+    </>
+  );
 }
 
 function ChartContainer({
@@ -476,19 +508,21 @@ function ChartContainer({
           {axes.y2 && axisHasMappedSeries(series, 'y2') && (
             <YAxis options={axes.y2} axisKey="y2" />
           )}
-          {seriesNodes}
-          {axes.x && hasAxisLineMarkers(axes.x) && (
-            <LineMarker options={axes.x} axisKey="x" />
-          )}
-          {axes.x2 && hasAxisLineMarkers(axes.x2) && (
-            <LineMarker options={axes.x2} axisKey="x2" />
-          )}
-          {axes.y && hasAxisLineMarkers(axes.y) && (
-            <LineMarker options={axes.y} axisKey="y" />
-          )}
-          {axes.y2 && hasAxisLineMarkers(axes.y2) && (
-            <LineMarker options={axes.y2} axisKey="y2" />
-          )}
+          <PlotAreaClipGroup chartId={chartId}>
+            {seriesNodes}
+            {axes.x && hasAxisLineMarkers(axes.x) && (
+              <LineMarker options={axes.x} axisKey="x" />
+            )}
+            {axes.x2 && hasAxisLineMarkers(axes.x2) && (
+              <LineMarker options={axes.x2} axisKey="x2" />
+            )}
+            {axes.y && hasAxisLineMarkers(axes.y) && (
+              <LineMarker options={axes.y} axisKey="y" />
+            )}
+            {axes.y2 && hasAxisLineMarkers(axes.y2) && (
+              <LineMarker options={axes.y2} axisKey="y2" />
+            )}
+          </PlotAreaClipGroup>
           <Legend />
           {children}
           <HoverReadoutLayer

@@ -106,6 +106,8 @@ type ChartContainerProps = {
 
 `width` and `height` define the chart's outer SVG box. Internal chart layout (scales, axes, and plot area) is measured from the SVG content box, so `box-sizing: border-box` with `border` and/or `padding` in `sx` is accounted for automatically.
 
+Series rendering inside `ChartContainer` is clipped to the computed inner plot area (inside margins). This prevents plot layers from visually spilling into axis/legend space.
+
 ## Dynamic Margins
 
 Each margin side can be either:
@@ -720,7 +722,7 @@ Recommended band order is outer-to-inner (for example `5-95`, `10-90`, `25-75`) 
   className: '',
   fill: dataVizColors.tropicalIndigo,
   isVisible: true,
-  paddingFactor: 0.8,
+  paddingFactor: 0.8, // 0-1
   stacked: false,
   isCumulative: false,
   stroke: 'none',
@@ -744,7 +746,7 @@ Recommended band order is outer-to-inner (for example `5-95`, `10-90`, `25-75`) 
   className: '',
   fill: dataVizColors.tropicalIndigo,
   isVisible: true,
-  paddingFactor: 0.8,
+  paddingFactor: 0.8, // 0-1
   stroke: 'none',
   strokeMedian: '#ffffff88',
   strokeWhisker: dataVizColors.tropicalIndigo,
@@ -1173,7 +1175,7 @@ Tick behavior:
 
 - Leave `ticks.values` empty to use the axis' generated ticks. Continuous axes (`linear`, `time`) use D3 `scale.ticks(count)` generation, with `ticks.amount` as the count hint. Band axes use the resolved domain.
 - Provide `ticks.values` to render only those tick positions.
-- `ticks.amount` only affects generated continuous ticks. It is ignored when `ticks.values` is provided.
+- `ticks.amount` is a hint, not an exact count. For `linear` and `time` axes, D3 adjusts the count to produce evenly spaced ticks that span the full domain. The actual number of ticks may differ slightly from the requested amount. It is ignored entirely when `ticks.values` is provided.
 - Provide `ticks.labels` to override labels by index. If a label is missing for a given tick value, the axis falls back to `ticks.formatter(value)`, then `String(value)`.
 - `ticks.collisionStrategy` controls overlap handling:
   - `'auto'` (default): x/x2 try 45-degree rotation first, then reduce ticks if needed; y/y2 reduce ticks.
@@ -1362,5 +1364,7 @@ const options = {
 - For `type: 'time'`, provide `Date` instances or numeric timestamps.
 - Dot-notation keys are supported for nested values (for example `forecast.p50`).
 - If using per-series columnar `data`, keep all arrays the same length.
+- `bar` and `boxPlot` `paddingFactor` values are clamped to `0-1`; out-of-range values emit a `console.warn` message.
+- Plot layers are clipped to the computed inner plot area.
 - Supported axis keys are `x`, `y`, `x2`, and `y2`; unknown keys are ignored.
 - Set `animationDuration: 0` to disable animation.
