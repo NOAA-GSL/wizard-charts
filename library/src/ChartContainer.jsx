@@ -44,13 +44,8 @@ const DEFAULT_DRAG_MIN_PIXELS = 4;
 const DEFAULT_DRAG_BOX_FILL = '#147AF333';
 const DEFAULT_DRAG_BOX_STROKE = '#147AF3';
 const DEFAULT_DRAG_BOX_STROKE_WIDTH = 1;
-const SUPPORTED_ZOOM_MODIFIER_KEYS = new Set([
-  'ctrl',
-  'shift',
-  'alt',
-  'meta',
-  'none',
-]);
+const DEFAULT_PAN_CURSOR = 'move';
+const SUPPORTED_ZOOM_MODIFIER_KEYS = new Set(['ctrl', 'shift', 'alt', 'meta']);
 const CONTOUR_GRID_ALLOWED_MIX_TYPES = new Set([
   'contourGrid',
   'line',
@@ -92,12 +87,18 @@ function normalizeZoomOptions(zoomOptions = {}) {
   const minWindow = Number(zoomOptions?.minWindow);
   const minDragPixels = Number(zoomOptions?.minDragPixels);
   const dragBoxStrokeWidth = Number(zoomOptions?.dragBox?.strokeWidth);
+  const panCursorRaw = zoomOptions?.panCursor;
 
   return {
     enabled: zoomOptions?.enabled !== false,
     wheelEnabled: zoomOptions?.wheelEnabled !== false,
     dragEnabled: zoomOptions?.dragEnabled !== false,
+    panEnabled: zoomOptions?.panEnabled !== false,
     modifierKey,
+    panCursor:
+      typeof panCursorRaw === 'string' && panCursorRaw.trim().length > 0
+        ? panCursorRaw
+        : DEFAULT_PAN_CURSOR,
     wheelZoomSpeed:
       Number.isFinite(wheelZoomSpeed) && wheelZoomSpeed > 0
         ? wheelZoomSpeed
@@ -131,8 +132,35 @@ function normalizeZoomOptions(zoomOptions = {}) {
 
 function isZoomModifierPressed(event, modifierKey) {
   switch (modifierKey) {
-    case 'none':
-      return true;
+    case 'shift':
+      return event.shiftKey;
+    case 'alt':
+      return event.altKey;
+    case 'meta':
+      return event.metaKey;
+    case 'ctrl':
+    default:
+      return event.ctrlKey;
+  }
+}
+
+function isKeyboardModifierPressed(event, modifierKey) {
+  if (!event) return false;
+
+  const modifierKeyNames = {
+    ctrl: 'Control',
+    shift: 'Shift',
+    alt: 'Alt',
+    meta: 'Meta',
+  };
+  const expectedKey = modifierKeyNames[modifierKey] || 'Control';
+
+  // Keyup for the configured modifier should always clear interaction state.
+  if (event.type === 'keyup' && event.key === expectedKey) {
+    return false;
+  }
+
+  switch (modifierKey) {
     case 'shift':
       return event.shiftKey;
     case 'alt':
@@ -324,6 +352,82 @@ function buildDomainFromPixelWindow(
   return [startValue, endValue];
 }
 
+function buildPannedDomain(scale, pixelDelta, bounds = null) {
+  if (!scale || typeof scale.invert !== 'function') return null;
+
+  const domain = scale.domain?.();
+  const range = scale.range?.();
+  if (!Array.isArray(domain) || domain.length !== 2) return null;
+  if (!Array.isArray(range) || range.length !== 2) return null;
+
+  const domainStart = toDomainNumber(domain[0]);
+  const domainEnd = toDomainNumber(domain[1]);
+  if (!Number.isFinite(domainStart) || !Number.isFinite(domainEnd)) return null;
+
+  const centerPixel = (Number(range[0]) + Number(range[1])) / 2;
+  const centerDomainValue = toDomainNumber(scale.invert(centerPixel));
+  const shiftedDomainValue = toDomainNumber(
+    scale.invert(centerPixel + pixelDelta),
+  );
+  if (
+    !Number.isFinite(centerDomainValue) ||
+    !Number.isFinite(shiftedDomainValue)
+  ) {
+    return null;
+  }
+
+  const domainDelta = shiftedDomainValue - centerDomainValue;
+  let nextStart = domainStart - domainDelta;
+  let nextEnd = domainEnd - domainDelta;
+
+  const normalizedBounds = normalizeDomainBounds(bounds);
+  if (normalizedBounds) {
+    const span = nextEnd - nextStart;
+    const boundsSpan = normalizedBounds.end - normalizedBounds.start;
+    if (span > boundsSpan) {
+      nextStart = normalizedBounds.start;
+      nextEnd = normalizedBounds.end;
+    } else {
+      if (nextStart < normalizedBounds.start) {
+        const shift = normalizedBounds.start - nextStart;
+        nextStart += shift;
+        nextEnd += shift;
+      }
+
+      if (nextEnd > normalizedBounds.end) {
+        const shift = nextEnd - normalizedBounds.end;
+        nextStart -= shift;
+        nextEnd -= shift;
+      }
+
+      nextStart = Math.max(normalizedBounds.start, nextStart);
+      nextEnd = Math.min(normalizedBounds.end, nextEnd);
+    }
+  }
+
+  if (!Number.isFinite(nextStart) || !Number.isFinite(nextEnd)) return null;
+  if (nextEnd <= nextStart) return null;
+
+  const startValue = convertDomainValue(domain[0], nextStart);
+  const endValue = convertDomainValue(domain[1], nextEnd);
+  if (startValue == null || endValue == null) return null;
+
+  return [startValue, endValue];
+}
+
+function isPanPossible(scale, bounds) {
+  if (!scale) return false;
+
+  const currentDomain = scale.domain?.();
+  const normalizedCurrent = normalizeDomainBounds(currentDomain);
+  const normalizedBounds = normalizeDomainBounds(bounds);
+  if (!normalizedCurrent || !normalizedBounds) return false;
+
+  const currentSpan = normalizedCurrent.end - normalizedCurrent.start;
+  const boundsSpan = normalizedBounds.end - normalizedBounds.start;
+  return currentSpan < boundsSpan;
+}
+
 function measureSvgContentSize(svgNode, fallbackWidth, fallbackHeight) {
   const safeFallbackWidth = toNumericSize(fallbackWidth, 0);
   const safeFallbackHeight = toNumericSize(fallbackHeight, 0);
@@ -422,6 +526,10 @@ function ChartContainer({
   const xScaleRef = useRef(null);
   const x2ScaleRef = useRef(null);
   const zoomBoundsRef = useRef({ x: null, x2: null });
+  const panStateRef = useRef({
+    isActive: false,
+    lastX: 0,
+  });
   const dragZoomStateRef = useRef({
     isActive: false,
     startX: 0,
@@ -448,6 +556,10 @@ function ChartContainer({
     x: null,
     x2: null,
   });
+  const [panState, setPanState] = useState({
+    isActive: false,
+    lastX: 0,
+  });
   const [dragZoomState, setDragZoomState] = useState({
     isActive: false,
     startX: 0,
@@ -457,6 +569,9 @@ function ChartContainer({
     plotTop: 0,
     plotBottom: 0,
   });
+  const [isPointerOverChart, setIsPointerOverChart] = useState(false);
+  const [isPointerOverPlot, setIsPointerOverPlot] = useState(false);
+  const [isModifierPressed, setIsModifierPressed] = useState(false);
 
   const updateContentSize = useCallback(
     (nextSize) => {
@@ -595,7 +710,13 @@ function ChartContainer({
     zoomOptions.dragEnabled &&
     (zoomableAxes.x || zoomableAxes.x2);
 
-  const isZoomDomainOverrideActive = isWheelZoomActive || isDragZoomActive;
+  const isPanZoomActive =
+    zoomOptions.enabled &&
+    zoomOptions.panEnabled &&
+    (zoomableAxes.x || zoomableAxes.x2);
+
+  const isZoomDomainOverrideActive =
+    isWheelZoomActive || isDragZoomActive || isPanZoomActive;
 
   const appliedDomainOverrides = useMemo(
     () =>
@@ -606,6 +727,37 @@ function ChartContainer({
   useEffect(() => {
     dragZoomStateRef.current = dragZoomState;
   }, [dragZoomState]);
+
+  useEffect(() => {
+    panStateRef.current = panState;
+  }, [panState]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const onModifierEvent = (event) => {
+      const nextIsPressed = isKeyboardModifierPressed(
+        event,
+        zoomOptions.modifierKey,
+      );
+      setIsModifierPressed(nextIsPressed);
+
+      if (!nextIsPressed) {
+        setPanState((prev) => {
+          if (!prev.isActive) return prev;
+          return { ...prev, isActive: false };
+        });
+      }
+    };
+
+    window.addEventListener('keydown', onModifierEvent, true);
+    window.addEventListener('keyup', onModifierEvent, true);
+
+    return () => {
+      window.removeEventListener('keydown', onModifierEvent, true);
+      window.removeEventListener('keyup', onModifierEvent, true);
+    };
+  }, [zoomOptions.modifierKey]);
 
   // useMemo to avoid unnecessary re-renders in the useEffect hook of ChartProvider
   const initialValues = useMemo(
@@ -716,6 +868,15 @@ function ChartContainer({
     });
   };
 
+  const finalizePan = useCallback(() => {
+    if (!panStateRef.current?.isActive) return;
+
+    setPanState((prev) => {
+      if (!prev.isActive) return prev;
+      return { ...prev, isActive: false };
+    });
+  }, []);
+
   const finalizeDragZoom = useCallback(
     (event) => {
       const dragState = dragZoomStateRef.current;
@@ -819,8 +980,14 @@ function ChartContainer({
 
   const handleMouseDown = useCallback(
     (event) => {
-      if (event.button !== 0) return;
-      if (!isDragZoomActive) return;
+      const modifierPressed = isZoomModifierPressed(
+        event,
+        zoomOptions.modifierKey,
+      );
+      const isPanButton =
+        event.button === 0 || (modifierPressed && event.button === 2);
+
+      if (!isPanButton) return;
 
       const svgNode = svgReadoutRef.current;
       const plotBounds = plotBoundsRef.current;
@@ -835,6 +1002,34 @@ function ChartContainer({
 
       if (!isInsidePlot) return;
 
+      if (modifierPressed) {
+        if (!isPanZoomActive) return;
+
+        const hasPannableXAxis =
+          zoomableAxes.x &&
+          isPanPossible(xScaleRef.current, zoomBoundsRef.current.x);
+        const hasPannableX2Axis =
+          zoomableAxes.x2 &&
+          isPanPossible(x2ScaleRef.current, zoomBoundsRef.current.x2);
+
+        if (!hasPannableXAxis && !hasPannableX2Axis) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        setPanState({
+          isActive: true,
+          lastX: localX,
+        });
+        return;
+      }
+
+      if (event.button !== 0) return;
+
+      if (!isDragZoomActive) return;
+
       event.preventDefault();
       event.stopPropagation();
 
@@ -848,7 +1043,41 @@ function ChartContainer({
         plotBottom: plotBounds.bottom,
       });
     },
-    [isDragZoomActive],
+    [
+      isDragZoomActive,
+      isPanZoomActive,
+      zoomOptions.modifierKey,
+      zoomableAxes.x,
+      zoomableAxes.x2,
+    ],
+  );
+
+  const handleContextMenu = useCallback(
+    (event) => {
+      if (!zoomOptions.enabled || !isPanZoomActive) return;
+
+      const svgNode = svgReadoutRef.current;
+      if (!svgNode) return;
+
+      const rect = svgNode.getBoundingClientRect();
+      const isInsideChart =
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom;
+      if (!isInsideChart) return;
+
+      const modifierPressed = isZoomModifierPressed(
+        event,
+        zoomOptions.modifierKey,
+      );
+
+      if (!modifierPressed && !panStateRef.current?.isActive) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    [isPanZoomActive, zoomOptions.enabled, zoomOptions.modifierKey],
   );
 
   useEffect(() => {
@@ -865,6 +1094,35 @@ function ChartContainer({
       window.removeEventListener('mouseup', handleWindowMouseUp, true);
     };
   }, [dragZoomState.isActive, finalizeDragZoom]);
+
+  useEffect(() => {
+    if (!panState.isActive) return;
+    if (typeof window === 'undefined') return;
+
+    const handleWindowMouseUp = () => {
+      finalizePan();
+    };
+
+    window.addEventListener('mouseup', handleWindowMouseUp, true);
+
+    return () => {
+      window.removeEventListener('mouseup', handleWindowMouseUp, true);
+    };
+  }, [panState.isActive, finalizePan]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleBlur = () => {
+      finalizePan();
+    };
+
+    window.addEventListener('blur', handleBlur, true);
+
+    return () => {
+      window.removeEventListener('blur', handleBlur, true);
+    };
+  }, [finalizePan]);
 
   const handleWheel = useCallback(
     (event) => {
@@ -983,15 +1241,103 @@ function ChartContainer({
     };
   }, [handleWheel, hasMeasuredContentSize]);
 
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    window.addEventListener('contextmenu', handleContextMenu, true);
+
+    return () => {
+      window.removeEventListener('contextmenu', handleContextMenu, true);
+    };
+  }, [handleContextMenu]);
+
   const handleMouseMove = (event) => {
     const svgNode = svgReadoutRef.current;
     if (!svgNode) return;
+
+    setIsModifierPressed(isZoomModifierPressed(event, zoomOptions.modifierKey));
+
+    if (panState.isActive) {
+      const [panX, panY] = pointer(event, svgNode);
+      if (!Number.isFinite(panX)) return;
+
+      const plotBounds = plotBoundsRef.current;
+      if (!plotBounds) return;
+
+      const isInsidePlot =
+        panX >= plotBounds.left &&
+        panX <= plotBounds.right &&
+        panY >= plotBounds.top &&
+        panY <= plotBounds.bottom;
+      setIsPointerOverPlot(isInsidePlot);
+
+      const clampedPanX = clampToRange(panX, plotBounds.left, plotBounds.right);
+      const deltaX = clampedPanX - panState.lastX;
+
+      setPanState((prev) => {
+        if (!prev.isActive) return prev;
+        return {
+          ...prev,
+          lastX: clampedPanX,
+        };
+      });
+
+      if (deltaX === 0) {
+        queueHoverSnapshot(null);
+        return;
+      }
+
+      const nextOverrides = { x: null, x2: null };
+
+      if (zoomableAxes.x && zoomBoundsRef.current.x != null) {
+        nextOverrides.x = buildPannedDomain(
+          xScaleRef.current,
+          deltaX,
+          zoomBoundsRef.current.x,
+        );
+      }
+
+      if (zoomableAxes.x2 && zoomBoundsRef.current.x2 != null) {
+        nextOverrides.x2 = buildPannedDomain(
+          x2ScaleRef.current,
+          deltaX,
+          zoomBoundsRef.current.x2,
+        );
+      }
+
+      if (nextOverrides.x == null && nextOverrides.x2 == null) {
+        queueHoverSnapshot(null);
+        return;
+      }
+
+      setXDomainOverrides((prev) => {
+        const xUnchanged =
+          prev.x?.[0]?.valueOf?.() === nextOverrides.x?.[0]?.valueOf?.() &&
+          prev.x?.[1]?.valueOf?.() === nextOverrides.x?.[1]?.valueOf?.();
+        const x2Unchanged =
+          prev.x2?.[0]?.valueOf?.() === nextOverrides.x2?.[0]?.valueOf?.() &&
+          prev.x2?.[1]?.valueOf?.() === nextOverrides.x2?.[1]?.valueOf?.();
+
+        if (xUnchanged && x2Unchanged) return prev;
+        return nextOverrides;
+      });
+
+      queueHoverSnapshot(null);
+      return;
+    }
 
     if (dragZoomState.isActive) {
       const [dragX, dragY] = pointer(event, svgNode);
       const plotBounds = plotBoundsRef.current;
 
       if (!plotBounds) return;
+
+      const isInsidePlot =
+        dragX >= plotBounds.left &&
+        dragX <= plotBounds.right &&
+        dragY >= plotBounds.top &&
+        dragY <= plotBounds.bottom;
+      setIsPointerOverPlot(isInsidePlot);
 
       setDragZoomState((prev) => {
         if (!prev.isActive) return prev;
@@ -1024,6 +1370,7 @@ function ChartContainer({
       localX <= plotBounds.right &&
       localY >= plotBounds.top &&
       localY <= plotBounds.bottom;
+    setIsPointerOverPlot(isInsidePlot);
 
     if (!isInsidePlot) {
       queueHoverSnapshot(null);
@@ -1063,8 +1410,17 @@ function ChartContainer({
   };
 
   // Clear hover state so overlays stop rendering stale readouts.
+  const handleMouseEnter = () => {
+    setIsPointerOverChart(true);
+  };
+
   const handleMouseLeave = () => {
+    setIsPointerOverChart(false);
+    setIsPointerOverPlot(false);
+    setIsModifierPressed(false);
     pendingHoverEventRef.current = null;
+
+    finalizePan();
 
     if (dragZoomStateRef.current?.isActive) {
       setDragZoomState((prev) => ({
@@ -1120,7 +1476,7 @@ function ChartContainer({
     axisOptions.lineMarkers.length > 0;
 
   const dragSelectionRect = useMemo(() => {
-    if (!dragZoomState.isActive) return null;
+    if (!dragZoomState.isActive || panState.isActive) return null;
 
     const x1 = Math.min(dragZoomState.startX, dragZoomState.currentX);
     const x2 = Math.max(dragZoomState.startX, dragZoomState.currentX);
@@ -1143,7 +1499,15 @@ function ChartContainer({
     dragZoomState.plotBottom,
     dragZoomState.plotTop,
     dragZoomState.startX,
+    panState.isActive,
   ]);
+
+  const shouldShowPanCursor =
+    zoomOptions.enabled &&
+    (zoomableAxes.x || zoomableAxes.x2) &&
+    isPointerOverChart &&
+    isPointerOverPlot &&
+    isModifierPressed;
 
   // Phase 1: render only an SVG shell so we can measure content-box size first.
   const svgNode = (
@@ -1152,7 +1516,12 @@ function ChartContainer({
       height={svgHeight}
       width={svgWidth}
       className={className}
-      style={{ fontFamily: 'inherit', ...sx }}
+      style={{
+        fontFamily: 'inherit',
+        ...sx,
+        ...(shouldShowPanCursor ? { cursor: zoomOptions.panCursor } : {}),
+      }}
+      onMouseEnter={handleMouseEnter}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}

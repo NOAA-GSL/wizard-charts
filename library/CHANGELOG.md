@@ -12,7 +12,9 @@ All notable user-facing changes to this package are documented in this file.
   - `enabled`
   - `wheelEnabled`
   - `dragEnabled`
+  - `panEnabled`
   - `modifierKey` (`ctrl` default)
+  - `panCursor`
   - `wheelZoomSpeed`
   - `minWindow`
 - Drag-select zoom-in is now supported with configurable controls:
@@ -22,6 +24,7 @@ All notable user-facing changes to this package are documented in this file.
   - `dragBox.strokeWidth`
 - Wheel zoom focuses around the pointer position on the x-axis and updates x-domains only (`y`/`y2` remain fixed).
 - Drag-select zoom applies the selected horizontal window to x-domains (`y`/`y2` remain fixed).
+- Modifier-drag panning is now supported on the x-axis using the same `modifierKey` as wheel zoom.
 - Zoom interaction is gated to continuous x-axis types (`linear` and `time`).
 
 ### Changed
@@ -32,6 +35,7 @@ All notable user-facing changes to this package are documented in this file.
 - Internal x-domain padding and hover readout bar/box center calculations now use the same normalized `paddingFactor` behavior as plot rendering.
 - While modifier-wheel zoom is active over a chart, the chart now captures wheel events to prevent page/document scrolling.
 - Wheel zoom domain expansion is now clamped to the chart's starting x-domain extent, preventing zoom-out beyond the initial data window.
+- X-axis panning is clamped to the chart's starting x-domain extent and cannot pan beyond data bounds.
 
 ## 1.1.0
 

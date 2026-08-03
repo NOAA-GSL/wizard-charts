@@ -115,7 +115,9 @@ export const defaultOptions = {
     enabled: true,
     wheelEnabled: true,
     dragEnabled: true,
-    modifierKey: 'ctrl', // 'ctrl' | 'shift' | 'alt' | 'meta' | 'none'
+    panEnabled: true,
+    modifierKey: 'ctrl', // 'ctrl' | 'shift' | 'alt' | 'meta'
+    panCursor: 'move',
     wheelZoomSpeed: 0.1,
     minWindow: 0,
     minDragPixels: 4,
