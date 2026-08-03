@@ -13,6 +13,7 @@ All notable user-facing changes to this package are documented in this file.
   - `wheelEnabled`
   - `dragEnabled`
   - `panEnabled`
+  - `rightClickResetEnabled`
   - `modifierKey` (`ctrl` default)
   - `panCursor`
   - `wheelZoomSpeed`
@@ -25,6 +26,7 @@ All notable user-facing changes to this package are documented in this file.
 - Wheel zoom focuses around the pointer position on the x-axis and updates x-domains only (`y`/`y2` remain fixed).
 - Drag-select zoom applies the selected horizontal window to x-domains (`y`/`y2` remain fixed).
 - Modifier-drag panning is now supported on the x-axis using the same `modifierKey` as wheel zoom.
+- Right-click inside the inner plot area now resets zoom to the starting x-domain extent (x/x2).
 - Zoom interaction is gated to continuous x-axis types (`linear` and `time`).
 
 ### Changed

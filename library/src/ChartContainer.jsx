@@ -94,6 +94,7 @@ function normalizeZoomOptions(zoomOptions = {}) {
     wheelEnabled: zoomOptions?.wheelEnabled !== false,
     dragEnabled: zoomOptions?.dragEnabled !== false,
     panEnabled: zoomOptions?.panEnabled !== false,
+    rightClickResetEnabled: zoomOptions?.rightClickResetEnabled !== false,
     modifierKey,
     panCursor:
       typeof panCursorRaw === 'string' && panCursorRaw.trim().length > 0
@@ -715,6 +716,11 @@ function ChartContainer({
     zoomOptions.panEnabled &&
     (zoomableAxes.x || zoomableAxes.x2);
 
+  const isRightClickResetActive =
+    zoomOptions.enabled &&
+    zoomOptions.rightClickResetEnabled &&
+    (zoomableAxes.x || zoomableAxes.x2);
+
   const isZoomDomainOverrideActive =
     isWheelZoomActive || isDragZoomActive || isPanZoomActive;
 
@@ -877,6 +883,24 @@ function ChartContainer({
     });
   }, []);
 
+  const resetZoom = useCallback(() => {
+    finalizePan();
+
+    if (dragZoomStateRef.current?.isActive) {
+      setDragZoomState((prev) => {
+        if (!prev.isActive) return prev;
+        return { ...prev, isActive: false };
+      });
+    }
+
+    setXDomainOverrides((prev) => {
+      const hasXOverride = Array.isArray(prev.x) && prev.x.length === 2;
+      const hasX2Override = Array.isArray(prev.x2) && prev.x2.length === 2;
+      if (!hasXOverride && !hasX2Override) return prev;
+      return { x: null, x2: null };
+    });
+  }, [finalizePan]);
+
   const finalizeDragZoom = useCallback(
     (event) => {
       const dragState = dragZoomStateRef.current;
@@ -984,10 +1008,8 @@ function ChartContainer({
         event,
         zoomOptions.modifierKey,
       );
-      const isPanButton =
-        event.button === 0 || (modifierPressed && event.button === 2);
 
-      if (!isPanButton) return;
+      if (event.button !== 0 && event.button !== 2) return;
 
       const svgNode = svgReadoutRef.current;
       const plotBounds = plotBoundsRef.current;
@@ -1001,6 +1023,15 @@ function ChartContainer({
         localY <= plotBounds.bottom;
 
       if (!isInsidePlot) return;
+
+      if (event.button === 2) {
+        if (!isRightClickResetActive) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        resetZoom();
+        return;
+      }
 
       if (modifierPressed) {
         if (!isPanZoomActive) return;
@@ -1046,6 +1077,8 @@ function ChartContainer({
     [
       isDragZoomActive,
       isPanZoomActive,
+      isRightClickResetActive,
+      resetZoom,
       zoomOptions.modifierKey,
       zoomableAxes.x,
       zoomableAxes.x2,
@@ -1054,10 +1087,28 @@ function ChartContainer({
 
   const handleContextMenu = useCallback(
     (event) => {
-      if (!zoomOptions.enabled || !isPanZoomActive) return;
+      if (!zoomOptions.enabled) return;
 
       const svgNode = svgReadoutRef.current;
       if (!svgNode) return;
+
+      const plotBounds = plotBoundsRef.current;
+      if (plotBounds) {
+        const [localX, localY] = pointer(event, svgNode);
+        const isInsidePlot =
+          localX >= plotBounds.left &&
+          localX <= plotBounds.right &&
+          localY >= plotBounds.top &&
+          localY <= plotBounds.bottom;
+
+        if (isInsidePlot && isRightClickResetActive) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+      }
+
+      if (!isPanZoomActive) return;
 
       const rect = svgNode.getBoundingClientRect();
       const isInsideChart =
@@ -1077,7 +1128,12 @@ function ChartContainer({
       event.preventDefault();
       event.stopPropagation();
     },
-    [isPanZoomActive, zoomOptions.enabled, zoomOptions.modifierKey],
+    [
+      isPanZoomActive,
+      isRightClickResetActive,
+      zoomOptions.enabled,
+      zoomOptions.modifierKey,
+    ],
   );
 
   useEffect(() => {

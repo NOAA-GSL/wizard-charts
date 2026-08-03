@@ -255,6 +255,7 @@ All column arrays must be the same length.
     wheelEnabled: true,
     dragEnabled: true,
     panEnabled: true,
+    rightClickResetEnabled: true,
     modifierKey: 'ctrl', // 'ctrl' | 'shift' | 'alt' | 'meta'
     panCursor: 'move',
     wheelZoomSpeed: 0.1,
@@ -327,6 +328,7 @@ Zoom currently supports wheel zoom, drag-select zoom-in, and modifier-drag panni
 - Panning uses the same `modifierKey` as wheel zoom and left-drag in the plot area.
 - While modifier is held over the inner plot area, cursor switches to `panCursor` (`'move'` by default).
 - Drag-select zoom uses plain left-click drag in the plot area by default.
+- Right-click inside the inner plot area resets zoom back to the starting x-domain extent.
 - Supported zoom axis scale types are `linear` and `time` only.
 
 Zoom options:
@@ -335,6 +337,7 @@ Zoom options:
 - `wheelEnabled` (`boolean`, default `true`): enables/disables wheel zoom.
 - `dragEnabled` (`boolean`, default `true`): enables/disables drag-select zoom.
 - `panEnabled` (`boolean`, default `true`): enables/disables modifier-drag panning.
+- `rightClickResetEnabled` (`boolean`, default `true`): enables/disables right-click zoom reset in the inner plot area.
 - `modifierKey` (`'ctrl' | 'shift' | 'alt' | 'meta'`, default `'ctrl'`): required key while scrolling and modifier-drag panning.
 - `panCursor` (`string`, default `'move'`): cursor shown while modifier is held over the inner plot area.
 - `wheelZoomSpeed` (`number`, default `0.1`): zoom sensitivity. Larger values zoom faster per wheel step.
@@ -356,6 +359,7 @@ Examples:
       wheelEnabled: true,
       dragEnabled: true,
       panEnabled: true,
+      rightClickResetEnabled: true,
       modifierKey: 'ctrl',
       panCursor: 'move',
       wheelZoomSpeed: 0.08,
