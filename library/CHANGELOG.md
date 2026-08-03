@@ -2,6 +2,18 @@
 
 All notable user-facing changes to this package are documented in this file.
 
+## Unreleased
+
+### Added
+
+- Plot rendering now applies an inner-chart SVG clip area so series layers and axis line markers are visually constrained to the plot region.
+
+### Changed
+
+- `bar` and `boxPlot` `paddingFactor` is now clamped to the range `0..1`.
+- When an out-of-range or non-numeric `paddingFactor` is provided, the chart logs a `console.warn` message and uses the clamped/fallback value.
+- Internal x-domain padding and hover readout bar/box center calculations now use the same normalized `paddingFactor` behavior as plot rendering.
+
 ## 1.1.0
 
 ### Added

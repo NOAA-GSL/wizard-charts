@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useChartHelpers } from './useChartHelpers';
-import { createAccessor } from '../utilities/dataUtilities';
+import {
+  createAccessor,
+  normalizePaddingFactor,
+} from '../utilities/dataUtilities';
 import {
   buildContinuousXMap,
   buildPreparedHeatmapPoints,
@@ -78,6 +81,7 @@ function getSeriesRectWidth({
   accessors,
   innerWidth,
   series,
+  seriesIndex,
   seriesData,
   xScale,
 }) {
@@ -103,9 +107,9 @@ function getSeriesRectWidth({
   }
 
   const fallback = (Number(innerWidth) || 0) / Math.max(1, seriesData.length);
-  const paddingFactor = Number.isFinite(Number(series?.paddingFactor))
-    ? Number(series.paddingFactor)
-    : 0.8;
+  const paddingFactor = normalizePaddingFactor(series?.paddingFactor, {
+    context: `${seriesType} series at index ${seriesIndex} paddingFactor`,
+  });
 
   let rectWidth = (step || fallback) * paddingFactor;
 
@@ -1195,6 +1199,7 @@ export function useHoverReadoutDebug({
           accessors,
           innerWidth: chartValues.innerWidth,
           series,
+          seriesIndex,
           seriesData,
           xScale,
         });

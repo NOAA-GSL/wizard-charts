@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
-import { mergeDeep } from '../utilities/dataUtilities';
+import { mergeDeep, normalizePaddingFactor } from '../utilities/dataUtilities';
 import { defaultBarOptions } from '../utilities/defaultOptions';
 
 function Bar({ seriesIndex = 0, options = {} }) {
@@ -28,6 +28,9 @@ function Bar({ seriesIndex = 0, options = {} }) {
   const { xScale, yScale, yDomain } = getSeriesScales(seriesIndex);
   const series = chartValues.options?.series || [];
   const currentSeries = series[seriesIndex] || {};
+  const safePaddingFactor = normalizePaddingFactor(paddingFactor, {
+    context: `bar series at index ${seriesIndex} paddingFactor`,
+  });
 
   const rectGroupRef = useRef(null);
 
@@ -92,7 +95,7 @@ function Bar({ seriesIndex = 0, options = {} }) {
   // if step fails, use this fallback that divides the width by the number of points
   const fallback = chartValues.innerWidth / Math.max(1, seriesData.length);
   // barWidth is shrunk by a padding factor to create space between bars
-  const barWidth = (step || fallback) * paddingFactor;
+  const barWidth = (step || fallback) * safePaddingFactor;
 
   useAnimation({
     type: 'growBar',
@@ -119,7 +122,7 @@ function Bar({ seriesIndex = 0, options = {} }) {
         if (typeof xScale.bandwidth === 'function') {
           const bandStart = xScale(accessors.x(dataPoint));
           const band = xScale.bandwidth();
-          width = band * paddingFactor;
+          width = band * safePaddingFactor;
           if (alignment === 'left') {
             x = bandStart;
           } else if (alignment === 'right') {
