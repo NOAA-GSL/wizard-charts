@@ -1,8 +1,9 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
 import { mergeDeep } from '../utilities/dataUtilities';
 import { defaultWindBarbsOptions } from '../utilities/defaultOptions';
+import { toTriggerPart } from '../utilities/heatmapMatrixHelpers';
 import { buildWindBarbElements } from '../utilities/windBarbPaths';
 
 /**
@@ -80,12 +81,32 @@ function WindBarbs({ seriesIndex = 0, options = {} }) {
   const seriesData = getSeriesData(seriesIndex);
   const { xScale, yScale } = getSeriesScales(seriesIndex);
 
+  const animationTrigger = useMemo(() => {
+    if (!Array.isArray(seriesData) || seriesData.length === 0) return 'empty';
+
+    return seriesData
+      .map((d) => {
+        const xValue = accessors.x?.(d);
+        const yValue = accessors.y?.(d);
+        const speed = accessors.speedKey?.(d);
+        const direction = accessors.directionKey?.(d);
+
+        return [
+          toTriggerPart(xValue),
+          toTriggerPart(yValue),
+          toTriggerPart(speed),
+          toTriggerPart(direction),
+        ].join('|');
+      })
+      .join('||');
+  }, [accessors, seriesData]);
+
   const groupRef = useRef(null);
 
   useAnimation({
     type: 'fadeIn',
     ref: groupRef,
-    trigger: seriesData,
+    trigger: animationTrigger,
   });
 
   if (!xScale || !yScale) return null;
