@@ -1270,6 +1270,7 @@ Tick behavior:
 - Provide `ticks.values` to render only those tick positions.
 - `ticks.amount` is a hint, not an exact count. For `linear` and `time` axes, D3 adjusts the count to produce evenly spaced ticks that span the full domain. The actual number of ticks may differ slightly from the requested amount. It is ignored entirely when `ticks.values` is provided.
 - Provide `ticks.labels` to override labels by index. If a label is missing for a given tick value, the axis falls back to `ticks.formatter(value)`, then `String(value)`.
+- For `time` axes, JavaScript `Date` values represent instants in time. `timeFormatter(...)` displays those instants using the viewer's local calendar fields, while `utcTimeFormatter(...)` displays UTC calendar fields. Generated tick positions still come from D3 `scaleTime()` unless you provide explicit `ticks.values`.
 - `ticks.collisionStrategy` controls overlap handling:
   - `'auto'` (default): x/x2 try 45-degree rotation first, then reduce ticks if needed; y/y2 reduce ticks.
   - `'rotate'`: x/x2 rotate to 45 degrees but do not reduce tick count.
@@ -1420,26 +1421,39 @@ Tick-format utilities are exported from the package root:
 ```js
 import {
   timeFormatter,
+  utcTimeFormatter,
   numberFormatter,
   simpleDateHour,
+  simpleDateHourUTC,
 } from '@noaa-gsl/wizard-charts';
 ```
 
 Helpers:
 
 - `timeFormatter(spec)` returns a D3 `timeFormat` formatter function.
+- `utcTimeFormatter(spec)` returns a D3 `utcFormat` formatter function.
 - `numberFormatter(specifier)` returns a D3 numeric formatter function.
 - `simpleDateHour()` returns a preset formatter using `%Y-%m-%d %H`.
+- `simpleDateHourUTC()` returns a preset formatter using `%Y-%m-%d %HZ`.
+
+Date/time display:
+
+- JavaScript `Date` objects store an instant, not a local or UTC wall-clock label.
+- Use `timeFormatter(...)` when tick labels and readout titles should reflect the viewer's local timezone.
+- Use `utcTimeFormatter(...)` when tick labels and readout titles should reflect UTC, such as `18Z` for `new Date('2026-09-02T18:00:00.000Z')`.
+- `axes.*.type: 'time'` currently uses D3 `scaleTime()`, so generated tick positions follow local-time intervals. Use explicit `ticks.values` when exact UTC or custom-zone tick boundaries are required.
 
 Example usage in axis config:
 
 ```js
+const formatUtcHour = utcTimeFormatter('%m-%d %HZ');
+
 const options = {
   axes: {
     x: {
       type: 'time',
       ticks: {
-        formatter: simpleDateHour(),
+        formatter: formatUtcHour,
       },
     },
     y: {
@@ -1448,6 +1462,36 @@ const options = {
         formatter: numberFormatter('.1f'),
       },
     },
+  },
+  readout: {
+    titleFormatter: (xValue) => formatUtcHour(xValue),
+  },
+};
+```
+
+For named timezones or fixed display rules, provide a custom formatter:
+
+```js
+const denverTimeFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Denver',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  hour12: false,
+  timeZoneName: 'short',
+});
+
+const options = {
+  axes: {
+    x: {
+      type: 'time',
+      ticks: {
+        formatter: (value) => denverTimeFormatter.format(value),
+      },
+    },
+  },
+  readout: {
+    titleFormatter: (xValue) => denverTimeFormatter.format(xValue),
   },
 };
 ```
