@@ -1,7 +1,55 @@
-import { useState } from 'react';
-import { ChartContainer, timeFormatter } from '@noaa-gsl/wizard-charts';
+import { useMemo, useState } from 'react';
+import {
+  ChartContainer,
+  timeFormatter,
+  useChartController,
+} from '@noaa-gsl/wizard-charts';
 import '@noaa-gsl/wizard-charts/styles.css';
 import { testingDataPresets } from '../data/testingDataPresets';
+
+const getValueByPath = (row, key) => {
+  if (typeof key === 'function') return key(row);
+  if (!key && key !== 0) return undefined;
+
+  return String(key)
+    .split('.')
+    .reduce((value, pathPart) => value?.[pathPart], row);
+};
+
+const toNumericValue = (value) => {
+  if (value instanceof Date) return value.getTime();
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
+const getZoomDemoExtent = (data, options) => {
+  const series = options?.series?.[0] || {};
+  const xKey = series.xKey || 'x';
+  const values = (data || [])
+    .map((row) => toNumericValue(getValueByPath(row, xKey)))
+    .filter((value) => Number.isFinite(value));
+
+  if (values.length < 2) return null;
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min;
+  if (!Number.isFinite(span) || span <= 0) return null;
+
+  return {
+    min,
+    max,
+    center: min + span / 2,
+    windowSize: span / 4,
+    step: Math.max(1, span / 100),
+    isTime: options?.axes?.x?.type === 'time',
+  };
+};
+
+const formatZoomDemoValue = (value, isTime) => {
+  if (!Number.isFinite(value)) return 'None';
+  return isTime ? new Date(value).toISOString() : value.toFixed(2);
+};
 
 const evaluateUserCode = (code, expectedType, sourceName) => {
   const result = new Function(
@@ -38,6 +86,20 @@ function TestingPlayground() {
   const [chartData, setChartData] = useState(initialDataPreset.value);
   const [chartOptions, setChartOptions] = useState(initialOptionsPreset.value);
   const [errorMessage, setErrorMessage] = useState('');
+  const [lastZoomSource, setLastZoomSource] = useState('none');
+  const { controller, zoomState } = useChartController({
+    onZoomStateChange: (nextZoomState, context) => {
+      setLastZoomSource(context?.source || nextZoomState.source || 'none');
+    },
+  });
+
+  const zoomDemoExtent = useMemo(
+    () => getZoomDemoExtent(chartData, chartOptions),
+    [chartData, chartOptions],
+  );
+  const sliderCenterValue = Number.isFinite(zoomState.centerValue)
+    ? zoomState.centerValue
+    : zoomDemoExtent?.center;
 
   const handleApply = () => {
     try {
@@ -72,6 +134,7 @@ function TestingPlayground() {
     setChartData(activeDataPreset.value);
     setChartOptions(activeOptionsPreset.value);
     setErrorMessage('');
+    controller.resetZoom();
   };
 
   const handleDataPresetChange = (event) => {
@@ -88,6 +151,7 @@ function TestingPlayground() {
     setDataCode(nextPreset.source);
     setChartData(nextPreset.value);
     setErrorMessage('');
+    controller.resetZoom();
   };
 
   const handleOptionsPresetChange = (event) => {
@@ -104,6 +168,30 @@ function TestingPlayground() {
     setOptionsCode(nextPreset.source);
     setChartOptions(nextPreset.value);
     setErrorMessage('');
+    controller.resetZoom();
+  };
+
+  const handleCenterWindow = () => {
+    if (!zoomDemoExtent) return;
+
+    controller.setZoomWindow({
+      center: zoomDemoExtent.center,
+      windowSize: zoomDemoExtent.windowSize,
+    });
+  };
+
+  const handleCenterSliderChange = (event) => {
+    if (!zoomDemoExtent) return;
+
+    const nextCenter = Number(event.target.value);
+    const windowSize = Number.isFinite(zoomState.windowSize)
+      ? zoomState.windowSize
+      : zoomDemoExtent.windowSize;
+
+    controller.setZoomWindow({
+      center: nextCenter,
+      windowSize,
+    });
   };
 
   return (
@@ -132,6 +220,65 @@ function TestingPlayground() {
             {errorMessage}
           </p>
         ) : null}
+
+        <div className="testing-data-zoom-controls">
+          <div className="testing-data-zoom-header">
+            <strong>Zoom Controller</strong>
+            <span>{zoomState.isZoomed ? 'Zoomed' : 'Full extent'}</span>
+          </div>
+
+          <div className="testing-data-actions">
+            <button type="button" onClick={() => controller.resetZoom()}>
+              Reset Zoom
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={!zoomDemoExtent}
+              onClick={handleCenterWindow}
+            >
+              Center Window
+            </button>
+          </div>
+
+          {zoomDemoExtent ? (
+            <label className="testing-data-zoom-slider">
+              <span>Center</span>
+              <input
+                type="range"
+                min={zoomDemoExtent.min}
+                max={zoomDemoExtent.max}
+                step={zoomDemoExtent.step}
+                value={sliderCenterValue ?? zoomDemoExtent.center}
+                onChange={handleCenterSliderChange}
+              />
+            </label>
+          ) : null}
+
+          <dl className="testing-data-zoom-readout">
+            <div>
+              <dt>Center</dt>
+              <dd>
+                {formatZoomDemoValue(
+                  zoomState.centerValue,
+                  zoomDemoExtent?.isTime,
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>Window</dt>
+              <dd>
+                {Number.isFinite(zoomState.windowSize)
+                  ? zoomState.windowSize.toFixed(0)
+                  : 'None'}
+              </dd>
+            </div>
+            <div>
+              <dt>Source</dt>
+              <dd>{lastZoomSource}</dd>
+            </div>
+          </dl>
+        </div>
 
         <div className="testing-data-editor-group">
           <div className="testing-data-editor-header">
@@ -186,6 +333,7 @@ function TestingPlayground() {
         <ChartContainer
           height={600}
           // width={1200}
+          controller={controller}
           data={chartData}
           options={chartOptions}
         />

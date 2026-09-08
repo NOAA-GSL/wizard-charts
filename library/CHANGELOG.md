@@ -29,6 +29,9 @@ All notable user-facing changes to this package are documented in this file.
 - Modifier-drag panning is now supported on the x-axis using the same `modifierKey` as wheel zoom.
 - Right-click inside the inner plot area now resets zoom to the starting x-domain extent (x/x2).
 - Zoom interaction is gated to continuous x-axis types (`linear` and `time`).
+- New `useChartController` and `useChartZoomState` hooks expose external zoom controls and reactive zoom state for consuming applications.
+- Chart zoom can now be reset or positioned programmatically with `controller.resetZoom()`, `controller.setZoomWindow({ center, windowSize })`, and `controller.setZoomCenter(center)`.
+- Zoom state changes now publish telemetry context through `useChartController({ onZoomStateChange })`.
 
 ### Changed
 

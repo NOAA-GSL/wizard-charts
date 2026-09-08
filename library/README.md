@@ -389,6 +389,78 @@ Disable zoom:
 />
 ```
 
+### Programmatic Zoom Control
+
+Use `useChartController` when controls outside the SVG need to read or change
+zoom state.
+
+```jsx
+import { ChartContainer, useChartController } from '@noaa-gsl/wizard-charts';
+
+function ForecastChart({ data, options }) {
+  const { controller, zoomState } = useChartController({
+    onZoomStateChange: (nextZoomState, context) => {
+      console.log('zoom changed', context.source, nextZoomState);
+    },
+  });
+
+  return (
+    <>
+      <button type="button" onClick={() => controller.resetZoom()}>
+        Reset Zoom
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          controller.setZoomWindow({
+            center: new Date('2026-01-01T12:00:00Z'),
+            windowSize: 6 * 60 * 60 * 1000,
+          })
+        }
+      >
+        Center Six-Hour Window
+      </button>
+      <ChartContainer controller={controller} data={data} options={options} />
+      <output>{zoomState.center?.toString() || 'Full extent'}</output>
+    </>
+  );
+}
+```
+
+Controller commands:
+
+- `controller.resetZoom()`: reset `x`/`x2` zoom domains to the starting extent.
+- `controller.setZoomWindow({ center, windowSize })`: center the zoom window on
+  a data value. For time axes, `center` can be a `Date` or timestamp and
+  `windowSize` is milliseconds. For linear axes, both values are numeric domain
+  units.
+- `controller.setZoomCenter(center)`: move the current zoom window while keeping
+  the current `windowSize`.
+- `controller.getZoomState()`: read the latest zoom state outside render.
+
+Reactive zoom state is available from the hook return value and from
+`controller.zoomState`. Use the hook return value when rendering UI so React
+updates when zoom changes.
+
+```jsx
+const { controller, zoomState } = useChartController();
+
+<input
+  type="range"
+  min={zoomState.bounds.x?.[0]?.valueOf() ?? 0}
+  max={zoomState.bounds.x?.[1]?.valueOf() ?? 0}
+  value={zoomState.centerValue ?? 0}
+  onChange={(event) => controller.setZoomCenter(Number(event.target.value))}
+/>;
+```
+
+`zoomState` includes `domain`, `center`, `centerValue`, `windowSize`, `bounds`,
+`isZoomed`, and `source`. The `source` value is one of `'wheel'`, `'drag'`,
+`'pan'`, `'reset'`, `'programmatic'`, or `null`.
+
+Programmatic zoom control applies to mapped zoomable x-axes automatically (`x`
+and/or `x2`). Supported scale types are `linear` and `time`.
+
 ## Hover Readout
 
 `options.readout.hoverMode` supports two modes:

@@ -17,6 +17,7 @@ import {
 import ErrorBoundary from './ErrorBoundary';
 import { pointer } from 'd3';
 import HoverReadoutLayer from './readout/HoverReadoutLayer';
+import { getChartControllerInternal } from './hooks/useChartController';
 import { defaultOptions } from './utilities/defaultOptions';
 import { axisHasMappedSeries, mergeDeep } from './utilities/dataUtilities';
 import XAxis from './axisComponents/XAxis';
@@ -198,6 +199,98 @@ function normalizeDomainBounds(bounds) {
   return { start, end };
 }
 
+function cloneDomain(domain) {
+  return Array.isArray(domain) && domain.length === 2
+    ? [domain[0], domain[1]]
+    : null;
+}
+
+function domainsEqual(a, b) {
+  const domainA = cloneDomain(a);
+  const domainB = cloneDomain(b);
+  if (domainA == null && domainB == null) return true;
+  if (domainA == null || domainB == null) return false;
+
+  return (
+    domainA[0]?.valueOf?.() === domainB[0]?.valueOf?.() &&
+    domainA[1]?.valueOf?.() === domainB[1]?.valueOf?.()
+  );
+}
+
+function zoomDomainOverridesEqual(a = {}, b = {}) {
+  return domainsEqual(a.x, b.x) && domainsEqual(a.x2, b.x2);
+}
+
+function normalizeZoomDomainOverrides(overrides = {}) {
+  return {
+    x: cloneDomain(overrides.x),
+    x2: cloneDomain(overrides.x2),
+  };
+}
+
+function getZoomStateFromOverrides(overrides = {}, bounds = {}, source = null) {
+  const domain = normalizeZoomDomainOverrides(overrides);
+  const normalizedBounds = {
+    x: cloneDomain(bounds.x),
+    x2: cloneDomain(bounds.x2),
+  };
+  const primaryDomain = domain.x || domain.x2;
+  const start = primaryDomain ? toDomainNumber(primaryDomain[0]) : null;
+  const end = primaryDomain ? toDomainNumber(primaryDomain[1]) : null;
+  const hasWindow =
+    Number.isFinite(start) && Number.isFinite(end) && end > start;
+  const centerValue = hasWindow ? start + (end - start) / 2 : null;
+  const center =
+    hasWindow && primaryDomain[0] instanceof Date
+      ? new Date(centerValue)
+      : centerValue;
+
+  return {
+    domain,
+    center,
+    centerValue,
+    windowSize: hasWindow ? end - start : null,
+    bounds: normalizedBounds,
+    isZoomed: domain.x != null || domain.x2 != null,
+    source,
+  };
+}
+
+function clampDomainWindowToBounds(start, end, bounds) {
+  let nextStart = start;
+  let nextEnd = end;
+  const normalizedBounds = normalizeDomainBounds(bounds);
+
+  if (normalizedBounds) {
+    const span = nextEnd - nextStart;
+    const boundsSpan = normalizedBounds.end - normalizedBounds.start;
+
+    if (span >= boundsSpan) {
+      return {
+        start: normalizedBounds.start,
+        end: normalizedBounds.end,
+      };
+    }
+
+    if (nextStart < normalizedBounds.start) {
+      const shift = normalizedBounds.start - nextStart;
+      nextStart += shift;
+      nextEnd += shift;
+    }
+
+    if (nextEnd > normalizedBounds.end) {
+      const shift = nextEnd - normalizedBounds.end;
+      nextStart -= shift;
+      nextEnd -= shift;
+    }
+
+    nextStart = Math.max(normalizedBounds.start, nextStart);
+    nextEnd = Math.min(normalizedBounds.end, nextEnd);
+  }
+
+  return { start: nextStart, end: nextEnd };
+}
+
 function buildZoomedDomain(
   scale,
   anchorPixel,
@@ -348,6 +441,56 @@ function buildDomainFromPixelWindow(
 
   const startValue = convertDomainValue(domain[0], nextStart);
   const endValue = convertDomainValue(domain[1], nextEnd);
+  if (startValue == null || endValue == null) return null;
+
+  return [startValue, endValue];
+}
+
+function buildDomainFromCenterWindow(
+  scale,
+  center,
+  windowSize,
+  minWindow = 0,
+  bounds = null,
+) {
+  if (!scale || typeof scale.domain !== 'function') return null;
+
+  const domain = scale.domain?.();
+  if (!Array.isArray(domain) || domain.length !== 2) return null;
+
+  const centerNumber = toDomainNumber(center);
+  const requestedWindow = Number(windowSize);
+  if (!Number.isFinite(centerNumber) || !Number.isFinite(requestedWindow)) {
+    return null;
+  }
+
+  const safeMinWindow = Number.isFinite(minWindow) ? Math.max(0, minWindow) : 0;
+  let nextWindowSize = Math.max(safeMinWindow, requestedWindow);
+  const normalizedBounds = normalizeDomainBounds(bounds);
+  const boundsSpan = normalizedBounds
+    ? normalizedBounds.end - normalizedBounds.start
+    : null;
+
+  if (Number.isFinite(boundsSpan)) {
+    nextWindowSize = Math.min(boundsSpan, nextWindowSize);
+  }
+
+  if (!Number.isFinite(nextWindowSize) || nextWindowSize <= 0) return null;
+
+  const unclampedStart = centerNumber - nextWindowSize / 2;
+  const unclampedEnd = centerNumber + nextWindowSize / 2;
+  const { start, end } = clampDomainWindowToBounds(
+    unclampedStart,
+    unclampedEnd,
+    bounds,
+  );
+
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+    return null;
+  }
+
+  const startValue = convertDomainValue(domain[0], start);
+  const endValue = convertDomainValue(domain[1], end);
   if (startValue == null || endValue == null) return null;
 
   return [startValue, endValue];
@@ -508,6 +651,7 @@ function ChartContainer({
   margin = { top: 'auto', right: 'auto', bottom: 'auto', left: 'auto' },
   data = [],
   options = {},
+  controller,
   children,
   className = '',
   sx = {},
@@ -527,6 +671,7 @@ function ChartContainer({
   const xScaleRef = useRef(null);
   const x2ScaleRef = useRef(null);
   const zoomBoundsRef = useRef({ x: null, x2: null });
+  const xDomainOverridesRef = useRef({ x: null, x2: null });
   const panStateRef = useRef({
     isActive: false,
     lastX: 0,
@@ -573,6 +718,7 @@ function ChartContainer({
   const [isPointerOverChart, setIsPointerOverChart] = useState(false);
   const [isPointerOverPlot, setIsPointerOverPlot] = useState(false);
   const [isModifierPressed, setIsModifierPressed] = useState(false);
+  const controllerInternal = getChartControllerInternal(controller);
 
   const updateContentSize = useCallback(
     (nextSize) => {
@@ -724,6 +870,33 @@ function ChartContainer({
   const isZoomDomainOverrideActive =
     isWheelZoomActive || isDragZoomActive || isPanZoomActive;
 
+  const publishZoomState = useCallback(
+    (overrides, source) => {
+      controllerInternal?.setZoomState(
+        getZoomStateFromOverrides(overrides, zoomBoundsRef.current, source),
+        { source },
+      );
+    },
+    [controllerInternal],
+  );
+
+  const applyZoomOverrides = useCallback(
+    (nextOverrides, source) => {
+      const normalizedOverrides = normalizeZoomDomainOverrides(nextOverrides);
+      const previousOverrides = xDomainOverridesRef.current;
+
+      if (zoomDomainOverridesEqual(previousOverrides, normalizedOverrides)) {
+        return false;
+      }
+
+      xDomainOverridesRef.current = normalizedOverrides;
+      setXDomainOverrides(normalizedOverrides);
+      publishZoomState(normalizedOverrides, source);
+      return true;
+    },
+    [publishZoomState],
+  );
+
   const appliedDomainOverrides = useMemo(
     () =>
       isZoomDomainOverrideActive ? xDomainOverrides : { x: null, x2: null },
@@ -737,6 +910,10 @@ function ChartContainer({
   useEffect(() => {
     panStateRef.current = panState;
   }, [panState]);
+
+  useEffect(() => {
+    xDomainOverridesRef.current = xDomainOverrides;
+  }, [xDomainOverrides]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -883,6 +1060,70 @@ function ChartContainer({
     });
   }, []);
 
+  const getZoomBounds = useCallback((axisKey, scale) => {
+    if (zoomBoundsRef.current[axisKey] == null) {
+      const domain = scale?.domain?.();
+      if (Array.isArray(domain) && domain.length === 2) {
+        zoomBoundsRef.current[axisKey] = [domain[0], domain[1]];
+      }
+    }
+
+    return zoomBoundsRef.current[axisKey];
+  }, []);
+
+  const setZoomWindow = useCallback(
+    ({ center, windowSize } = {}) => {
+      if (!zoomOptions.enabled) return false;
+
+      const nextOverrides = { x: null, x2: null };
+
+      if (zoomableAxes.x) {
+        nextOverrides.x = buildDomainFromCenterWindow(
+          xScaleRef.current,
+          center,
+          windowSize,
+          zoomOptions.minWindow,
+          getZoomBounds('x', xScaleRef.current),
+        );
+      }
+
+      if (zoomableAxes.x2) {
+        nextOverrides.x2 = buildDomainFromCenterWindow(
+          x2ScaleRef.current,
+          center,
+          windowSize,
+          zoomOptions.minWindow,
+          getZoomBounds('x2', x2ScaleRef.current),
+        );
+      }
+
+      if (nextOverrides.x == null && nextOverrides.x2 == null) return false;
+      return applyZoomOverrides(nextOverrides, 'programmatic');
+    },
+    [
+      applyZoomOverrides,
+      getZoomBounds,
+      zoomOptions.enabled,
+      zoomOptions.minWindow,
+      zoomableAxes.x,
+      zoomableAxes.x2,
+    ],
+  );
+
+  const setZoomCenter = useCallback(
+    (center) => {
+      const currentZoomState = getZoomStateFromOverrides(
+        xDomainOverridesRef.current,
+        zoomBoundsRef.current,
+        null,
+      );
+
+      if (!Number.isFinite(currentZoomState.windowSize)) return false;
+      return setZoomWindow({ center, windowSize: currentZoomState.windowSize });
+    },
+    [setZoomWindow],
+  );
+
   const resetZoom = useCallback(() => {
     finalizePan();
 
@@ -893,13 +1134,31 @@ function ChartContainer({
       });
     }
 
-    setXDomainOverrides((prev) => {
-      const hasXOverride = Array.isArray(prev.x) && prev.x.length === 2;
-      const hasX2Override = Array.isArray(prev.x2) && prev.x2.length === 2;
-      if (!hasXOverride && !hasX2Override) return prev;
-      return { x: null, x2: null };
+    return applyZoomOverrides({ x: null, x2: null }, 'reset');
+  }, [applyZoomOverrides, finalizePan]);
+
+  useEffect(() => {
+    if (!controllerInternal) return;
+
+    controllerInternal.bindApi({
+      resetZoom,
+      setZoomWindow,
+      setZoomCenter,
     });
-  }, [finalizePan]);
+
+    controllerInternal.setZoomState(
+      getZoomStateFromOverrides(
+        xDomainOverridesRef.current,
+        zoomBoundsRef.current,
+        null,
+      ),
+      { source: null },
+    );
+
+    return () => {
+      controllerInternal.bindApi(null);
+    };
+  }, [controllerInternal, resetZoom, setZoomCenter, setZoomWindow]);
 
   const finalizeDragZoom = useCallback(
     (event) => {
@@ -944,36 +1203,22 @@ function ChartContainer({
       const nextOverrides = { x: null, x2: null };
 
       if (zoomableAxes.x) {
-        if (zoomBoundsRef.current.x == null) {
-          const xDomain = xScaleRef.current?.domain?.();
-          if (Array.isArray(xDomain) && xDomain.length === 2) {
-            zoomBoundsRef.current.x = [xDomain[0], xDomain[1]];
-          }
-        }
-
         nextOverrides.x = buildDomainFromPixelWindow(
           xScaleRef.current,
           startX,
           clampedEndX,
           zoomOptions.minWindow,
-          zoomBoundsRef.current.x,
+          getZoomBounds('x', xScaleRef.current),
         );
       }
 
       if (zoomableAxes.x2) {
-        if (zoomBoundsRef.current.x2 == null) {
-          const x2Domain = x2ScaleRef.current?.domain?.();
-          if (Array.isArray(x2Domain) && x2Domain.length === 2) {
-            zoomBoundsRef.current.x2 = [x2Domain[0], x2Domain[1]];
-          }
-        }
-
         nextOverrides.x2 = buildDomainFromPixelWindow(
           x2ScaleRef.current,
           startX,
           clampedEndX,
           zoomOptions.minWindow,
-          zoomBoundsRef.current.x2,
+          getZoomBounds('x2', x2ScaleRef.current),
         );
       }
 
@@ -981,19 +1226,11 @@ function ChartContainer({
         return;
       }
 
-      setXDomainOverrides((prev) => {
-        const xUnchanged =
-          prev.x?.[0]?.valueOf?.() === nextOverrides.x?.[0]?.valueOf?.() &&
-          prev.x?.[1]?.valueOf?.() === nextOverrides.x?.[1]?.valueOf?.();
-        const x2Unchanged =
-          prev.x2?.[0]?.valueOf?.() === nextOverrides.x2?.[0]?.valueOf?.() &&
-          prev.x2?.[1]?.valueOf?.() === nextOverrides.x2?.[1]?.valueOf?.();
-
-        if (xUnchanged && x2Unchanged) return prev;
-        return nextOverrides;
-      });
+      applyZoomOverrides(nextOverrides, 'drag');
     },
     [
+      applyZoomOverrides,
+      getZoomBounds,
       isDragZoomActive,
       zoomOptions.minDragPixels,
       zoomOptions.minWindow,
@@ -1225,54 +1462,31 @@ function ChartContainer({
       const nextOverrides = { x: null, x2: null };
 
       if (zoomableAxes.x) {
-        if (zoomBoundsRef.current.x == null) {
-          const xDomain = xScaleRef.current?.domain?.();
-          if (Array.isArray(xDomain) && xDomain.length === 2) {
-            zoomBoundsRef.current.x = [xDomain[0], xDomain[1]];
-          }
-        }
-
         nextOverrides.x = buildZoomedDomain(
           xScaleRef.current,
           localX,
           zoomFactor,
           zoomOptions.minWindow,
-          zoomBoundsRef.current.x,
+          getZoomBounds('x', xScaleRef.current),
         );
       }
 
       if (zoomableAxes.x2) {
-        if (zoomBoundsRef.current.x2 == null) {
-          const x2Domain = x2ScaleRef.current?.domain?.();
-          if (Array.isArray(x2Domain) && x2Domain.length === 2) {
-            zoomBoundsRef.current.x2 = [x2Domain[0], x2Domain[1]];
-          }
-        }
-
         nextOverrides.x2 = buildZoomedDomain(
           x2ScaleRef.current,
           localX,
           zoomFactor,
           zoomOptions.minWindow,
-          zoomBoundsRef.current.x2,
+          getZoomBounds('x2', x2ScaleRef.current),
         );
       }
 
       if (nextOverrides.x == null && nextOverrides.x2 == null) return;
-
-      setXDomainOverrides((prev) => {
-        const xUnchanged =
-          prev.x?.[0]?.valueOf?.() === nextOverrides.x?.[0]?.valueOf?.() &&
-          prev.x?.[1]?.valueOf?.() === nextOverrides.x?.[1]?.valueOf?.();
-        const x2Unchanged =
-          prev.x2?.[0]?.valueOf?.() === nextOverrides.x2?.[0]?.valueOf?.() &&
-          prev.x2?.[1]?.valueOf?.() === nextOverrides.x2?.[1]?.valueOf?.();
-
-        if (xUnchanged && x2Unchanged) return prev;
-        return nextOverrides;
-      });
+      applyZoomOverrides(nextOverrides, 'wheel');
     },
     [
+      applyZoomOverrides,
+      getZoomBounds,
       isWheelZoomActive,
       zoomOptions.enabled,
       zoomOptions.minWindow,
@@ -1366,17 +1580,7 @@ function ChartContainer({
         return;
       }
 
-      setXDomainOverrides((prev) => {
-        const xUnchanged =
-          prev.x?.[0]?.valueOf?.() === nextOverrides.x?.[0]?.valueOf?.() &&
-          prev.x?.[1]?.valueOf?.() === nextOverrides.x?.[1]?.valueOf?.();
-        const x2Unchanged =
-          prev.x2?.[0]?.valueOf?.() === nextOverrides.x2?.[0]?.valueOf?.() &&
-          prev.x2?.[1]?.valueOf?.() === nextOverrides.x2?.[1]?.valueOf?.();
-
-        if (xUnchanged && x2Unchanged) return prev;
-        return nextOverrides;
-      });
+      applyZoomOverrides(nextOverrides, 'pan');
 
       queueHoverSnapshot(null);
       return;
