@@ -1,130 +1,11 @@
-import { timeFormatter, dataVizColors } from '@noaa-gsl/wizard-charts';
-
-const matrixCategories = ['model1', 'model2', 'model3', 'model4'];
-const matrixStartDate = new Date('2026-01-01T00:00:00Z');
-const matrixDates = Array.from(
-  { length: 12 },
-  (_, i) => new Date(matrixStartDate.getTime() + i * 24 * 3600_000),
-);
-
-const matrixData = matrixDates.flatMap((date, dateIndex) =>
-  matrixCategories.map((category, categoryIndex) => {
-    const base = 45 + dateIndex * 1.8 + categoryIndex * 5.5;
-    const wave = Math.sin((dateIndex + categoryIndex) / 2) * 7;
-    const value = Math.round((base + wave) * 10) / 10;
-    return {
-      date,
-      category,
-      value,
-      label: `${value.toFixed(1)}F`,
-    };
-  }),
-);
-
-const heatmapLevels = Array.from({ length: 16 }, (_, i) => i * 400);
-const heatmapTimeSteps = Array.from(
-  { length: 42 },
-  (_, i) => new Date(matrixStartDate.getTime() + i * 6 * 3600_000),
-);
-
-function makeHeatValue(xNorm, yNorm) {
-  const ridgeA = Math.exp(
-    -((xNorm - 0.32) ** 2 / 0.018 + (yNorm - 0.55) ** 2 / 0.06),
-  );
-  const ridgeB = Math.exp(
-    -((xNorm - 0.72) ** 2 / 0.03 + (yNorm - 0.28) ** 2 / 0.03),
-  );
-  const wave =
-    0.4 * Math.sin(xNorm * Math.PI * 5.5) * Math.cos(yNorm * Math.PI * 2.2);
-  return 15 + ridgeA * 32 + ridgeB * 22 + wave * 8;
-}
-
-const heatmapData = heatmapTimeSteps.flatMap((timestamp, xi) => {
-  const xNorm =
-    heatmapTimeSteps.length > 1 ? xi / (heatmapTimeSteps.length - 1) : 0;
-  return heatmapLevels.map((level, yi) => {
-    const yNorm =
-      heatmapLevels.length > 1 ? yi / (heatmapLevels.length - 1) : 0;
-    return {
-      time: timestamp,
-      level,
-      value: Math.round(makeHeatValue(xNorm, yNorm) * 10) / 10,
-    };
-  });
-});
-
-// --- Wind Barb Demo Data ---
-
-// Standalone: pressure-level time-height plot (850–200 hPa)
-const windBarbPressureLevels = [850, 700, 500, 300, 200];
-const windBarbStandaloneTimes = heatmapTimeSteps.filter((_, i) => i % 5 === 0);
-
-const windBarbStandaloneData = windBarbStandaloneTimes.flatMap(
-  (timestamp, xi) => {
-    const xNorm =
-      windBarbStandaloneTimes.length > 1
-        ? xi / (windBarbStandaloneTimes.length - 1)
-        : 0;
-    // yi=0 is 850 hPa (surface), yi=4 is 200 hPa (high altitude)
-    return windBarbPressureLevels.map((level, yi) => {
-      const heightFactor = yi / (windBarbPressureLevels.length - 1);
-      // Speed increases with altitude; gentle wave over time
-      const speed =
-        10 + heightFactor * 60 + 8 * Math.sin(xNorm * Math.PI * 2.5 + yi * 0.8);
-      // Direction veers clockwise with altitude (warm advection pattern)
-      const direction = (200 + heightFactor * 110 + xNorm * 45) % 360;
-      return {
-        time: timestamp,
-        level,
-        speed: Math.max(0, Math.round(speed)),
-        direction: Math.round(direction),
-      };
-    });
-  },
-);
-
-// Overlay: subsampled onto the heatmap coordinate system (level 0–6000)
-const windBarbOverlayLevels = [400, 1600, 2800, 4000, 5200];
-const windBarbOverlayTimes = heatmapTimeSteps.filter((_, i) => i % 5 === 0);
-
-const windBarbOverlayData = windBarbOverlayTimes.flatMap((timestamp, xi) => {
-  const xNorm =
-    windBarbOverlayTimes.length > 1
-      ? xi / (windBarbOverlayTimes.length - 1)
-      : 0;
-  return windBarbOverlayLevels.map((level, yi) => {
-    const heightFactor = yi / (windBarbOverlayLevels.length - 1);
-    const speed =
-      5 + heightFactor * 40 + 10 * Math.sin(xNorm * Math.PI * 2 + yi);
-    const direction = (180 + heightFactor * 120 + xNorm * 60) % 360;
-    return {
-      time: timestamp,
-      level,
-      speed: Math.max(0, Math.round(speed)),
-      direction: Math.round(direction),
-    };
-  });
-});
-
-// Surface wind: single time series where y-position = speed value
-// speedKey and yKey both reference 'speed'; direction drives rotation.
-const surfaceWindTimes = heatmapTimeSteps.filter((_, i) => i % 2 === 0);
-
-const surfaceWindData = surfaceWindTimes.map((timestamp, i) => {
-  const t = i / (surfaceWindTimes.length - 1);
-  // Speed oscillates between ~5 and ~35 with a slower envelope and faster ripple
-  const speed =
-    18 +
-    12 * Math.sin(t * Math.PI * 2.2) +
-    5 * Math.sin(t * Math.PI * 7.5 + 1.2);
-  // Direction slowly backs then veers, staying in the SW–NW quadrant
-  const direction = (250 + 70 * Math.sin(t * Math.PI * 1.8)) % 360;
-  return {
-    time: timestamp,
-    speed: Math.max(0, Math.round(speed)),
-    direction: Math.round(((direction % 360) + 360) % 360),
-  };
-});
+import { utcTimeFormatter, dataVizColors } from '@noaa-gsl/wizard-charts';
+import {
+  heatmapData,
+  matrixData,
+  surfaceWindData,
+  windBarbOverlayData,
+  windBarbStandaloneData,
+} from './data/demoDatasets';
 
 export const demoOptions = {
   bar: {
@@ -154,7 +35,7 @@ export const demoOptions = {
       x: {
         type: 'linear', // band, linear, log, time
         label: { text: 'Date' },
-        ticks: { formatter: timeFormatter('%m-%d %Hz'), amount: 4 }, // optional formatting function for ticks
+        ticks: { formatter: utcTimeFormatter('%m-%d %Hz'), amount: 4 }, // optional formatting function for ticks
         nice: false,
         hasGridLines: true,
         lineMarkers: [
@@ -191,7 +72,7 @@ export const demoOptions = {
         units: 'mph',
         lineMarkers: [
           {
-            value: 35,
+            value: 30,
             label: 'Wind Advisory',
             placement: 'top-left',
             labelPadding: 8,
@@ -206,7 +87,7 @@ export const demoOptions = {
             labelBackgroundStroke: '#e38b1e',
           },
           {
-            value: 50,
+            value: 40,
             label: 'High Wind Warning',
             placement: 'top-left',
             labelPadding: 8,
@@ -232,7 +113,7 @@ export const demoOptions = {
     },
     readout: {
       hoverMode: 'local', // or 'global'
-      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
+      titleFormatter: (xValue) => `${utcTimeFormatter('%m-%d %Hz')(xValue)}`,
     },
     animationDuration: 1000, // in ms
   },
@@ -272,7 +153,7 @@ export const demoOptions = {
     axes: {
       x: {
         type: 'linear',
-        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+        ticks: { formatter: utcTimeFormatter('%m-%d %Hz') },
         nice: false,
         hasGridLines: true,
       },
@@ -287,7 +168,7 @@ export const demoOptions = {
     },
     readout: {
       hoverMode: 'local',
-      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
+      titleFormatter: (xValue) => `${utcTimeFormatter('%m-%d %Hz')(xValue)}`,
     },
     animationDuration: 1000,
   },
@@ -319,7 +200,7 @@ export const demoOptions = {
       // can also use the default x and y
       x: {
         type: 'linear', // band, linear, log, time
-        ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
+        ticks: { formatter: utcTimeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
         nice: false,
         hasGridLines: true,
       },
@@ -335,7 +216,7 @@ export const demoOptions = {
     },
     readout: {
       hoverMode: 'local', // or 'global'
-      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
+      titleFormatter: (xValue) => `${utcTimeFormatter('%m-%d %Hz')(xValue)}`,
     },
     animationDuration: 1000, // in ms
   },
@@ -359,7 +240,7 @@ export const demoOptions = {
       // can also use the default x and y
       x: {
         type: 'linear', // band, linear, log, time
-        ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
+        ticks: { formatter: utcTimeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
         nice: false,
         hasGridLines: true,
       },
@@ -376,7 +257,7 @@ export const demoOptions = {
     readout: {
       hoverMode: 'local', // or 'global',
       boxPlotFields: ['max', 'q3', 'median', 'q1', 'min'],
-      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
+      titleFormatter: (xValue) => `${utcTimeFormatter('%m-%d %Hz')(xValue)}`,
     },
     animationDuration: 1000, // in ms
   },
@@ -404,7 +285,7 @@ export const demoOptions = {
       // can also use the default x and y
       x: {
         type: 'linear', // band, linear, log, time
-        ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
+        ticks: { formatter: utcTimeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
         nice: false,
         hasGridLines: true,
       },
@@ -427,7 +308,7 @@ export const demoOptions = {
     },
     readout: {
       hoverMode: 'local', // or 'global'
-      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
+      titleFormatter: (xValue) => `${utcTimeFormatter('%m-%d %Hz')(xValue)}`,
     },
     animationDuration: 1000, // in ms
   },
@@ -451,7 +332,7 @@ export const demoOptions = {
       // can also use the default x and y
       x: {
         type: 'linear', // band, linear, log, time
-        ticks: { formatter: timeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
+        ticks: { formatter: utcTimeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
         nice: false,
         hasGridLines: true,
       },
@@ -468,7 +349,7 @@ export const demoOptions = {
     readout: {
       hoverMode: 'local', // or 'global'
       areaFields: ['max', 'q1', 'min'], // which fields to show in the readout for area charts
-      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
+      titleFormatter: (xValue) => `${utcTimeFormatter('%m-%d %Hz')(xValue)}`,
     },
     animationDuration: 1000, // in ms
   },
@@ -511,7 +392,7 @@ export const demoOptions = {
     axes: {
       x: {
         type: 'linear',
-        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+        ticks: { formatter: utcTimeFormatter('%m-%d %Hz') },
         nice: false,
         hasGridLines: true,
       },
@@ -528,7 +409,7 @@ export const demoOptions = {
     readout: {
       hoverMode: 'local',
       areaFields: ['p05', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95'],
-      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
+      titleFormatter: (xValue) => `${utcTimeFormatter('%m-%d %Hz')(xValue)}`,
     },
     animationDuration: 1000,
   },
@@ -550,7 +431,7 @@ export const demoOptions = {
     axes: {
       x: {
         type: 'band',
-        ticks: { formatter: timeFormatter('%m-%d') },
+        ticks: { formatter: utcTimeFormatter('%m-%d') },
       },
       y: {
         type: 'band',
@@ -575,7 +456,7 @@ export const demoOptions = {
     axes: {
       x: {
         type: 'time',
-        ticks: { formatter: timeFormatter('%m-%d') },
+        ticks: { formatter: utcTimeFormatter('%m-%d') },
       },
       y: {
         type: 'band',
@@ -608,7 +489,7 @@ export const demoOptions = {
     axes: {
       x: {
         type: 'linear',
-        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+        ticks: { formatter: utcTimeFormatter('%m-%d %Hz') },
       },
       y: {
         type: 'linear',
@@ -640,7 +521,7 @@ export const demoOptions = {
     axes: {
       x: {
         type: 'time',
-        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+        ticks: { formatter: utcTimeFormatter('%m-%d %Hz') },
       },
       y: {
         type: 'linear',
@@ -675,7 +556,7 @@ export const demoOptions = {
     axes: {
       x: {
         type: 'time',
-        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+        ticks: { formatter: utcTimeFormatter('%m-%d %Hz') },
       },
       y: {
         type: 'linear',
@@ -706,7 +587,7 @@ export const demoOptions = {
     axes: {
       x: {
         type: 'time',
-        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+        ticks: { formatter: utcTimeFormatter('%m-%d %Hz') },
       },
       y: {
         type: 'linear',
@@ -758,7 +639,7 @@ export const demoOptions = {
     axes: {
       x: {
         type: 'time',
-        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+        ticks: { formatter: utcTimeFormatter('%m-%d %Hz') },
       },
       y: {
         type: 'linear',
@@ -792,7 +673,7 @@ export const demoOptions = {
     axes: {
       x: {
         type: 'time',
-        ticks: { formatter: timeFormatter('%m-%d %Hz') },
+        ticks: { formatter: utcTimeFormatter('%m-%d %Hz') },
       },
       y: {
         type: 'linear',
@@ -803,7 +684,7 @@ export const demoOptions = {
       },
     },
     readout: {
-      titleFormatter: (xValue) => `${timeFormatter('%m-%d %Hz')(xValue)}`,
+      titleFormatter: (xValue) => `${utcTimeFormatter('%m-%d %Hz')(xValue)}`,
     },
   },
 };

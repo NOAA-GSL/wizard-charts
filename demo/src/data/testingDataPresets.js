@@ -1,11 +1,16 @@
 import { timeFormatter } from '@noaa-gsl/wizard-charts';
+import { demoOptions } from '../demoOptions';
+import * as demoDatasets from './demoDatasets';
 import { testDataCfs, testDataWind } from './testData';
 
 const evaluatePresetSource = (source, sourceName) => {
   try {
-    return new Function('timeFormatter', `'use strict'; return (${source});`)(
-      timeFormatter,
-    );
+    return new Function(
+      'timeFormatter',
+      'demoOptions',
+      'demoDatasets',
+      `'use strict'; return (${source});`,
+    )(timeFormatter, demoOptions, demoDatasets);
   } catch (error) {
     throw new Error(
       `Failed to evaluate ${sourceName}: ${
@@ -21,6 +26,25 @@ const createOptionsPreset = ({ id, label, source }) => ({
   source,
   value: evaluatePresetSource(source, `${label} options preset`),
 });
+
+const createDemoDatasetPreset = ({ id, label, exportName }) => ({
+  id,
+  label,
+  source: `demoDatasets.${exportName}`,
+  value: demoDatasets[exportName],
+});
+
+const formatDemoOptionLabel = (optionKey) =>
+  optionKey
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (character) => character.toUpperCase());
+
+const createDemoOptionsPreset = ([optionKey]) =>
+  createOptionsPreset({
+    id: `demo-${optionKey}`,
+    label: `Demo ${formatDemoOptionLabel(optionKey)}`,
+    source: `demoOptions.${optionKey}`,
+  });
 
 const areaPlotDefaultOptionsSource = `{
   "series": [
@@ -147,6 +171,36 @@ export const testingDataPresets = {
       value: testDataWind,
       source: JSON.stringify(testDataWind, null, 2),
     },
+    createDemoDatasetPreset({
+      id: 'demo-time-series-data',
+      label: 'Demo time series data',
+      exportName: 'timeSeriesDemoData',
+    }),
+    createDemoDatasetPreset({
+      id: 'demo-matrix-data',
+      label: 'Demo matrix data',
+      exportName: 'matrixData',
+    }),
+    createDemoDatasetPreset({
+      id: 'demo-heatmap-data',
+      label: 'Demo heatmap data',
+      exportName: 'heatmapData',
+    }),
+    createDemoDatasetPreset({
+      id: 'demo-wind-barb-pressure-data',
+      label: 'Demo wind barb pressure data',
+      exportName: 'windBarbStandaloneData',
+    }),
+    createDemoDatasetPreset({
+      id: 'demo-wind-barb-overlay-data',
+      label: 'Demo wind barb overlay data',
+      exportName: 'windBarbOverlayData',
+    }),
+    createDemoDatasetPreset({
+      id: 'demo-surface-wind-data',
+      label: 'Demo surface wind data',
+      exportName: 'surfaceWindData',
+    }),
   ],
   options: [
     createOptionsPreset({
@@ -159,5 +213,6 @@ export const testingDataPresets = {
       label: 'Wind Barb',
       source: windBarbPresetSource,
     }),
+    ...Object.entries(demoOptions).map(createDemoOptionsPreset),
   ],
 };

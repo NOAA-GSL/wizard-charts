@@ -5,6 +5,8 @@ import {
   useChartController,
 } from '@noaa-gsl/wizard-charts';
 import '@noaa-gsl/wizard-charts/styles.css';
+import { demoOptions } from '../demoOptions';
+import * as demoDatasets from '../data/demoDatasets';
 import { testingDataPresets } from '../data/testingDataPresets';
 
 const getValueByPath = (row, key) => {
@@ -54,8 +56,10 @@ const formatZoomDemoValue = (value, isTime) => {
 const evaluateUserCode = (code, expectedType, sourceName) => {
   const result = new Function(
     'timeFormatter',
+    'demoOptions',
+    'demoDatasets',
     `'use strict'; return (${code});`,
-  )(timeFormatter);
+  )(timeFormatter, demoOptions, demoDatasets);
 
   if (expectedType === 'array' && !Array.isArray(result)) {
     throw new Error(`${sourceName} must evaluate to an array.`);
