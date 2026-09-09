@@ -30,7 +30,8 @@ All notable user-facing changes to this package are documented in this file.
 - Right-click inside the inner plot area now resets zoom to the starting x-domain extent (x/x2).
 - Zoom interaction is gated to continuous x-axis types (`linear` and `time`).
 - New `useChartController` and `useChartZoomState` hooks expose external zoom controls and reactive zoom state for consuming applications.
-- Chart zoom can now be reset or positioned programmatically with `controller.resetZoom()`, `controller.setZoomWindow({ center, windowSize })`, and `controller.setZoomCenter(center)`.
+- Chart zoom can now be reset or positioned programmatically with `controller.resetZoom()`, `controller.setZoomWindow({ center, windowSize })`, `controller.setZoomCenter(center)`, `controller.setZoomStart(value)` and `controller.setZoomEnd(value)`.
+- Zoom state now exposes `start`, `startValue`, `end`, and `endValue` fields in addition to `center` and `centerValue`.
 - Zoom state changes now publish telemetry context through `useChartController({ onZoomStateChange })`.
 
 ### Changed

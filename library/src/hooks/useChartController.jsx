@@ -6,8 +6,12 @@ const CONTROLLER_INTERNAL = Symbol.for('wizard-charts.controller.internal');
 
 export const defaultZoomState = Object.freeze({
   domain: { x: null, x2: null },
+  start: null,
+  startValue: null,
   center: null,
   centerValue: null,
+  end: null,
+  endValue: null,
   windowSize: null,
   bounds: { x: null, x2: null },
   isZoomed: false,
@@ -18,6 +22,8 @@ const noopApi = {
   resetZoom: () => false,
   setZoomWindow: () => false,
   setZoomCenter: () => false,
+  setZoomStart: () => false,
+  setZoomEnd: () => false,
 };
 
 function cloneDomain(domain) {
@@ -61,6 +67,8 @@ function createChartControllerStore() {
     resetZoom: () => api.resetZoom(),
     setZoomWindow: (params) => api.setZoomWindow(params),
     setZoomCenter: (center) => api.setZoomCenter(center),
+    setZoomStart: (start) => api.setZoomStart(start),
+    setZoomEnd: (end) => api.setZoomEnd(end),
     getZoomState: () => zoomState,
     subscribe: (listener) => {
       listeners.add(listener);

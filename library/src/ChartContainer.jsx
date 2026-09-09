@@ -247,8 +247,12 @@ function getZoomStateFromOverrides(overrides = {}, bounds = {}, source = null) {
 
   return {
     domain,
+    start: hasWindow ? primaryDomain[0] : null,
+    startValue: hasWindow ? start : null,
     center,
     centerValue,
+    end: hasWindow ? primaryDomain[1] : null,
+    endValue: hasWindow ? end : null,
     windowSize: hasWindow ? end - start : null,
     bounds: normalizedBounds,
     isZoomed: domain.x != null || domain.x2 != null,
@@ -1124,6 +1128,46 @@ function ChartContainer({
     [setZoomWindow],
   );
 
+  const setZoomStart = useCallback(
+    (start) => {
+      const currentZoomState = getZoomStateFromOverrides(
+        xDomainOverridesRef.current,
+        zoomBoundsRef.current,
+        null,
+      );
+      const startValue = toDomainNumber(start);
+
+      if (!Number.isFinite(currentZoomState.windowSize)) return false;
+      if (!Number.isFinite(startValue)) return false;
+
+      return setZoomWindow({
+        center: startValue + currentZoomState.windowSize / 2,
+        windowSize: currentZoomState.windowSize,
+      });
+    },
+    [setZoomWindow],
+  );
+
+  const setZoomEnd = useCallback(
+    (end) => {
+      const currentZoomState = getZoomStateFromOverrides(
+        xDomainOverridesRef.current,
+        zoomBoundsRef.current,
+        null,
+      );
+      const endValue = toDomainNumber(end);
+
+      if (!Number.isFinite(currentZoomState.windowSize)) return false;
+      if (!Number.isFinite(endValue)) return false;
+
+      return setZoomWindow({
+        center: endValue - currentZoomState.windowSize / 2,
+        windowSize: currentZoomState.windowSize,
+      });
+    },
+    [setZoomWindow],
+  );
+
   const resetZoom = useCallback(() => {
     finalizePan();
 
@@ -1144,6 +1188,8 @@ function ChartContainer({
       resetZoom,
       setZoomWindow,
       setZoomCenter,
+      setZoomStart,
+      setZoomEnd,
     });
 
     controllerInternal.setZoomState(
@@ -1158,7 +1204,14 @@ function ChartContainer({
     return () => {
       controllerInternal.bindApi(null);
     };
-  }, [controllerInternal, resetZoom, setZoomCenter, setZoomWindow]);
+  }, [
+    controllerInternal,
+    resetZoom,
+    setZoomCenter,
+    setZoomEnd,
+    setZoomStart,
+    setZoomWindow,
+  ]);
 
   const finalizeDragZoom = useCallback(
     (event) => {

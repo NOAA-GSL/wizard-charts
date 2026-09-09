@@ -436,6 +436,10 @@ Controller commands:
   units.
 - `controller.setZoomCenter(center)`: move the current zoom window while keeping
   the current `windowSize`.
+- `controller.setZoomStart(start)`: move the current zoom window so it starts at
+  `start` while keeping the current `windowSize`.
+- `controller.setZoomEnd(end)`: move the current zoom window so it ends at `end`
+  while keeping the current `windowSize`.
 - `controller.getZoomState()`: read the latest zoom state outside render.
 
 Reactive zoom state is available from the hook return value and from
@@ -454,9 +458,28 @@ const { controller, zoomState } = useChartController();
 />;
 ```
 
-`zoomState` includes `domain`, `center`, `centerValue`, `windowSize`, `bounds`,
-`isZoomed`, and `source`. The `source` value is one of `'wheel'`, `'drag'`,
-`'pan'`, `'reset'`, `'programmatic'`, or `null`.
+For zoom state fields, values without the `Value` suffix use the chart domain
+type: `Date` objects for time axes and numbers for linear axes. Fields ending
+in `Value` are always numeric, so they are usually the best fit for sliders,
+math, comparisons, and telemetry. For time axes, numeric values are JavaScript
+timestamps in milliseconds.
+
+| Property      | Meaning                                                                                                                    | Linear-axis example         | Time-axis example                                                         | Recommended use                                                                              |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `domain`      | Active zoom domains by axis. `x` and/or `x2` contain `[start, end]`; axes without an active override are `null`.           | `{ x: [20, 80], x2: null }` | `{ x: [Date('2026-01-01T00:00Z'), Date('2026-01-01T06:00Z')], x2: null }` | Low-level access to exact active domains.                                                    |
+| `start`       | Typed start of the primary active zoom domain (`x`, then `x2`).                                                            | `20`                        | `Date('2026-01-01T00:00Z')`                                               | Display, formatting, and passing a domain value back to controller methods.                  |
+| `startValue`  | Numeric start of the primary active zoom domain.                                                                           | `20`                        | `1767225600000`                                                           | Sliders, range math, comparisons, and telemetry.                                             |
+| `center`      | Typed center of the primary active zoom domain.                                                                            | `50`                        | `Date('2026-01-01T03:00Z')`                                               | Display, formatting, and `controller.setZoomCenter(center)`.                                 |
+| `centerValue` | Numeric center of the primary active zoom domain.                                                                          | `50`                        | `1767236400000`                                                           | Slider values and numeric positioning controls.                                              |
+| `end`         | Typed end of the primary active zoom domain.                                                                               | `80`                        | `Date('2026-01-01T06:00Z')`                                               | Display, formatting, and passing a domain value back to controller methods.                  |
+| `endValue`    | Numeric end of the primary active zoom domain.                                                                             | `80`                        | `1767247200000`                                                           | Sliders, range math, comparisons, and telemetry.                                             |
+| `windowSize`  | Numeric span of the primary active zoom domain.                                                                            | `60`                        | `21600000`                                                                | Preserving, displaying, or calculating zoom window size. For time axes this is milliseconds. |
+| `bounds`      | Starting zoomable domain bounds by axis. These are the clamp limits for programmatic zoom, wheel zoom, drag zoom, and pan. | `{ x: [0, 100], x2: null }` | `{ x: [Date('2026-01-01T00:00Z'), Date('2026-01-02T00:00Z')], x2: null }` | Setting control min/max values and understanding clamp limits.                               |
+| `isZoomed`    | Whether any x-axis zoom domain override is active.                                                                         | `true`                      | `true`                                                                    | Enabling reset controls or showing zoomed state.                                             |
+| `source`      | Last zoom update source: `'wheel'`, `'drag'`, `'pan'`, `'reset'`, `'programmatic'`, or `null`.                             | `'programmatic'`            | `'wheel'`                                                                 | Telemetry, debugging, and UI labels.                                                         |
+
+When no zoom window is active, `start`, `startValue`, `center`, `centerValue`,
+`end`, `endValue`, and `windowSize` are `null`.
 
 Programmatic zoom control applies to mapped zoomable x-axes automatically (`x`
 and/or `x2`). Supported scale types are `linear` and `time`.
