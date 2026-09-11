@@ -99,6 +99,11 @@ button {
   }
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .app-container {
   margin: 0 auto;
   padding: 0 40px;
@@ -184,6 +189,60 @@ button {
 .testing-data-error {
   margin: 0;
   color: #ff9696;
+}
+
+.testing-data-zoom-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #4a4a4a;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--background-color) 78%, #ffffff 8%);
+}
+
+.testing-data-zoom-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.testing-data-zoom-header span {
+  color: #d3d3d3;
+  font-size: 0.85rem;
+}
+
+.testing-data-zoom-slider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.testing-data-zoom-slider input {
+  width: min(100%, 320px);
+}
+
+.testing-data-zoom-readout {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.testing-data-zoom-readout div {
+  min-width: 0;
+}
+
+.testing-data-zoom-readout dt {
+  color: #c8c8c8;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.testing-data-zoom-readout dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
 }
 
 .testing-data-editor-group {

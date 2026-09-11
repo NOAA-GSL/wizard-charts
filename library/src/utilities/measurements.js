@@ -322,15 +322,7 @@ function sampleTickObjectsWithStride(ticks, stride) {
   const safeStride = Math.max(1, Math.floor(toNonNegativeNumber(stride, 1)));
   if (safeStride <= 1 || ticks.length <= 1) return ticks;
 
-  const sampled = ticks.filter((_, index) => index % safeStride === 0);
-  const lastTick = ticks[ticks.length - 1];
-
-  if (sampled.length === 0) return [lastTick];
-  if (sampled[sampled.length - 1] !== lastTick) {
-    sampled.push(lastTick);
-  }
-
-  return sampled;
+  return ticks.filter((_, index) => index % safeStride === 0);
 }
 
 function resolveAxisTickCollisions({
@@ -435,61 +427,22 @@ function getTickValueKey(value) {
   return value instanceof Date ? `d:${value.getTime()}` : `v:${String(value)}`;
 }
 
-const DATA_ALIGNED_X_TICK_SERIES_TYPES = new Set([
-  'area',
-  'bar',
-  'boxPlot',
-  'circle',
-  'line',
-  'matrix',
-]);
-
-function sampleTickValues(values, tickAmount) {
-  if (!Array.isArray(values) || values.length === 0) return [];
-
-  const targetCount =
-    Number.isFinite(tickAmount) && tickAmount > 0
-      ? Math.floor(tickAmount)
-      : values.length;
-
-  if (values.length <= targetCount) return values;
-  if (targetCount <= 1) return [values[0]];
-
-  // Use a fixed stride so consecutive tick gaps remain consistent.
-  const stride = Math.max(
-    1,
-    Math.floor((values.length - 1) / (targetCount - 1)),
-  );
-  const sampled = [];
-
-  for (let i = 0; i < values.length; i += stride) {
-    sampled.push(values[i]);
-    if (sampled.length === targetCount) break;
-  }
-
-  return sampled;
-}
-
-function getDataAlignedXTickValues(chartValues, axisKey, tickAmount) {
+function getDataAlignedXTickValues(chartValues, axisKey) {
   if (!isXValueAxis(axisKey)) return [];
 
   const series = chartValues.options?.series || [];
   const rootData = Array.isArray(chartValues.data) ? chartValues.data : [];
   const matchingSeries = getSeriesForAxis(series, axisKey);
-  const alignedSeries = matchingSeries.filter((seriesEntry) =>
-    DATA_ALIGNED_X_TICK_SERIES_TYPES.has(seriesEntry?.type),
-  );
-
-  if (alignedSeries.length === 0) return [];
-
   const hasOnlyMatrixSeries =
-    matchingSeries.length === alignedSeries.length &&
-    alignedSeries.every((seriesEntry) => seriesEntry?.type === 'matrix');
+    matchingSeries.length > 0 &&
+    matchingSeries.every((seriesEntry) => seriesEntry?.type === 'matrix');
+
+  if (!hasOnlyMatrixSeries) return [];
 
   const tickValues = [];
   const seen = new Set();
 
-  alignedSeries.forEach((s) => {
+  matchingSeries.forEach((s) => {
     if (!s?.xKey) return;
 
     const getX = createAccessor(s.xKey);
@@ -517,10 +470,7 @@ function getDataAlignedXTickValues(chartValues, axisKey, tickAmount) {
     return comparableA - comparableB;
   });
 
-  // Matrix time/linear axes should keep every unique x value.
-  if (hasOnlyMatrixSeries) return sortedTickValues;
-
-  return sampleTickValues(sortedTickValues, tickAmount);
+  return sortedTickValues;
 }
 
 function normalizeTickValues(values) {
@@ -935,7 +885,7 @@ export function buildAxisTicks({
     !explicitTickValues &&
     isXValueAxis(axisKey) &&
     (axisOptions.type === 'time' || axisOptions.type === 'linear')
-      ? getDataAlignedXTickValues(chartValues, axisKey, tickAmount)
+      ? getDataAlignedXTickValues(chartValues, axisKey)
       : [];
 
   const generatedTickValues = isBandScale

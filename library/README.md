@@ -11,6 +11,7 @@ WIZARD Charts is a React charting library built on top of D3 for weather and for
 - [Dynamic Margins](#dynamic-margins)
 - [Data Model](#data-model)
 - [Options Overview](#options-overview)
+- [Zoom](#zoom)
 - [Hover Readout](#hover-readout)
 - [Series Configuration](#series-configuration)
 - [Legend](#legend)
@@ -105,6 +106,8 @@ type ChartContainerProps = {
 `width` and `height` default to `'auto'` (100% of the parent container on that dimension). If you provide one or both as numbers, only those dimensions are fixed.
 
 `width` and `height` define the chart's outer SVG box. Internal chart layout (scales, axes, and plot area) is measured from the SVG content box, so `box-sizing: border-box` with `border` and/or `padding` in `sx` is accounted for automatically.
+
+Series rendering inside `ChartContainer` is clipped to the computed inner plot area (inside margins). This prevents plot layers from visually spilling into axis/legend space.
 
 ## Dynamic Margins
 
@@ -247,6 +250,23 @@ All column arrays must be the same length.
     className: '',
     sx: {},
   },
+  zoom: {
+    enabled: true,
+    wheelEnabled: true,
+    dragEnabled: true,
+    panEnabled: true,
+    rightClickResetEnabled: true,
+    modifierKey: 'ctrl', // 'ctrl' | 'shift' | 'alt' | 'meta'
+    panCursor: 'move',
+    wheelZoomSpeed: 0.1,
+    minWindow: 0, // minimum x-domain span; 0 disables clamping
+    minDragPixels: 4,
+    dragBox: {
+      fill: '#147AF333',
+      stroke: '#147AF3',
+      strokeWidth: 1,
+    },
+  },
   readout: {
     hoverMode: 'local',
     showVerticalLine: true,
@@ -293,6 +313,176 @@ All column arrays must be the same length.
   animationDuration: 1000, // ms (set 0 to disable animation)
 }
 ```
+
+## Zoom
+
+Zoom currently supports wheel zoom, drag-select zoom-in, and modifier-drag panning, and updates x-domains only.
+
+- Zoom is enabled by default through `options.zoom.enabled: true`.
+- Wheel zoom is controlled by `options.zoom.wheelEnabled` (`true` by default).
+- Drag-select zoom is controlled by `options.zoom.dragEnabled` (`true` by default).
+- Modifier-drag panning is controlled by `options.zoom.panEnabled` (`true` by default).
+- Y-axis domains remain fixed while zooming; only `x`/`x2` domains change.
+- Zoom focus is anchored to the pointer x-position in the plot area.
+- Wheel zoom requires a modifier key by default (`modifierKey: 'ctrl'`).
+- Panning uses the same `modifierKey` as wheel zoom and left-drag in the plot area.
+- While modifier is held over the inner plot area, cursor switches to `panCursor` (`'move'` by default).
+- Drag-select zoom uses plain left-click drag in the plot area by default.
+- Right-click inside the inner plot area resets zoom back to the starting x-domain extent.
+- Supported zoom axis scale types are `linear` and `time` only.
+
+Zoom options:
+
+- `enabled` (`boolean`, default `true`): master toggle for zoom features.
+- `wheelEnabled` (`boolean`, default `true`): enables/disables wheel zoom.
+- `dragEnabled` (`boolean`, default `true`): enables/disables drag-select zoom.
+- `panEnabled` (`boolean`, default `true`): enables/disables modifier-drag panning.
+- `rightClickResetEnabled` (`boolean`, default `true`): enables/disables right-click zoom reset in the inner plot area.
+- `modifierKey` (`'ctrl' | 'shift' | 'alt' | 'meta'`, default `'ctrl'`): required key while scrolling and modifier-drag panning.
+- `panCursor` (`string`, default `'move'`): cursor shown while modifier is held over the inner plot area.
+- `wheelZoomSpeed` (`number`, default `0.1`): zoom sensitivity. Larger values zoom faster per wheel step.
+- `minWindow` (`number`, default `0`): minimum x-domain span. Use `0` to disable minimum-span clamping.
+- `minDragPixels` (`number`, default `4`): minimum horizontal drag distance in pixels before drag zoom is applied.
+- `dragBox.fill` (`string`, default `'#147AF333'`): fill color for the drag selection rectangle.
+- `dragBox.stroke` (`string`, default `'#147AF3'`): stroke color for the drag selection rectangle.
+- `dragBox.strokeWidth` (`number`, default `1`): stroke width in pixels for the drag selection rectangle.
+
+Examples:
+
+```jsx
+<ChartContainer
+  data={data}
+  options={{
+    ...options,
+    zoom: {
+      enabled: true,
+      wheelEnabled: true,
+      dragEnabled: true,
+      panEnabled: true,
+      rightClickResetEnabled: true,
+      modifierKey: 'ctrl',
+      panCursor: 'move',
+      wheelZoomSpeed: 0.08,
+      minWindow: 0,
+      minDragPixels: 4,
+      dragBox: {
+        fill: '#147AF333',
+        stroke: '#147AF3',
+        strokeWidth: 1,
+      },
+    },
+  }}
+/>
+```
+
+Disable zoom:
+
+```jsx
+<ChartContainer
+  data={data}
+  options={{
+    ...options,
+    zoom: {
+      enabled: false,
+    },
+  }}
+/>
+```
+
+### Programmatic Zoom Control
+
+Use `useChartController` when controls outside the SVG need to read or change
+zoom state.
+
+```jsx
+import { ChartContainer, useChartController } from '@noaa-gsl/wizard-charts';
+
+function ForecastChart({ data, options }) {
+  const { controller, zoomState } = useChartController({
+    onZoomStateChange: (nextZoomState, context) => {
+      console.log('zoom changed', context.source, nextZoomState);
+    },
+  });
+
+  return (
+    <>
+      <button type="button" onClick={() => controller.resetZoom()}>
+        Reset Zoom
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          controller.setZoomWindow({
+            center: new Date('2026-01-01T12:00:00Z'),
+            windowSize: 6 * 60 * 60 * 1000,
+          })
+        }
+      >
+        Center Six-Hour Window
+      </button>
+      <ChartContainer controller={controller} data={data} options={options} />
+      <output>{zoomState.center?.toString() || 'Full extent'}</output>
+    </>
+  );
+}
+```
+
+Controller commands:
+
+- `controller.resetZoom()`: reset `x`/`x2` zoom domains to the starting extent.
+- `controller.setZoomWindow({ center, windowSize })`: center the zoom window on
+  a data value. For time axes, `center` can be a `Date` or timestamp and
+  `windowSize` is milliseconds. For linear axes, both values are numeric domain
+  units.
+- `controller.setZoomCenter(center)`: move the current zoom window while keeping
+  the current `windowSize`.
+- `controller.setZoomStart(start)`: move the current zoom window so it starts at
+  `start` while keeping the current `windowSize`.
+- `controller.setZoomEnd(end)`: move the current zoom window so it ends at `end`
+  while keeping the current `windowSize`.
+- `controller.getZoomState()`: read the latest zoom state outside render.
+
+Reactive zoom state is available from the hook return value and from
+`controller.zoomState`. Use the hook return value when rendering UI so React
+updates when zoom changes.
+
+```jsx
+const { controller, zoomState } = useChartController();
+
+<input
+  type="range"
+  min={zoomState.bounds.x?.[0]?.valueOf() ?? 0}
+  max={zoomState.bounds.x?.[1]?.valueOf() ?? 0}
+  value={zoomState.centerValue ?? 0}
+  onChange={(event) => controller.setZoomCenter(Number(event.target.value))}
+/>;
+```
+
+For zoom state fields, values without the `Value` suffix use the chart domain
+type: `Date` objects for time axes and numbers for linear axes. Fields ending
+in `Value` are always numeric, so they are usually the best fit for sliders,
+math, comparisons, and telemetry. For time axes, numeric values are JavaScript
+timestamps in milliseconds.
+
+| Property      | Meaning                                                                                                                    | Linear-axis example         | Time-axis example                                                         | Recommended use                                                                              |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `domain`      | Active zoom domains by axis. `x` and/or `x2` contain `[start, end]`; axes without an active override are `null`.           | `{ x: [20, 80], x2: null }` | `{ x: [Date('2026-01-01T00:00Z'), Date('2026-01-01T06:00Z')], x2: null }` | Low-level access to exact active domains.                                                    |
+| `start`       | Typed start of the primary active zoom domain (`x`, then `x2`).                                                            | `20`                        | `Date('2026-01-01T00:00Z')`                                               | Display, formatting, and passing a domain value back to controller methods.                  |
+| `startValue`  | Numeric start of the primary active zoom domain.                                                                           | `20`                        | `1767225600000`                                                           | Sliders, range math, comparisons, and telemetry.                                             |
+| `center`      | Typed center of the primary active zoom domain.                                                                            | `50`                        | `Date('2026-01-01T03:00Z')`                                               | Display, formatting, and `controller.setZoomCenter(center)`.                                 |
+| `centerValue` | Numeric center of the primary active zoom domain.                                                                          | `50`                        | `1767236400000`                                                           | Slider values and numeric positioning controls.                                              |
+| `end`         | Typed end of the primary active zoom domain.                                                                               | `80`                        | `Date('2026-01-01T06:00Z')`                                               | Display, formatting, and passing a domain value back to controller methods.                  |
+| `endValue`    | Numeric end of the primary active zoom domain.                                                                             | `80`                        | `1767247200000`                                                           | Sliders, range math, comparisons, and telemetry.                                             |
+| `windowSize`  | Numeric span of the primary active zoom domain.                                                                            | `60`                        | `21600000`                                                                | Preserving, displaying, or calculating zoom window size. For time axes this is milliseconds. |
+| `bounds`      | Starting zoomable domain bounds by axis. These are the clamp limits for programmatic zoom, wheel zoom, drag zoom, and pan. | `{ x: [0, 100], x2: null }` | `{ x: [Date('2026-01-01T00:00Z'), Date('2026-01-02T00:00Z')], x2: null }` | Setting control min/max values and understanding clamp limits.                               |
+| `isZoomed`    | Whether any x-axis zoom domain override is active.                                                                         | `true`                      | `true`                                                                    | Enabling reset controls or showing zoomed state.                                             |
+| `source`      | Last zoom update source: `'wheel'`, `'drag'`, `'pan'`, `'reset'`, `'programmatic'`, or `null`.                             | `'programmatic'`            | `'wheel'`                                                                 | Telemetry, debugging, and UI labels.                                                         |
+
+When no zoom window is active, `start`, `startValue`, `center`, `centerValue`,
+`end`, `endValue`, and `windowSize` are `null`.
+
+Programmatic zoom control applies to mapped zoomable x-axes automatically (`x`
+and/or `x2`). Supported scale types are `linear` and `time`.
 
 ## Hover Readout
 
@@ -720,7 +910,7 @@ Recommended band order is outer-to-inner (for example `5-95`, `10-90`, `25-75`) 
   className: '',
   fill: dataVizColors.tropicalIndigo,
   isVisible: true,
-  paddingFactor: 0.8,
+  paddingFactor: 0.8, // 0-1
   stacked: false,
   isCumulative: false,
   stroke: 'none',
@@ -744,7 +934,7 @@ Recommended band order is outer-to-inner (for example `5-95`, `10-90`, `25-75`) 
   className: '',
   fill: dataVizColors.tropicalIndigo,
   isVisible: true,
-  paddingFactor: 0.8,
+  paddingFactor: 0.8, // 0-1
   stroke: 'none',
   strokeMedian: '#ffffff88',
   strokeWhisker: dataVizColors.tropicalIndigo,
@@ -1173,8 +1363,9 @@ Tick behavior:
 
 - Leave `ticks.values` empty to use the axis' generated ticks. Continuous axes (`linear`, `time`) use D3 `scale.ticks(count)` generation, with `ticks.amount` as the count hint. Band axes use the resolved domain.
 - Provide `ticks.values` to render only those tick positions.
-- `ticks.amount` only affects generated continuous ticks. It is ignored when `ticks.values` is provided.
+- `ticks.amount` is a hint, not an exact count. For `linear` and `time` axes, D3 adjusts the count to produce evenly spaced ticks that span the full domain. The actual number of ticks may differ slightly from the requested amount. It is ignored entirely when `ticks.values` is provided.
 - Provide `ticks.labels` to override labels by index. If a label is missing for a given tick value, the axis falls back to `ticks.formatter(value)`, then `String(value)`.
+- For `time` axes, JavaScript `Date` values represent instants in time. `timeFormatter(...)` displays those instants using the viewer's local calendar fields, while `utcTimeFormatter(...)` displays UTC calendar fields. Generated tick positions still come from D3 `scaleTime()` unless you provide explicit `ticks.values`.
 - `ticks.collisionStrategy` controls overlap handling:
   - `'auto'` (default): x/x2 try 45-degree rotation first, then reduce ticks if needed; y/y2 reduce ticks.
   - `'rotate'`: x/x2 rotate to 45 degrees but do not reduce tick count.
@@ -1325,26 +1516,39 @@ Tick-format utilities are exported from the package root:
 ```js
 import {
   timeFormatter,
+  utcTimeFormatter,
   numberFormatter,
   simpleDateHour,
+  simpleDateHourUTC,
 } from '@noaa-gsl/wizard-charts';
 ```
 
 Helpers:
 
 - `timeFormatter(spec)` returns a D3 `timeFormat` formatter function.
+- `utcTimeFormatter(spec)` returns a D3 `utcFormat` formatter function.
 - `numberFormatter(specifier)` returns a D3 numeric formatter function.
 - `simpleDateHour()` returns a preset formatter using `%Y-%m-%d %H`.
+- `simpleDateHourUTC()` returns a preset formatter using `%Y-%m-%d %HZ`.
+
+Date/time display:
+
+- JavaScript `Date` objects store an instant, not a local or UTC wall-clock label.
+- Use `timeFormatter(...)` when tick labels and readout titles should reflect the viewer's local timezone.
+- Use `utcTimeFormatter(...)` when tick labels and readout titles should reflect UTC, such as `18Z` for `new Date('2026-09-02T18:00:00.000Z')`.
+- `axes.*.type: 'time'` currently uses D3 `scaleTime()`, so generated tick positions follow local-time intervals. Use explicit `ticks.values` when exact UTC or custom-zone tick boundaries are required.
 
 Example usage in axis config:
 
 ```js
+const formatUtcHour = utcTimeFormatter('%m-%d %HZ');
+
 const options = {
   axes: {
     x: {
       type: 'time',
       ticks: {
-        formatter: simpleDateHour(),
+        formatter: formatUtcHour,
       },
     },
     y: {
@@ -1354,6 +1558,36 @@ const options = {
       },
     },
   },
+  readout: {
+    titleFormatter: (xValue) => formatUtcHour(xValue),
+  },
+};
+```
+
+For named timezones or fixed display rules, provide a custom formatter:
+
+```js
+const denverTimeFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Denver',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  hour12: false,
+  timeZoneName: 'short',
+});
+
+const options = {
+  axes: {
+    x: {
+      type: 'time',
+      ticks: {
+        formatter: (value) => denverTimeFormatter.format(value),
+      },
+    },
+  },
+  readout: {
+    titleFormatter: (xValue) => denverTimeFormatter.format(xValue),
+  },
 };
 ```
 
@@ -1362,5 +1596,7 @@ const options = {
 - For `type: 'time'`, provide `Date` instances or numeric timestamps.
 - Dot-notation keys are supported for nested values (for example `forecast.p50`).
 - If using per-series columnar `data`, keep all arrays the same length.
+- `bar` and `boxPlot` `paddingFactor` values are clamped to `0-1`; out-of-range values emit a `console.warn` message.
+- Plot layers are clipped to the computed inner plot area.
 - Supported axis keys are `x`, `y`, `x2`, and `y2`; unknown keys are ignored.
 - Set `animationDuration: 0` to disable animation.

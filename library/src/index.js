@@ -10,6 +10,10 @@ import Heatmap from './plotComponents/Heatmap';
 import ContourGrid from './plotComponents/ContourGrid';
 import WindBarbs from './plotComponents/WindBarbs';
 import { HoverPointProvider } from './context/HoverPointProvider';
+import {
+  useChartController,
+  useChartZoomState,
+} from './hooks/useChartController';
 import { dataVizColors } from './utilities/defaultOptions';
 
 import './styles.css';
@@ -27,6 +31,8 @@ export {
   ContourGrid,
   WindBarbs,
   HoverPointProvider,
+  useChartController,
+  useChartZoomState,
   dataVizColors,
 };
 

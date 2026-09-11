@@ -111,6 +111,23 @@ export const defaultOptions = {
     className: '',
     sx: {},
   },
+  zoom: {
+    enabled: true,
+    wheelEnabled: true,
+    dragEnabled: true,
+    panEnabled: true,
+    rightClickResetEnabled: true,
+    modifierKey: 'ctrl', // 'ctrl' | 'shift' | 'alt' | 'meta'
+    panCursor: 'move',
+    wheelZoomSpeed: 0.1,
+    minWindow: 0,
+    minDragPixels: 4,
+    dragBox: {
+      fill: '#147AF333',
+      stroke: '#147AF3',
+      strokeWidth: 1,
+    },
+  },
   readout: {
     hoverMode: 'local',
     showVerticalLine: true,

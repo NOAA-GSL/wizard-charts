@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
-import { mergeDeep } from '../utilities/dataUtilities';
+import { mergeDeep, normalizePaddingFactor } from '../utilities/dataUtilities';
 import { defaultBoxPlotOptions } from '../utilities/defaultOptions';
 
 function BoxPlot({ seriesIndex = 0, options = {} }) {
@@ -26,6 +26,9 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
   const accessors = getAccessors(seriesIndex);
   const seriesData = getSeriesData(seriesIndex);
   const { xScale, yScale } = getSeriesScales(seriesIndex);
+  const safePaddingFactor = normalizePaddingFactor(paddingFactor, {
+    context: `boxPlot series at index ${seriesIndex} paddingFactor`,
+  });
 
   const rectGroupRef = useRef(null);
   const medianGroupRef = useRef(null);
@@ -48,7 +51,7 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
   // if step fails, use this fallback that divides the width by the number of points
   const fallback = chartValues.innerWidth / Math.max(1, seriesData.length);
   // barWidth is shrunk by a padding factor to create space between bars
-  const barWidth = (step || fallback) * paddingFactor;
+  const barWidth = (step || fallback) * safePaddingFactor;
 
   useAnimation({
     type: 'growBox',

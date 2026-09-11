@@ -10,6 +10,55 @@ import { seriesAccessorProps } from './defaultOptions';
 import { toComparable } from './valueUtilities';
 
 const VALID_AXIS_KEYS = new Set(['x', 'y', 'x2', 'y2']);
+const warnedPaddingFactorMessages = new Set();
+
+function warnPaddingFactor(message) {
+  // eslint-disable-next-line no-console
+  if (typeof console === 'undefined' || typeof console.warn !== 'function') {
+    return;
+  }
+
+  if (warnedPaddingFactorMessages.has(message)) return;
+  warnedPaddingFactorMessages.add(message);
+
+  // eslint-disable-next-line no-console
+  console.warn(message);
+}
+
+export function normalizePaddingFactor(
+  value,
+  {
+    defaultValue = 0.8,
+    min = 0,
+    max = 1,
+    context = 'paddingFactor',
+    shouldWarn = true,
+  } = {},
+) {
+  const numericDefault = Number(defaultValue);
+  const fallbackSource = Number.isFinite(numericDefault) ? numericDefault : 0.8;
+  const fallback = Math.min(max, Math.max(min, fallbackSource));
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    if (shouldWarn) {
+      warnPaddingFactor(
+        `[wizard-charts] ${context} must be a finite number between ${min} and ${max}. Received "${String(value)}"; using ${fallback}.`,
+      );
+    }
+
+    return fallback;
+  }
+
+  const clamped = Math.min(max, Math.max(min, numeric));
+  if (clamped !== numeric && shouldWarn) {
+    warnPaddingFactor(
+      `[wizard-charts] ${context} must be between ${min} and ${max}. Received ${numeric}; using ${clamped}.`,
+    );
+  }
+
+  return clamped;
+}
 
 export function isXValueAxis(axisKey) {
   return axisKey === 'x' || axisKey === 'x2';
@@ -379,9 +428,10 @@ function getContinuousXDomainPadding(series = [], domain = []) {
     if (s.type !== 'bar' && s.type !== 'boxPlot') return;
 
     const alignment = s.alignment || 'center';
-    const paddingFactor = Number.isFinite(Number(s.paddingFactor))
-      ? Number(s.paddingFactor)
-      : 0.8;
+    const paddingFactor = normalizePaddingFactor(s.paddingFactor, {
+      context: `${s.type || 'series'} paddingFactor`,
+      shouldWarn: false,
+    });
     const barDomainWidth = minStep * paddingFactor;
 
     if (alignment === 'left') {
@@ -423,11 +473,47 @@ function getAreaStackedDomainAccessorKeys(series = {}, isX = false) {
   return Array.from(new Set(keys));
 }
 
+function normalizeDomainOverride(domainOverride, scaleType) {
+  if (!Array.isArray(domainOverride) || domainOverride.length !== 2) {
+    return null;
+  }
+
+  if (scaleType === 'time') {
+    const startValue =
+      domainOverride[0] instanceof Date
+        ? domainOverride[0]
+        : new Date(domainOverride[0]);
+    const endValue =
+      domainOverride[1] instanceof Date
+        ? domainOverride[1]
+        : new Date(domainOverride[1]);
+
+    const startTime = startValue.getTime();
+    const endTime = endValue.getTime();
+    if (!Number.isFinite(startTime) || !Number.isFinite(endTime)) return null;
+    if (endTime <= startTime) return null;
+    return [startValue, endValue];
+  }
+
+  if (scaleType === 'linear') {
+    const startValue = Number(domainOverride[0]);
+    const endValue = Number(domainOverride[1]);
+    if (!Number.isFinite(startValue) || !Number.isFinite(endValue)) {
+      return null;
+    }
+    if (endValue <= startValue) return null;
+    return [startValue, endValue];
+  }
+
+  return null;
+}
+
 export const computeScales = (chartValues, axisConfig) => {
   const scales = {};
   const series = chartValues.options?.series || [];
   const data = chartValues.data || [];
   const rootData = Array.isArray(data) ? data : [];
+  const domainOverrides = chartValues.domainOverrides || {};
 
   // loop through each axis in the config and compute the corresponding scale
   Object.entries(axisConfig).forEach(([axisKey, config]) => {
@@ -578,6 +664,16 @@ export const computeScales = (chartValues, axisConfig) => {
             : safeMin * 10;
 
         domain = [safeMin, safeMax];
+      }
+
+      if (isX && (scaleType === 'linear' || scaleType === 'time')) {
+        const domainOverride = normalizeDomainOverride(
+          domainOverrides?.[axisKey],
+          scaleType,
+        );
+        if (domainOverride) {
+          domain = domainOverride;
+        }
       }
     }
     const baseRange = getRange(axisKey, chartValues);

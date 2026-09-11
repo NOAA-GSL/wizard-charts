@@ -69,6 +69,8 @@ function HoverReadoutLayer({
   readoutOptions,
   plotBoundsRef,
   xValueResolverRef,
+  xScaleRef,
+  x2ScaleRef,
 }) {
   const { chartValues, computedScales } = useChartHelpers();
   const sharedHoverEvent = useHoverStoreSnapshot(hoverStore);
@@ -109,6 +111,16 @@ function HoverReadoutLayer({
       xValueResolverRef.current = () => null;
     };
   }, [readoutXScale, xValueResolverRef]);
+
+  useEffect(() => {
+    if (xScaleRef) xScaleRef.current = primaryXScale || null;
+    if (x2ScaleRef) x2ScaleRef.current = secondaryXScale || null;
+
+    return () => {
+      if (xScaleRef) xScaleRef.current = null;
+      if (x2ScaleRef) x2ScaleRef.current = null;
+    };
+  }, [primaryXScale, secondaryXScale, xScaleRef, x2ScaleRef]);
 
   const hoverEvent = useMemo(() => {
     if (!sharedHoverEvent) return null;
