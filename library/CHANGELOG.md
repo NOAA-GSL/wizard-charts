@@ -2,7 +2,7 @@
 
 All notable user-facing changes to this package are documented in this file.
 
-## Unreleased
+## 1.2.0
 
 ### Added
 
