@@ -33,14 +33,14 @@ export const demoOptions = {
     axes: {
       // can also use the default x and y
       x: {
-        type: 'linear', // band, linear, log, time
+        type: 'time', // band, linear, log, time
         label: { text: 'Date' },
         ticks: { formatter: utcTimeFormatter('%m-%d %Hz'), amount: 4 }, // optional formatting function for ticks
         nice: false,
         hasGridLines: true,
         lineMarkers: [
           {
-            value: new Date(new Date().getTime() + 60 * 60 * 24 * 1000), // 1 day from now
+            value: new Date('2026-08-02T00:00:00Z'), // 1 day from now
             label: 'T+24h',
             placement: 'top-right',
             padding: { edge: 8, line: 8 },
@@ -72,8 +72,8 @@ export const demoOptions = {
         units: 'mph',
         lineMarkers: [
           {
-            value: 30,
-            label: 'Wind Advisory',
+            value: 20,
+            label: 'Something Else',
             placement: 'top-left',
             labelPadding: 8,
             padding: 8,
@@ -87,8 +87,8 @@ export const demoOptions = {
             labelBackgroundStroke: '#e38b1e',
           },
           {
-            value: 40,
-            label: 'High Wind Warning',
+            value: 30,
+            label: 'Wind Advisory',
             placement: 'top-left',
             labelPadding: 8,
             padding: 8,
@@ -152,7 +152,7 @@ export const demoOptions = {
     ],
     axes: {
       x: {
-        type: 'linear',
+        type: 'time',
         ticks: { formatter: utcTimeFormatter('%m-%d %Hz') },
         nice: false,
         hasGridLines: true,
@@ -199,7 +199,7 @@ export const demoOptions = {
     axes: {
       // can also use the default x and y
       x: {
-        type: 'linear', // band, linear, log, time
+        type: 'time', // band, linear, log, time
         ticks: { formatter: utcTimeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
         nice: false,
         hasGridLines: true,
@@ -239,7 +239,7 @@ export const demoOptions = {
     axes: {
       // can also use the default x and y
       x: {
-        type: 'linear', // band, linear, log, time
+        type: 'time', // band, linear, log, time
         ticks: { formatter: utcTimeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
         nice: false,
         hasGridLines: true,
@@ -284,7 +284,7 @@ export const demoOptions = {
     axes: {
       // can also use the default x and y
       x: {
-        type: 'linear', // band, linear, log, time
+        type: 'time', // band, linear, log, time
         ticks: { formatter: utcTimeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
         nice: false,
         hasGridLines: true,
@@ -331,7 +331,7 @@ export const demoOptions = {
     axes: {
       // can also use the default x and y
       x: {
-        type: 'linear', // band, linear, log, time
+        type: 'time', // band, linear, log, time
         ticks: { formatter: utcTimeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
         nice: false,
         hasGridLines: true,
@@ -391,7 +391,7 @@ export const demoOptions = {
     ],
     axes: {
       x: {
-        type: 'linear',
+        type: 'time',
         ticks: { formatter: utcTimeFormatter('%m-%d %Hz') },
         nice: false,
         hasGridLines: true,
@@ -488,7 +488,7 @@ export const demoOptions = {
     ],
     axes: {
       x: {
-        type: 'linear',
+        type: 'time',
         ticks: { formatter: utcTimeFormatter('%m-%d %Hz') },
       },
       y: {

@@ -4,6 +4,7 @@ import InputSlider from './InputSlider';
 import '@noaa-gsl/wizard-charts/styles.css';
 import { demoOptions } from '../demoOptions';
 import { timeSeriesDemoData } from '../data/demoDatasets';
+console.log('timeSeriesDemoData:', timeSeriesDemoData);
 
 const localChartTypes = [
   'bar',
