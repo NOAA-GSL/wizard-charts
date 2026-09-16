@@ -95,6 +95,8 @@ type ChartContainerProps = {
   };
   data: unknown[] | Record<string, unknown[]>;
   options: ChartOptions;
+  controller?: ReturnType<typeof useChartController>['controller'];
+  ReadoutComponent?: React.ComponentType<{ readout: ReadoutState; options: ChartOptions['readout'] }>;
   children?: React.ReactNode;
   className?: string;
   sx?: React.CSSProperties;
@@ -486,6 +488,12 @@ and/or `x2`). Supported scale types are `linear` and `time`.
 
 ## Hover Readout
 
+Tooltips render as HTML/CSS through a React portal into `document.body`.
+The default tooltip and a custom `ReadoutComponent` share the same measured-box
+positioning and containment. Vertical guide lines and point markers remain SVG.
+Import the package stylesheet as shown in Quick Start; it includes the default
+HTML layout and styling hooks.
+
 `options.readout.hoverMode` supports two modes:
 
 - `'local'` (default): hover tracking is local to each chart and does not require any wrapper.
@@ -499,22 +507,37 @@ and/or `x2`). Supported scale types are `linear` and `time`.
 `options.readout.showTooltip` controls whether a tooltip box renders with readout values.
 
 - `true` (default): show tooltip.
-- `false`: hide tooltip.
+- `false`: hide the default or custom hosted tooltip. Sampling, external readout
+  subscriptions, vertical guides, and point markers remain independent.
 
 `options.readout.className` and `options.readout.sx` apply to the readout overlay root `<g>` element.
 
 - Use `className` for CSS-based overrides.
 - Use `sx` for inline style overrides.
 
-`options.readout.tooltip` controls tooltip wrapper/box styling.
+`options.readout.tooltip` controls the HTML content surface for both default and
+custom tooltips. The library owns a separate positioning/clipping container.
 
-- `fill`: tooltip rectangle fill color.
-- `fillOpacity`: tooltip rectangle fill opacity (`0..1`).
-- `stroke`: tooltip rectangle stroke color.
-- `strokeWidth`: tooltip rectangle stroke width in pixels.
-- `cornerRadius`: tooltip rectangle corner radius in pixels.
-- `className`: class applied to the tooltip `<g>` wrapper.
-- `sx`: inline style object applied to the tooltip `<g>` wrapper.
+- `fill`: background color.
+- `fillOpacity`: background-only opacity (`0..1`), without fading text.
+- `stroke`: border color.
+- `strokeWidth`: border width in pixels.
+- `cornerRadius`: border radius in pixels.
+- `className`: class applied to the HTML tooltip surface.
+- `sx`: inline CSS style object applied to the HTML tooltip surface.
+
+Default appearance uses low-specificity CSS so consumer classes can override it;
+`sx` takes precedence over ordinary stylesheet rules. Use `backgroundColor` to
+override the background directly, or `--readout-background` and
+`--readout-background-opacity` to reuse the default background-only alpha blending
+(CSS `color-mix()`, supported by current browsers). Use CSS `color` for text, not SVG `fill`.
+Default title/row font options still apply; custom components own their internal
+typography and can use the supplied `options` to reuse those settings.
+
+The portal copies the SVG's computed font family and color, but it does not
+inherit ancestor-specific CSS selectors or other custom properties from the
+chart's DOM ancestors. Put theme rules on the tooltip class or pass `sx`.
+Position, clipping, and pointer transparency remain library-controlled.
 
 `options.readout.displayUnits` controls whether series units are appended to readout values.
 
@@ -633,7 +656,150 @@ Marker style options:
 Readout overlays are constrained to chart/SVG bounds:
 
 - Readout rendering only occurs while the pointer is inside the plot area.
-- Tooltip is positioned to the right of the pointer by default, flips left when needed, and clamps to available SVG width/height.
+- Tooltip containment uses the total SVG rectangle, including chart margins,
+  intersected with the visible viewport when the chart is partially offscreen.
+- Tooltip prefers the right of the pointer, flips left when appropriate, and
+  clamps to all four edges. Near an edge, the box stops following the pointer
+  while its sampled values continue updating.
+- HTML/CSS lays out the content; only the final box is measured. Bounds and
+  placement update on hover, chart/content resize, zoom, and scrolling.
+- Long text wraps. Content larger than the available chart area is clipped;
+  hosted tooltips are non-interactive and do not have scrollbars. Use an external
+  readout for full-size or interactive content.
+- Custom content is subject to the same limits. Separate portals created by a
+  custom component are outside this containment contract.
+- The body portal uses fixed positioning. Arbitrarily rotated charts, transformed
+  `html`/`body` containing blocks, and top-layer dialogs require application-level
+  handling (for example an external readout); there is no portal-target prop.
+
+### Custom HTML Tooltip
+
+Pass a component, not its rendered element, to `ChartContainer.ReadoutComponent`.
+It receives `{ readout, options }` and may use React hooks. Define the component
+outside the chart's render function to preserve its identity between updates.
+Returning `null` renders no tooltip content. The component is mounted only while
+there is an active sample and `showTooltip` is true; no portal is rendered during SSR.
+
+```jsx
+function ForecastReadout({ readout }) {
+  return (
+    <section>
+      <strong>{readout.title}</strong>
+      {readout.rows.map((row) => (
+        <div key={row.seriesIndex}>
+          <span style={{ color: row.color }}>{row.label}</span>: {row.text}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+<ChartContainer
+  data={data}
+  options={{
+    ...options,
+    readout: {
+      ...options.readout,
+      tooltip: {
+        className: 'forecast-readout',
+        sx: { color: '#fff', borderRadius: 4, padding: 12 },
+      },
+    },
+  }}
+  ReadoutComponent={ForecastReadout}
+/>;
+```
+
+### External Readout
+
+`useChartReadoutState(controller)` subscribes to the same model without requiring
+an SVG descendant or a portal. Keep the subscription in the component that renders
+the readout, rather than the component that owns the chart. Hover updates do not
+notify the controller's zoom subscribers.
+
+```jsx
+import {
+  ChartContainer,
+  useChartController,
+  useChartReadoutState,
+} from '@noaa-gsl/wizard-charts';
+
+function ForecastPanel({ controller }) {
+  const readout = useChartReadoutState(controller);
+  if (!readout) return null;
+
+  return (
+    <aside>
+      <h3>{readout.title}</h3>
+      {readout.rows.map((row) => (
+        <p key={row.seriesIndex}>{row.label}: {row.text}</p>
+      ))}
+    </aside>
+  );
+}
+
+function ForecastChart({ data, options }) {
+  const { controller } = useChartController();
+  return (
+    <>
+      <ChartContainer
+        controller={controller}
+        data={data}
+        options={{ ...options, readout: { ...options.readout, showTooltip: false } }}
+      />
+      <ForecastPanel controller={controller} />
+    </>
+  );
+}
+```
+
+Use one controller per chart. `controller.getReadoutState()` reads the latest
+snapshot outside render. `controller.subscribeReadout(listener)` subscribes to
+changes and returns an unsubscribe function. Readout and zoom subscriptions are
+separate; `useChartController()` does not implicitly subscribe to readout updates.
+
+### Readout Model
+
+`ReadoutComponent` receives this non-null model as `readout`. The hook returns the
+model or `null` when inactive, outside the receiving chart's plot, without samples,
+or after the chart unmounts. In global mode each chart samples its own series and
+uses its own mapped coordinates. Treat snapshots and referenced data as read-only.
+
+| Property | Meaning |
+| --- | --- |
+| `chartId`, `sourceChartId` | Receiving chart and originating hover chart identifiers. |
+| `mode` | Effective `'local'` or `'global'` mode. |
+| `xValue`, `axisKey` | Hovered domain value and primary readout axis (`'x'` or `'x2'`). Dates retain their type. |
+| `title` | Title formatted using `readout.titleFormatter`. |
+| `local` | `{ x, y }` in the receiving SVG coordinate system, not tooltip position. |
+| `sourceClient` | `{ x, y }` browser coordinates of the originating pointer; not a target-chart portal anchor. |
+| `rows` | Per-series samples ordered by `readout.rowOrder`. |
+
+Each row contains:
+
+| Property | Meaning |
+| --- | --- |
+| `id`, `seriesIndex`, `seriesType`, `axisKeys` | Configured series id (index fallback), index, plot type, and mapped axes. |
+| `label`, `color`, `units` | Resolved series name, readout color, and units. |
+| `values` | Plot-specific sampled values, such as `y`, area bounds, `value`, or wind `speed`/`direction`. These are not necessarily original raw data; existing wind precision rounding is preserved. |
+| `sampling` | `'nearest'` or `'interpolate'`. Matrix uses nearest cell selection. |
+| `datum`, `dataIndex` | Selected normalized source row/index where available; `null` for interpolated values and grid samples without a source index. A heatmap's nearest supporting sample is not claimed as its interpolated datum. |
+| `entries` | Selected fields as `{ key, label, value }`, before display formatting. |
+| `text`, `detailLines` | Formatted summary and `{ key, label, text }` detail lines, honoring existing formatters, units, precision and field selection. |
+| `distancePx`, `xPixel`, `yPixel`, `markerPoints` | Sample distance and SVG marker geometry; not HTML positioning coordinates. |
+
+Consumers may ignore all formatted fields and use `values`, `entries`, or `datum`
+to build their own presentation. The public model is separate from debug payloads.
+
+### SVG Tooltip Migration
+
+The default tooltip is now HTML; there is no legacy SVG tooltip mode.
+`readout.className`/`sx` still target the SVG annotation group, while
+`readout.tooltip.className`/`sx` target the HTML surface. Update selectors that
+previously targeted tooltip `g`, `rect`, or `text` elements and replace SVG-only
+style properties with their CSS equivalents. Practical appearance options and
+formatters remain supported, but browser text layout is not pixel-identical to
+the previous SVG layout. Serializing the chart SVG no longer includes its tooltip.
 
 `options.readout.debug` controls console debug payload logging.
 

@@ -2,6 +2,27 @@
 
 All notable user-facing changes to this package are documented in this file.
 
+## 1.2.1
+
+### Added
+
+- `ChartContainer.ReadoutComponent` accepts a custom React HTML readout component with sampled values and optional formatted rows.
+- New `useChartReadoutState(controller)`, `controller.getReadoutState()`, and `controller.subscribeReadout(listener)` APIs support readouts anywhere in the consuming application, independently of zoom subscriptions.
+- Default and custom HTML tooltips share dependency-free measured-box placement, chart/viewport containment, resize/scroll updates, and oversized-content wrapping/clipping.
+
+### Changed
+
+- Default readout tooltips now render with HTML/CSS through a body portal instead of measured SVG text. Vertical guides and point markers remain SVG.
+- Tooltip position clamps to the total chart rectangle intersected with the visible viewport. The tooltip holds at edges while sampled values continue updating. Oversized content is clipped without scrollbars; hosted tooltips remain non-interactive.
+- `readout.tooltip.className` and `readout.tooltip.sx` now style the HTML content surface. Practical appearance options, field selection, units, precision, and formatters remain supported.
+
+### Migration Notes
+
+- Update CSS selectors targeting SVG tooltip `g`, `rect`, or `text` elements for the new HTML markup. Use CSS `color` rather than SVG `fill` for text styling.
+- `readout.className` and `readout.sx` continue to target SVG annotations; tooltip styling belongs under `readout.tooltip`. The body portal copies chart font family/color but does not inherit ancestor-specific selectors or other custom properties.
+- There is no legacy SVG tooltip renderer. Serialized SVG output does not include the HTML tooltip. Default text layout may differ from previous SVG measurements.
+- Import the package stylesheet for default HTML layout. Custom hosted content is clipped to chart bounds; use an external readout for full-size or interactive UI.
+
 ## 1.2.0
 
 ### Added

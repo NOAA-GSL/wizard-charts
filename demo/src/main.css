@@ -122,6 +122,43 @@ button:disabled {
   gap: 20px;
 }
 
+.readout-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 24px;
+}
+
+.readout-demo-chart {
+  min-width: 0;
+}
+
+.readout-demo-chart h2 {
+  font-size: 18px;
+}
+
+.readout-demo-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin: 16px 0;
+}
+
+.external-readout {
+  min-height: 140px;
+  padding: 16px 0;
+}
+
+.external-readout dd {
+  margin: 4px 0 12px;
+}
+
+.custom-forecast-readout {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+
 .input-slider {
   display: flex;
   align-items: center;

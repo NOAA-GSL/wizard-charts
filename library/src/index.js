@@ -13,6 +13,7 @@ import { HoverPointProvider } from './context/HoverPointProvider';
 import {
   useChartController,
   useChartZoomState,
+  useChartReadoutState,
 } from './hooks/useChartController';
 import { dataVizColors } from './utilities/defaultOptions';
 
@@ -33,6 +34,7 @@ export {
   HoverPointProvider,
   useChartController,
   useChartZoomState,
+  useChartReadoutState,
   dataVizColors,
 };
 
