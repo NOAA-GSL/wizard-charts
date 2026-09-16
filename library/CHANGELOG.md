@@ -12,6 +12,7 @@ All notable user-facing changes to this package are documented in this file.
 
 ### Changed
 
+- `areaStacked` readouts using the default `readout.areaFields: 'auto'` now list configured fields from high to low, placing upper bounds first, then the median, then lower bounds.
 - Default readout tooltips now render with HTML/CSS through a body portal instead of measured SVG text. Vertical guides and point markers remain SVG.
 - Tooltip position clamps to the total chart rectangle intersected with the visible viewport. The tooltip holds at edges while sampled values continue updating. Oversized content is clipped without scrollbars; hosted tooltips remain non-interactive.
 - `readout.tooltip.className` and `readout.tooltip.sx` now style the HTML content surface. Practical appearance options, field selection, units, precision, and formatters remain supported.

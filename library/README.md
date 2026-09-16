@@ -96,7 +96,10 @@ type ChartContainerProps = {
   data: unknown[] | Record<string, unknown[]>;
   options: ChartOptions;
   controller?: ReturnType<typeof useChartController>['controller'];
-  ReadoutComponent?: React.ComponentType<{ readout: ReadoutState; options: ChartOptions['readout'] }>;
+  ReadoutComponent?: React.ComponentType<{
+    readout: ReadoutState;
+    options: ChartOptions['readout'];
+  }>;
   children?: React.ReactNode;
   className?: string;
   sx?: React.CSSProperties;
@@ -577,7 +580,7 @@ For `areaStacked`, `areaFields` accepts field ids derived from each band key plu
 - Band field ids are inferred from key suffixes: `series1.p05` -> `p05`, `series1.p95` -> `p95`.
 - Full keys are also accepted as aliases in `areaFields` (for example `series1.p05`).
 
-- `'auto'` (default): orders fields as lower bounds in configured band order, then median, then upper bounds in reverse order.
+- `'auto'` (default): orders fields from high to low: upper bounds in configured band order, then median, then lower bounds in reverse order.
 - `string` or `string[]`: explicit field id order (for example `['p05', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95']`).
 
 When multiple fields are configured for `boxPlot`/`area`/`areaStacked`, the tooltip renders labeled values on indented sub-lines with an aligned value column.
@@ -732,7 +735,9 @@ function ForecastPanel({ controller }) {
     <aside>
       <h3>{readout.title}</h3>
       {readout.rows.map((row) => (
-        <p key={row.seriesIndex}>{row.label}: {row.text}</p>
+        <p key={row.seriesIndex}>
+          {row.label}: {row.text}
+        </p>
       ))}
     </aside>
   );
@@ -745,7 +750,10 @@ function ForecastChart({ data, options }) {
       <ChartContainer
         controller={controller}
         data={data}
-        options={{ ...options, readout: { ...options.readout, showTooltip: false } }}
+        options={{
+          ...options,
+          readout: { ...options.readout, showTooltip: false },
+        }}
       />
       <ForecastPanel controller={controller} />
     </>
@@ -765,28 +773,28 @@ model or `null` when inactive, outside the receiving chart's plot, without sampl
 or after the chart unmounts. In global mode each chart samples its own series and
 uses its own mapped coordinates. Treat snapshots and referenced data as read-only.
 
-| Property | Meaning |
-| --- | --- |
-| `chartId`, `sourceChartId` | Receiving chart and originating hover chart identifiers. |
-| `mode` | Effective `'local'` or `'global'` mode. |
-| `xValue`, `axisKey` | Hovered domain value and primary readout axis (`'x'` or `'x2'`). Dates retain their type. |
-| `title` | Title formatted using `readout.titleFormatter`. |
-| `local` | `{ x, y }` in the receiving SVG coordinate system, not tooltip position. |
-| `sourceClient` | `{ x, y }` browser coordinates of the originating pointer; not a target-chart portal anchor. |
-| `rows` | Per-series samples ordered by `readout.rowOrder`. |
+| Property                   | Meaning                                                                                      |
+| -------------------------- | -------------------------------------------------------------------------------------------- |
+| `chartId`, `sourceChartId` | Receiving chart and originating hover chart identifiers.                                     |
+| `mode`                     | Effective `'local'` or `'global'` mode.                                                      |
+| `xValue`, `axisKey`        | Hovered domain value and primary readout axis (`'x'` or `'x2'`). Dates retain their type.    |
+| `title`                    | Title formatted using `readout.titleFormatter`.                                              |
+| `local`                    | `{ x, y }` in the receiving SVG coordinate system, not tooltip position.                     |
+| `sourceClient`             | `{ x, y }` browser coordinates of the originating pointer; not a target-chart portal anchor. |
+| `rows`                     | Per-series samples ordered by `readout.rowOrder`.                                            |
 
 Each row contains:
 
-| Property | Meaning |
-| --- | --- |
-| `id`, `seriesIndex`, `seriesType`, `axisKeys` | Configured series id (index fallback), index, plot type, and mapped axes. |
-| `label`, `color`, `units` | Resolved series name, readout color, and units. |
-| `values` | Plot-specific sampled values, such as `y`, area bounds, `value`, or wind `speed`/`direction`. These are not necessarily original raw data; existing wind precision rounding is preserved. |
-| `sampling` | `'nearest'` or `'interpolate'`. Matrix uses nearest cell selection. |
-| `datum`, `dataIndex` | Selected normalized source row/index where available; `null` for interpolated values and grid samples without a source index. A heatmap's nearest supporting sample is not claimed as its interpolated datum. |
-| `entries` | Selected fields as `{ key, label, value }`, before display formatting. |
-| `text`, `detailLines` | Formatted summary and `{ key, label, text }` detail lines, honoring existing formatters, units, precision and field selection. |
-| `distancePx`, `xPixel`, `yPixel`, `markerPoints` | Sample distance and SVG marker geometry; not HTML positioning coordinates. |
+| Property                                         | Meaning                                                                                                                                                                                                       |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`, `seriesIndex`, `seriesType`, `axisKeys`    | Configured series id (index fallback), index, plot type, and mapped axes.                                                                                                                                     |
+| `label`, `color`, `units`                        | Resolved series name, readout color, and units.                                                                                                                                                               |
+| `values`                                         | Plot-specific sampled values, such as `y`, area bounds, `value`, or wind `speed`/`direction`. These are not necessarily original raw data; existing wind precision rounding is preserved.                     |
+| `sampling`                                       | `'nearest'` or `'interpolate'`. Matrix uses nearest cell selection.                                                                                                                                           |
+| `datum`, `dataIndex`                             | Selected normalized source row/index where available; `null` for interpolated values and grid samples without a source index. A heatmap's nearest supporting sample is not claimed as its interpolated datum. |
+| `entries`                                        | Selected fields as `{ key, label, value }`, before display formatting.                                                                                                                                        |
+| `text`, `detailLines`                            | Formatted summary and `{ key, label, text }` detail lines, honoring existing formatters, units, precision and field selection.                                                                                |
+| `distancePx`, `xPixel`, `yPixel`, `markerPoints` | Sample distance and SVG marker geometry; not HTML positioning coordinates.                                                                                                                                    |
 
 Consumers may ignore all formatted fields and use `values`, `entries`, or `datum`
 to build their own presentation. The public model is separate from debug payloads.

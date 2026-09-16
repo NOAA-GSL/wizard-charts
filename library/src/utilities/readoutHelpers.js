@@ -414,9 +414,9 @@ function resolveAreaStackedAutoFieldOrder(values = {}) {
     resolveAreaStackedFields(values);
 
   const ordered = [
-    ...lowerOrder,
+    ...upperOrder,
     ...(medianField ? [medianField] : []),
-    ...upperOrder.slice().reverse(),
+    ...lowerOrder.slice().reverse(),
   ];
 
   const deduped = dedupeFields(ordered);

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildReadoutModel, placeReadout } from './readoutModel.js';
+import { resolveSeriesReadoutEntries } from '../utilities/readoutHelpers.js';
 
 const bounds = { left: 100, top: 50, right: 500, bottom: 350 };
 
@@ -104,4 +105,32 @@ test('interpolated samples do not claim an original datum', () => {
   assert.equal(model.rows[0].sampling, 'interpolate');
   assert.equal(model.rows[0].datum, null);
   assert.equal(model.rows[0].dataIndex, null);
+});
+
+test('areaStacked auto fields read from high to low', () => {
+  const entries = resolveSeriesReadoutEntries(
+    {
+      seriesType: 'areaStacked',
+      values: {
+        areaStackedFields: [
+          { key: 'p05', label: '5th', value: 5 },
+          { key: 'p95', label: '95th', value: 95 },
+          { key: 'p10', label: '10th', value: 10 },
+          { key: 'p90', label: '90th', value: 90 },
+          { key: 'p25', label: '25th', value: 25 },
+          { key: 'p75', label: '75th', value: 75 },
+          { key: 'p50', label: '50th', value: 50 },
+        ],
+        areaStackedLowerOrder: ['p05', 'p10', 'p25'],
+        areaStackedUpperOrder: ['p95', 'p90', 'p75'],
+        medianField: 'p50',
+      },
+    },
+    { areaFields: 'auto' },
+  );
+
+  assert.deepEqual(
+    entries.map((entry) => entry.key),
+    ['p95', 'p90', 'p75', 'p50', 'p25', 'p10', 'p05'],
+  );
 });
