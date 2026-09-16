@@ -1,7 +1,6 @@
 import { useId, useState } from 'react';
 import {
   ChartContainer,
-  HoverPointProvider,
   useChartController,
   useChartReadoutState,
 } from '@noaa-gsl/wizard-charts';
@@ -9,35 +8,30 @@ import {
 const data = Array.from({ length: 25 }, (_, index) => ({
   hour: index,
   temperature: 15 + 8 * Math.sin(index / 4),
-  low: 12 + 8 * Math.sin(index / 4),
-  high: 18 + 8 * Math.sin(index / 4),
+  q10: 12 + 8 * Math.sin(index / 4),
+  q90: 18 + 8 * Math.sin(index / 4),
 }));
 
 function CustomReadout({ readout }) {
+  console.log('readout:', readout);
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} className="custom-forecast-readout">
-      <strong id={headingId}>{readout.title}</strong>
+      <strong style={{ borderBottom: '1px solid #ccc', fontStyle: 'italic' }}>
+        This Is A Custom Readout
+      </strong>
+      <strong>T+{readout.xValue.toFixed(1)}hrs</strong>
       {readout.rows.map((row) => (
         <div key={row.seriesIndex}>
           <span style={{ color: row.color }}>{row.label}</span>
-          <div>{row.text}</div>
+          <div>Median: {row.values.y.toFixed(1)}°C</div>
+          <div>
+            Range: {row.values.lower.toFixed(1)}°C to{' '}
+            {row.values.upper.toFixed(1)}°C
+          </div>
         </div>
       ))}
     </section>
-  );
-}
-
-function OversizedReadout({ readout }) {
-  return (
-    <div style={{ width: 900 }}>
-      <strong>{readout.title}</strong>
-      {Array.from({ length: 40 }, (_, index) => (
-        <div key={index}>
-          Forecast period {index + 1}: {readout.rows[0]?.text}
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -58,9 +52,8 @@ function ReadoutPanel({ controller }) {
   );
 }
 
-function ReadoutChart({ mode, global, secondary = false, showTooltip }) {
+function ReadoutChart({ mode, showTooltip }) {
   const { controller, zoomState } = useChartController();
-  const axisKey = secondary ? 'x2' : 'x';
   const options = {
     animationDuration: 0,
     series: [
@@ -70,17 +63,17 @@ function ReadoutChart({ mode, global, secondary = false, showTooltip }) {
         name: 'Temperature',
         xKey: 'hour',
         yKey: 'temperature',
-        q1YKey: 'low',
-        q3YKey: 'high',
-        isSecondaryXAxis: secondary,
+        q1YKey: 'q10',
+        q3YKey: 'q90',
         fill: '#0fb5ae55',
+        stroke: '#0fb5ae',
         units: 'C',
         readoutPrecision: 1,
       },
     ],
-    axes: { [axisKey]: { type: 'linear' }, y: { type: 'linear' } },
+    axes: { x: { type: 'linear' }, y: { type: 'linear', nice: true } },
     readout: {
-      hoverMode: global ? 'global' : 'local',
+      hoverMode: 'local',
       showTooltip,
       areaFields: ['lower', 'y', 'upper'],
       titleFormatter: (value) => `Forecast hour ${Number(value).toFixed(1)}`,
@@ -92,7 +85,7 @@ function ReadoutChart({ mode, global, secondary = false, showTooltip }) {
   };
   return (
     <section className="readout-demo-chart">
-      <h2>{secondary ? 'Secondary Axis' : 'Primary Axis'}</h2>
+      <h2>Forecast Readout</h2>
       <div className="readout-demo-controls">
         <button
           type="button"
@@ -114,20 +107,14 @@ function ReadoutChart({ mode, global, secondary = false, showTooltip }) {
         data={data}
         options={options}
         controller={controller}
-        height={280}
+        height={500}
         className="readout-demo-svg"
         sx={{
           border: '2px solid #737373',
           padding: 8,
           boxSizing: 'border-box',
         }}
-        ReadoutComponent={
-          mode === 'custom'
-            ? CustomReadout
-            : mode === 'oversized'
-              ? OversizedReadout
-              : undefined
-        }
+        ReadoutComponent={mode === 'custom' ? CustomReadout : undefined}
       />
       <ReadoutPanel controller={controller} />
     </section>
@@ -136,7 +123,6 @@ function ReadoutChart({ mode, global, secondary = false, showTooltip }) {
 
 export default function ReadoutDemo() {
   const [mode, setMode] = useState('default');
-  const [global, setGlobal] = useState(false);
   const [showTooltip, setShowTooltip] = useState(true);
   return (
     <>
@@ -149,16 +135,7 @@ export default function ReadoutDemo() {
           >
             <option value="default">Default</option>
             <option value="custom">Custom HTML</option>
-            <option value="oversized">Oversized HTML</option>
           </select>
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={global}
-            onChange={(event) => setGlobal(event.target.checked)}
-          />{' '}
-          Synchronized
         </label>
         <label>
           <input
@@ -169,17 +146,9 @@ export default function ReadoutDemo() {
           Tooltip
         </label>
       </div>
-      <HoverPointProvider>
-        <div className="readout-demo-grid">
-          <ReadoutChart mode={mode} global={global} showTooltip={showTooltip} />
-          <ReadoutChart
-            mode={mode}
-            global={global}
-            showTooltip={showTooltip}
-            secondary
-          />
-        </div>
-      </HoverPointProvider>
+      <div className="readout-demo-grid">
+        <ReadoutChart mode={mode} showTooltip={showTooltip} />
+      </div>
     </>
   );
 }
