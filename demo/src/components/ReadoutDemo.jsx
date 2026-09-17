@@ -5,15 +5,27 @@ import {
   useChartReadoutState,
 } from '@noaa-gsl/wizard-charts';
 
-const data = Array.from({ length: 25 }, (_, index) => ({
+const shortForecastData = Array.from({ length: 13 }, (_, index) => ({
   hour: index,
   temperature: 15 + 8 * Math.sin(index / 4),
   q10: 12 + 8 * Math.sin(index / 4),
   q90: 18 + 8 * Math.sin(index / 4),
 }));
 
+const longForecastData = Array.from({ length: 49 }, (_, index) => ({
+  hour: index,
+  temperature: 11 + 5 * Math.cos(index / 7),
+  q10: 8 + 5 * Math.cos(index / 7),
+  q90: 14 + 5 * Math.cos(index / 7),
+}));
+
+function formatForecastValue(value) {
+  return Number.isFinite(Number(value))
+    ? `${Number(value).toFixed(1)}°C`
+    : '---';
+}
+
 function CustomReadout({ readout }) {
-  console.log('readout:', readout);
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} className="custom-forecast-readout">
@@ -24,10 +36,10 @@ function CustomReadout({ readout }) {
       {readout.rows.map((row) => (
         <div key={row.seriesIndex}>
           <span style={{ color: row.color }}>{row.label}</span>
-          <div>Median: {row.values.y.toFixed(1)}°C</div>
+          <div>Median: {formatForecastValue(row.values.y)}</div>
           <div>
-            Range: {row.values.lower.toFixed(1)}°C to{' '}
-            {row.values.upper.toFixed(1)}°C
+            Range: {formatForecastValue(row.values.lower)} to{' '}
+            {formatForecastValue(row.values.upper)}
           </div>
         </div>
       ))}
@@ -52,15 +64,16 @@ function ReadoutPanel({ controller }) {
   );
 }
 
-function ReadoutChart({ mode, showTooltip }) {
+function ReadoutChart({ mode, showTooltip, xEligibility, missingSeries }) {
   const { controller, zoomState } = useChartController();
   const options = {
     animationDuration: 0,
     series: [
       {
-        id: 'temperature',
+        id: 'short-temperature',
         type: 'area',
-        name: 'Temperature',
+        name: 'Short forecast',
+        data: shortForecastData,
         xKey: 'hour',
         yKey: 'temperature',
         q1YKey: 'q10',
@@ -70,11 +83,28 @@ function ReadoutChart({ mode, showTooltip }) {
         units: 'C',
         readoutPrecision: 1,
       },
+      {
+        id: 'long-temperature',
+        type: 'area',
+        name: 'Long forecast',
+        data: longForecastData,
+        xKey: 'hour',
+        yKey: 'temperature',
+        q1YKey: 'q10',
+        q3YKey: 'q90',
+        fill: '#f6851144',
+        stroke: '#f68511',
+        units: 'C',
+        readoutPrecision: 1,
+      },
     ],
     axes: { x: { type: 'linear' }, y: { type: 'linear', nice: true } },
     readout: {
       hoverMode: 'local',
       showTooltip,
+      xEligibility,
+      xTolerance: 2,
+      missingSeries,
       areaFields: ['lower', 'y', 'upper'],
       titleFormatter: (value) => `Forecast hour ${Number(value).toFixed(1)}`,
       tooltip: {
@@ -104,7 +134,7 @@ function ReadoutChart({ mode, showTooltip }) {
         </button>
       </div>
       <ChartContainer
-        data={data}
+        data={longForecastData}
         options={options}
         controller={controller}
         height={500}
@@ -124,6 +154,8 @@ function ReadoutChart({ mode, showTooltip }) {
 export default function ReadoutDemo() {
   const [mode, setMode] = useState('default');
   const [showTooltip, setShowTooltip] = useState(true);
+  const [xEligibility, setXEligibility] = useState('withinBounds');
+  const [missingSeries, setMissingSeries] = useState('placeholder');
   return (
     <>
       <div className="readout-demo-controls">
@@ -145,9 +177,35 @@ export default function ReadoutDemo() {
           />{' '}
           Tooltip
         </label>
+        <label>
+          X eligibility{' '}
+          <select
+            value={xEligibility}
+            onChange={(event) => setXEligibility(event.target.value)}
+          >
+            <option value="withinBounds">Within bounds</option>
+            <option value="withinTolerance">Within tolerance</option>
+            <option value="anyDistance">Any distance</option>
+          </select>
+        </label>
+        <label>
+          Missing rows{' '}
+          <select
+            value={missingSeries}
+            onChange={(event) => setMissingSeries(event.target.value)}
+          >
+            <option value="placeholder">Show ---</option>
+            <option value="omit">Omit</option>
+          </select>
+        </label>
       </div>
       <div className="readout-demo-grid">
-        <ReadoutChart mode={mode} showTooltip={showTooltip} />
+        <ReadoutChart
+          mode={mode}
+          showTooltip={showTooltip}
+          xEligibility={xEligibility}
+          missingSeries={missingSeries}
+        />
       </div>
     </>
   );

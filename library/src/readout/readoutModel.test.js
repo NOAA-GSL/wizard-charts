@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildReadoutModel, placeReadout } from './readoutModel.js';
+import {
+  getSeriesXAvailability,
+  getSeriesXExtent,
+} from '../utilities/readoutEligibility.js';
 import { resolveSeriesReadoutEntries } from '../utilities/readoutHelpers.js';
 
 const bounds = { left: 100, top: 50, right: 500, bottom: 350 };
@@ -105,6 +109,127 @@ test('interpolated samples do not claim an original datum', () => {
   assert.equal(model.rows[0].sampling, 'interpolate');
   assert.equal(model.rows[0].datum, null);
   assert.equal(model.rows[0].dataIndex, null);
+});
+
+test('placeholder samples keep rows stable without markers or datum ownership', () => {
+  const model = buildReadoutModel({
+    hoverEvent: { xValue: 40, localX: 400, localY: 120 },
+    readoutData: {
+      isInsidePlot: true,
+      nearest: {
+        bySeries: [
+          {
+            status: 'outOfRange',
+            seriesIndex: 0,
+            seriesType: 'line',
+            seriesName: 'Short forecast',
+            dataIndex: 12,
+            values: { x: 12, y: 10 },
+            distancePx: 280,
+            xDistanceValue: 28,
+            xExtent: { min: 0, max: 12 },
+            xPixel: 120,
+            yPixel: 50,
+            markerPoints: [{ id: 'primary', xPixel: 120, yPixel: 50 }],
+          },
+        ],
+      },
+    },
+    options: { missingText: '---' },
+    getSeriesData: () => [{ x: 12, y: 10 }],
+  });
+
+  assert.equal(model.rows[0].status, 'outOfRange');
+  assert.equal(model.rows[0].text, '---');
+  assert.equal(model.rows[0].datum, null);
+  assert.equal(model.rows[0].dataIndex, null);
+  assert.deepEqual(model.rows[0].markerPoints, []);
+  assert.deepEqual(model.rows[0].xExtent, { min: 0, max: 12 });
+});
+
+test('x eligibility defaults to bounds and supports tolerance and any distance', () => {
+  const seriesData = [{ x: 0 }, { x: 6 }, { x: 12 }];
+  const xExtent = getSeriesXExtent({
+    accessors: { x: (datum) => datum.x },
+    seriesData,
+  });
+  const nearest = { values: { x: 12 } };
+
+  assert.deepEqual(xExtent.raw, { min: 0, max: 12 });
+  assert.equal(
+    getSeriesXAvailability({
+      hoverXValue: 10,
+      nearest,
+      policy: 'withinBounds',
+      tolerance: null,
+      xExtent,
+    }).status,
+    'available',
+  );
+  assert.equal(
+    getSeriesXAvailability({
+      hoverXValue: 20,
+      nearest,
+      policy: 'withinBounds',
+      tolerance: null,
+      xExtent,
+    }).status,
+    'outOfRange',
+  );
+  assert.equal(
+    getSeriesXAvailability({
+      hoverXValue: 14,
+      nearest,
+      policy: 'withinTolerance',
+      tolerance: 2,
+      xExtent,
+    }).status,
+    'available',
+  );
+  assert.equal(
+    getSeriesXAvailability({
+      hoverXValue: 20,
+      nearest,
+      policy: 'withinTolerance',
+      tolerance: 2,
+      xExtent,
+    }).status,
+    'outOfRange',
+  );
+  assert.equal(
+    getSeriesXAvailability({
+      hoverXValue: 40,
+      nearest,
+      policy: 'anyDistance',
+      tolerance: null,
+      xExtent,
+    }).status,
+    'available',
+  );
+});
+
+test('x eligibility handles Date domain values in milliseconds', () => {
+  const seriesData = [
+    { x: new Date('2026-09-17T00:00:00Z') },
+    { x: new Date('2026-09-17T12:00:00Z') },
+  ];
+  const xExtent = getSeriesXExtent({
+    accessors: { x: (datum) => datum.x },
+    seriesData,
+  });
+  const nearest = { values: { x: seriesData[1].x } };
+  const oneHour = 60 * 60 * 1000;
+
+  const availability = getSeriesXAvailability({
+    hoverXValue: new Date('2026-09-17T13:00:00Z'),
+    nearest,
+    policy: 'withinTolerance',
+    tolerance: oneHour,
+    xExtent,
+  });
+
+  assert.equal(availability.status, 'available');
+  assert.equal(availability.xDistanceValue, oneHour);
 });
 
 test('areaStacked auto fields read from high to low', () => {

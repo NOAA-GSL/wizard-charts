@@ -289,6 +289,10 @@ All column arrays must be the same length.
     },
     displayUnits: true,
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
+    xEligibility: 'withinBounds', // 'withinBounds' | 'withinTolerance' | 'anyDistance'
+    xTolerance: undefined, // data-domain units; Date/time axes use milliseconds
+    missingSeries: 'placeholder', // 'placeholder' | 'omit'
+    missingText: '---',
     boxPlotFields: 'auto', // 'auto' | key | key[]
     areaFields: 'auto', // 'auto' | key | key[]
     titleFormatter: null, // (value, context?) => string
@@ -561,6 +565,30 @@ Position, clipping, and pointer transparency remain library-controlled.
 
 - `4` (default).
 
+`options.readout.xEligibility` controls whether a nearest-style series is eligible to show a real value at the hovered x-value.
+
+- `'withinBounds'` (default): show a real value only when the hovered x-value is within that series' own x extent.
+- `'withinTolerance'`: show a real value when the hovered x-value is within the series x extent or the nearest sample is within `xTolerance`.
+- `'anyDistance'`: always show the nearest point, matching the previous behavior.
+- `series.readoutXEligibility` overrides the readout-level setting for one series.
+
+`options.readout.xTolerance` sets the tolerance for `'withinTolerance'`.
+
+- The value uses data-domain units. For linear forecast-hour axes, `2` means two hours when your x values are hours.
+- For `Date`/time axes, use milliseconds, for example `2 * 60 * 60 * 1000` for two hours.
+- `series.readoutXTolerance` overrides the readout-level setting for one series.
+
+`options.readout.missingSeries` controls unavailable rows when a series is outside its x eligibility.
+
+- `'placeholder'` (default): keep the row and render `missingText`, preserving tooltip height as series become unavailable.
+- `'omit'`: remove unavailable rows from the readout.
+
+`options.readout.missingText` controls placeholder text for unavailable rows.
+
+- `'---'` (default).
+
+Unavailable placeholder rows do not render SVG point markers/circles, because no value is being shown for that series at the hovered x-value.
+
 `options.readout.boxPlotFields` controls which box-plot values render in the readout row.
 
 - `'auto'` (default): uses median when available, then falls back to box midpoint.
@@ -595,6 +623,8 @@ The first valid configured field also drives marker y-position and distance rank
 Series readout controls:
 
 - `series.readoutPrecision`: optional fixed decimal precision used by default readout formatting.
+- `series.readoutXEligibility`: optional per-series override for `readout.xEligibility`.
+- `series.readoutXTolerance`: optional per-series override for `readout.xTolerance`.
 - `series.units`: optional unit suffix for readout values.
 - `series.displayUnits`: per-series unit toggle in readout (`true` by default).
 
@@ -646,6 +676,7 @@ Row labels and values share the same `row` font settings.
 - For `boxPlot`, `area`, and `areaStacked`, markers follow configured readout fields: when multiple fields are selected (for example `['q1', 'q3']`), one marker is rendered per field.
 - For `area` and `line` series on continuous x-scales, marker x-position follows the raw x-scale value.
 - For `bar`/`boxPlot` series, marker x-position follows the rendered rectangle center (including alignment and width).
+- Unavailable placeholder rows do not render markers.
 
 `options.readout.tooltipOffset` sets the horizontal pixel distance from pointer to tooltip anchor.
 
@@ -790,11 +821,13 @@ Each row contains:
 | `id`, `seriesIndex`, `seriesType`, `axisKeys`    | Configured series id (index fallback), index, plot type, and mapped axes.                                                                                                                                     |
 | `label`, `color`, `units`                        | Resolved series name, readout color, and units.                                                                                                                                                               |
 | `values`                                         | Plot-specific sampled values, such as `y`, area bounds, `value`, or wind `speed`/`direction`. These are not necessarily original raw data; existing wind precision rounding is preserved.                     |
+| `status`                                         | `'available'` for rows with a real sampled value, or `'outOfRange'` when the series is outside its x eligibility and rendered as a placeholder.                                                               |
 | `sampling`                                       | `'nearest'` or `'interpolate'`. Matrix uses nearest cell selection.                                                                                                                                           |
 | `datum`, `dataIndex`                             | Selected normalized source row/index where available; `null` for interpolated values and grid samples without a source index. A heatmap's nearest supporting sample is not claimed as its interpolated datum. |
 | `entries`                                        | Selected fields as `{ key, label, value }`, before display formatting.                                                                                                                                        |
 | `text`, `detailLines`                            | Formatted summary and `{ key, label, text }` detail lines, honoring existing formatters, units, precision and field selection.                                                                                |
-| `distancePx`, `xPixel`, `yPixel`, `markerPoints` | Sample distance and SVG marker geometry; not HTML positioning coordinates.                                                                                                                                    |
+| `sampleX`, `xDistanceValue`, `xExtent`           | Domain-space sampling metadata for x eligibility and custom out-of-range displays.                                                                                                                            |
+| `distancePx`, `xPixel`, `yPixel`, `markerPoints` | Sample distance and SVG marker geometry; not HTML positioning coordinates. Placeholder rows have no marker geometry.                                                                                          |
 
 Consumers may ignore all formatted fields and use `values`, `entries`, or `datum`
 to build their own presentation. The public model is separate from debug payloads.

@@ -17,14 +17,20 @@ export function buildReadoutModel({
 
   const rows = (readoutData.nearest?.bySeries || []).map((summary) => {
     const config = series[summary.seriesIndex] || {};
+    const status = summary.status || 'available';
+    const isAvailable = status === 'available';
     const isInterpolated =
-      summary.seriesType === 'heatmap' ||
-      (summary.seriesType === 'contourGrid' &&
+      (isAvailable && summary.seriesType === 'heatmap') ||
+      (isAvailable &&
+        summary.seriesType === 'contourGrid' &&
         summary.values?.samplingMode !== 'nearest') ||
-      (summary.seriesType === 'windBarbs' && summary.dataIndex == null);
+      (isAvailable &&
+        summary.seriesType === 'windBarbs' &&
+        summary.dataIndex == null);
 
     return {
       id: config.id ?? summary.seriesIndex,
+      status,
       seriesIndex: summary.seriesIndex,
       seriesType: summary.seriesType,
       axisKeys: summary.axisKeys,
@@ -33,18 +39,22 @@ export function buildReadoutModel({
       units: summary.seriesUnits,
       values: summary.values,
       sampling: isInterpolated ? 'interpolate' : 'nearest',
-      dataIndex: isInterpolated ? null : (summary.dataIndex ?? null),
+      dataIndex:
+        isAvailable && !isInterpolated ? (summary.dataIndex ?? null) : null,
       datum:
-        !isInterpolated && summary.dataIndex != null
+        isAvailable && !isInterpolated && summary.dataIndex != null
           ? (getSeriesData?.(summary.seriesIndex)?.[summary.dataIndex] ?? null)
           : null,
       entries: resolveSeriesReadoutEntries(summary, options),
       text: formatSeriesReadoutText(summary, options),
       detailLines: resolveSeriesReadoutDetailLines(summary, options),
       distancePx: summary.distancePx,
+      xDistanceValue: summary.xDistanceValue ?? null,
+      xExtent: summary.xExtent ?? null,
+      sampleX: summary.sampleX ?? summary.values?.x ?? null,
       xPixel: summary.xPixel,
       yPixel: summary.yPixel,
-      markerPoints: summary.markerPoints || [],
+      markerPoints: isAvailable ? summary.markerPoints || [] : [],
     };
   });
 
