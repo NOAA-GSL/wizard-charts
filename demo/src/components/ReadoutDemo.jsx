@@ -105,7 +105,7 @@ function ReadoutChart({ mode, showTooltip, xEligibility, missingSeries }) {
       xEligibility,
       xTolerance: 2,
       missingSeries,
-      areaFields: ['lower', 'y', 'upper'],
+      areaFields: ['upper', 'y', 'lower'],
       titleFormatter: (value) => `Forecast hour ${Number(value).toFixed(1)}`,
       tooltip: {
         className: 'forecast-tooltip',
