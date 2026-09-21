@@ -34,6 +34,8 @@ function cloneDomain(domain) {
 
 function createChartControllerStore() {
   const listeners = new Set();
+  const readoutListeners = new Set();
+  let readoutState = null;
   let api = noopApi;
   let onZoomStateChange = null;
   let zoomState = defaultZoomState;
@@ -70,6 +72,11 @@ function createChartControllerStore() {
     setZoomStart: (start) => api.setZoomStart(start),
     setZoomEnd: (end) => api.setZoomEnd(end),
     getZoomState: () => zoomState,
+    getReadoutState: () => readoutState,
+    subscribeReadout: (listener) => {
+      readoutListeners.add(listener);
+      return () => readoutListeners.delete(listener);
+    },
     subscribe: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -89,6 +96,11 @@ function createChartControllerStore() {
         onZoomStateChange = callback;
       },
       setZoomState: notify,
+      setReadoutState: (nextState) => {
+        if (Object.is(readoutState, nextState)) return;
+        readoutState = nextState;
+        readoutListeners.forEach((listener) => listener());
+      },
     },
   });
 
@@ -104,6 +116,14 @@ export function useChartZoomState(controller) {
     controller?.subscribe || (() => () => {}),
     () => controller?.getZoomState?.() || defaultZoomState,
     () => defaultZoomState,
+  );
+}
+
+export function useChartReadoutState(controller) {
+  return useSyncExternalStore(
+    controller?.subscribeReadout || (() => () => {}),
+    () => controller?.getReadoutState?.() || null,
+    () => null,
   );
 }
 

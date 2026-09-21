@@ -408,7 +408,7 @@ export const demoOptions = {
     },
     readout: {
       hoverMode: 'local',
-      areaFields: ['p05', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95'],
+      // areaFields: ['p95', 'p90', 'p75', 'p50', 'p25', 'p10', 'p05'],
       titleFormatter: (xValue) => `${utcTimeFormatter('%m-%d %Hz')(xValue)}`,
     },
     animationDuration: 1000,

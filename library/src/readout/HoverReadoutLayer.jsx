@@ -5,6 +5,8 @@ import { useHoverReadoutDebug } from '../hooks/useHoverReadoutDebug';
 import { axisHasMappedSeries } from '../utilities/dataUtilities';
 import { getPlotBoundsFromChartValues } from '../utilities/measurements';
 import Readout from './Readout';
+import { buildReadoutModel } from './readoutModel';
+import { getChartControllerInternal } from '../hooks/useChartController';
 
 function resolveBandValueAtPixel(scale, pixel) {
   const domain = scale?.domain?.() || [];
@@ -71,8 +73,11 @@ function HoverReadoutLayer({
   xValueResolverRef,
   xScaleRef,
   x2ScaleRef,
+  svgRef,
+  controller,
+  ReadoutComponent,
 }) {
-  const { chartValues, computedScales } = useChartHelpers();
+  const { chartValues, computedScales, getSeriesData } = useChartHelpers();
   const sharedHoverEvent = useHoverStoreSnapshot(hoverStore);
   const plotBounds = useMemo(
     () => getPlotBoundsFromChartValues(chartValues),
@@ -161,11 +166,40 @@ function HoverReadoutLayer({
     readoutOptions,
   });
 
+  const model = useMemo(
+    () =>
+      buildReadoutModel({
+        hoverEvent,
+        readoutData,
+        options: readoutOptions,
+        axisKey: readoutXScale === primaryXScale ? 'x' : 'x2',
+        series: chartValues.options?.series,
+        getSeriesData,
+      }),
+    [
+      hoverEvent,
+      readoutData,
+      readoutOptions,
+      readoutXScale,
+      primaryXScale,
+      chartValues.options?.series,
+      getSeriesData,
+    ],
+  );
+  const internal = getChartControllerInternal(controller);
+
+  useEffect(() => {
+    internal?.setReadoutState(model);
+  }, [internal, model]);
+
+  useEffect(() => () => internal?.setReadoutState(null), [internal]);
+
   return (
     <Readout
-      hoverEvent={hoverEvent}
-      readoutData={readoutData}
+      model={model}
       options={readoutOptions}
+      svgRef={svgRef}
+      ReadoutComponent={ReadoutComponent}
     />
   );
 }

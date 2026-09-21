@@ -21,6 +21,14 @@ import {
   resolveSeriesReadoutEntries,
   resolveSeriesValue,
 } from '../utilities/readoutHelpers';
+import {
+  getSeriesXAvailability,
+  getSeriesXExtent,
+  resolveHoverXValue,
+  resolveMissingSeriesMode,
+  resolveReadoutXEligibility,
+  resolveReadoutXTolerance,
+} from '../utilities/readoutEligibility';
 import { toComparable } from '../utilities/valueUtilities';
 
 const SUPPORTED_SERIES_TYPES = new Set([
@@ -255,6 +263,42 @@ function buildWindBarbsValueSummary(accessors, datum) {
     y: accessors.y?.(datum),
     speed: accessors.speedKey?.(datum),
     direction: accessors.directionKey?.(datum),
+  };
+}
+
+function buildUnavailableSeriesSummary({
+  availability,
+  axisKeys,
+  nearest,
+  series,
+  seriesIndex,
+  seriesUnits,
+}) {
+  return {
+    axisKeys,
+    dataIndex: null,
+    distancePx: nearest?.distancePx ?? Infinity,
+    readoutColor: resolveSeriesReadoutColor(series),
+    sampleX: availability.sampleX,
+    seriesUnits,
+    seriesDisplayUnits: series?.displayUnits,
+    seriesReadoutPrecision: series?.readoutPrecision,
+    seriesIndex,
+    seriesName: series?.name || `Series ${seriesIndex + 1}`,
+    seriesType: series?.type,
+    status: availability.status,
+    values: {
+      x: null,
+      sampleX: availability.sampleX,
+      missing: true,
+    },
+    xDistancePx: nearest?.xDistancePx ?? Infinity,
+    xDistanceValue: availability.xDistanceValue,
+    xExtent: availability.xExtent,
+    xPixel: null,
+    yDistancePx: null,
+    yPixel: null,
+    markerPoints: [],
   };
 }
 
@@ -1174,6 +1218,12 @@ export function useHoverReadoutDebug({
       return null;
     }
 
+    const hoverXValue = resolveHoverXValue({
+      hoverEvent,
+      hoverX: localX,
+      xScale: null,
+    });
+
     const seriesList = chartValues.options?.series || [];
 
     const bySeries = seriesList
@@ -1203,6 +1253,9 @@ export function useHoverReadoutDebug({
           seriesData,
           xScale,
         });
+        const resolvedHoverXValue =
+          hoverXValue ??
+          resolveHoverXValue({ hoverEvent, hoverX: localX, xScale });
 
         if (series.type === 'matrix') {
           return summarizeMatrixSeriesPoint({
@@ -1270,6 +1323,7 @@ export function useHoverReadoutDebug({
         }
 
         let nearest = null;
+        const xExtent = getSeriesXExtent({ accessors, seriesData });
 
         seriesData.forEach((datum, dataIndex) => {
           const summary = summarizeSeriesPoint({
@@ -1295,6 +1349,33 @@ export function useHoverReadoutDebug({
             nearest = summary;
           }
         });
+
+        if (!nearest) return null;
+
+        const availability = getSeriesXAvailability({
+          hoverXValue: resolvedHoverXValue,
+          nearest,
+          policy: resolveReadoutXEligibility(series, readoutOptions),
+          tolerance: resolveReadoutXTolerance(series, readoutOptions),
+          xExtent,
+        });
+
+        if (availability.status !== 'available') {
+          if (resolveMissingSeriesMode(readoutOptions) === 'omit') return null;
+          return buildUnavailableSeriesSummary({
+            availability,
+            axisKeys,
+            nearest,
+            series,
+            seriesIndex,
+            seriesUnits,
+          });
+        }
+
+        nearest.status = 'available';
+        nearest.sampleX = availability.sampleX;
+        nearest.xDistanceValue = availability.xDistanceValue;
+        nearest.xExtent = availability.xExtent;
 
         return nearest;
       })

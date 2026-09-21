@@ -656,6 +656,7 @@ function ChartContainer({
   data = [],
   options = {},
   controller,
+  ReadoutComponent,
   children,
   className = '',
   sx = {},
@@ -1891,6 +1892,9 @@ function ChartContainer({
             xValueResolverRef={xValueResolverRef}
             xScaleRef={xScaleRef}
             x2ScaleRef={x2ScaleRef}
+            svgRef={svgReadoutRef}
+            controller={controller}
+            ReadoutComponent={ReadoutComponent}
           />
         </>
       )}

@@ -145,6 +145,10 @@ export const defaultOptions = {
     },
     displayUnits: true,
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
+    xEligibility: 'withinBounds', // 'withinBounds' | 'withinTolerance' | 'anyDistance'
+    xTolerance: undefined, // data-domain units; Date/time axes use milliseconds
+    missingSeries: 'placeholder', // 'placeholder' | 'omit'
+    missingText: '---',
     boxPlotFields: 'auto', // 'auto' | key | key[]
     areaFields: 'auto', // area + areaStacked: 'auto' | field id | field id[] (area also supports legacy y/q1/q3/min/max aliases)
     titleFormatter: null, // optional formatting function for title x value
@@ -182,6 +186,8 @@ export const defaultSeriesOptions = {
   units: '',
   displayUnits: true,
   readoutPrecision: undefined,
+  readoutXEligibility: undefined, // 'withinBounds' | 'withinTolerance' | 'anyDistance'
+  readoutXTolerance: undefined, // data-domain units; Date/time axes use milliseconds
   // optional per-series dataset; falls back to root-level data when omitted
   data: undefined,
   // if these are true, it will pull from the secondary x2 or y2 axis options

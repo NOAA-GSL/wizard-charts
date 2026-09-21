@@ -2,6 +2,34 @@
 
 All notable user-facing changes to this package are documented in this file.
 
+## 1.2.1
+
+### Added
+
+- `ChartContainer.ReadoutComponent` accepts a custom React HTML readout component with sampled values and optional formatted rows.
+- New `useChartReadoutState(controller)`, `controller.getReadoutState()`, and `controller.subscribeReadout(listener)` APIs support readouts anywhere in the consuming application, independently of zoom subscriptions.
+- Default and custom HTML tooltips share dependency-free measured-box placement, chart/viewport containment, resize/scroll updates, and oversized-content wrapping/clipping.
+- Readout x eligibility options for mixed-cadence series: `readout.xEligibility`, `readout.xTolerance`, `readout.missingSeries`, `readout.missingText`, plus per-series `readoutXEligibility` and `readoutXTolerance` overrides.
+- Readout rows now expose `status`, `sampleX`, `xDistanceValue`, and `xExtent` metadata for custom out-of-range displays.
+
+### Changed
+
+- `areaStacked` readouts using the default `readout.areaFields: 'auto'` now list configured fields from high to low, placing upper bounds first, then the median, then lower bounds.
+- Nearest-style readouts now default to `xEligibility: 'withinBounds'`. When a hovered x-value is outside a series' own x extent, the default readout keeps a stable placeholder row using `missingText: '---'` instead of showing a far-away nearest value.
+- Unavailable placeholder rows no longer render SVG point markers/circles.
+- Default readout tooltips now render with HTML/CSS through a body portal instead of measured SVG text. Vertical guides and point markers remain SVG.
+- Tooltip position clamps to the total chart rectangle intersected with the visible viewport. The tooltip holds at edges while sampled values continue updating. Oversized content is clipped without scrollbars; hosted tooltips remain non-interactive.
+- `readout.tooltip.className` and `readout.tooltip.sx` now style the HTML content surface. Practical appearance options, field selection, units, precision, and formatters remain supported.
+
+### Migration Notes
+
+- Update CSS selectors targeting SVG tooltip `g`, `rect`, or `text` elements for the new HTML markup. Use CSS `color` rather than SVG `fill` for text styling.
+- Set `readout.xEligibility: 'anyDistance'` or `series.readoutXEligibility: 'anyDistance'` to restore the previous behavior where nearest readouts could show a series value regardless of x distance.
+- Set `readout.missingSeries: 'omit'` if you prefer unavailable mixed-cadence rows to disappear instead of rendering `---`.
+- `readout.className` and `readout.sx` continue to target SVG annotations; tooltip styling belongs under `readout.tooltip`. The body portal copies chart font family/color but does not inherit ancestor-specific selectors or other custom properties.
+- There is no legacy SVG tooltip renderer. Serialized SVG output does not include the HTML tooltip. Default text layout may differ from previous SVG measurements.
+- Import the package stylesheet for default HTML layout. Custom hosted content is clipped to chart bounds; use an external readout for full-size or interactive UI.
+
 ## 1.2.0
 
 ### Added

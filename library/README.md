@@ -95,6 +95,11 @@ type ChartContainerProps = {
   };
   data: unknown[] | Record<string, unknown[]>;
   options: ChartOptions;
+  controller?: ReturnType<typeof useChartController>['controller'];
+  ReadoutComponent?: React.ComponentType<{
+    readout: ReadoutState;
+    options: ChartOptions['readout'];
+  }>;
   children?: React.ReactNode;
   className?: string;
   sx?: React.CSSProperties;
@@ -284,6 +289,10 @@ All column arrays must be the same length.
     },
     displayUnits: true,
     rowOrder: 'seriesIndex', // 'seriesIndex' | 'distance'
+    xEligibility: 'withinBounds', // 'withinBounds' | 'withinTolerance' | 'anyDistance'
+    xTolerance: undefined, // data-domain units; Date/time axes use milliseconds
+    missingSeries: 'placeholder', // 'placeholder' | 'omit'
+    missingText: '---',
     boxPlotFields: 'auto', // 'auto' | key | key[]
     areaFields: 'auto', // 'auto' | key | key[]
     titleFormatter: null, // (value, context?) => string
@@ -486,6 +495,12 @@ and/or `x2`). Supported scale types are `linear` and `time`.
 
 ## Hover Readout
 
+Tooltips render as HTML/CSS through a React portal into `document.body`.
+The default tooltip and a custom `ReadoutComponent` share the same measured-box
+positioning and containment. Vertical guide lines and point markers remain SVG.
+Import the package stylesheet as shown in Quick Start; it includes the default
+HTML layout and styling hooks.
+
 `options.readout.hoverMode` supports two modes:
 
 - `'local'` (default): hover tracking is local to each chart and does not require any wrapper.
@@ -499,22 +514,37 @@ and/or `x2`). Supported scale types are `linear` and `time`.
 `options.readout.showTooltip` controls whether a tooltip box renders with readout values.
 
 - `true` (default): show tooltip.
-- `false`: hide tooltip.
+- `false`: hide the default or custom hosted tooltip. Sampling, external readout
+  subscriptions, vertical guides, and point markers remain independent.
 
 `options.readout.className` and `options.readout.sx` apply to the readout overlay root `<g>` element.
 
 - Use `className` for CSS-based overrides.
 - Use `sx` for inline style overrides.
 
-`options.readout.tooltip` controls tooltip wrapper/box styling.
+`options.readout.tooltip` controls the HTML content surface for both default and
+custom tooltips. The library owns a separate positioning/clipping container.
 
-- `fill`: tooltip rectangle fill color.
-- `fillOpacity`: tooltip rectangle fill opacity (`0..1`).
-- `stroke`: tooltip rectangle stroke color.
-- `strokeWidth`: tooltip rectangle stroke width in pixels.
-- `cornerRadius`: tooltip rectangle corner radius in pixels.
-- `className`: class applied to the tooltip `<g>` wrapper.
-- `sx`: inline style object applied to the tooltip `<g>` wrapper.
+- `fill`: background color.
+- `fillOpacity`: background-only opacity (`0..1`), without fading text.
+- `stroke`: border color.
+- `strokeWidth`: border width in pixels.
+- `cornerRadius`: border radius in pixels.
+- `className`: class applied to the HTML tooltip surface.
+- `sx`: inline CSS style object applied to the HTML tooltip surface.
+
+Default appearance uses low-specificity CSS so consumer classes can override it;
+`sx` takes precedence over ordinary stylesheet rules. Use `backgroundColor` to
+override the background directly, or `--readout-background` and
+`--readout-background-opacity` to reuse the default background-only alpha blending
+(CSS `color-mix()`, supported by current browsers). Use CSS `color` for text, not SVG `fill`.
+Default title/row font options still apply; custom components own their internal
+typography and can use the supplied `options` to reuse those settings.
+
+The portal copies the SVG's computed font family and color, but it does not
+inherit ancestor-specific CSS selectors or other custom properties from the
+chart's DOM ancestors. Put theme rules on the tooltip class or pass `sx`.
+Position, clipping, and pointer transparency remain library-controlled.
 
 `options.readout.displayUnits` controls whether series units are appended to readout values.
 
@@ -535,6 +565,30 @@ and/or `x2`). Supported scale types are `linear` and `time`.
 
 - `4` (default).
 
+`options.readout.xEligibility` controls whether a nearest-style series is eligible to show a real value at the hovered x-value.
+
+- `'withinBounds'` (default): show a real value only when the hovered x-value is within that series' own x extent.
+- `'withinTolerance'`: show a real value when the hovered x-value is within the series x extent or the nearest sample is within `xTolerance`.
+- `'anyDistance'`: always show the nearest point, matching the previous behavior.
+- `series.readoutXEligibility` overrides the readout-level setting for one series.
+
+`options.readout.xTolerance` sets the tolerance for `'withinTolerance'`.
+
+- The value uses data-domain units. For linear forecast-hour axes, `2` means two hours when your x values are hours.
+- For `Date`/time axes, use milliseconds, for example `2 * 60 * 60 * 1000` for two hours.
+- `series.readoutXTolerance` overrides the readout-level setting for one series.
+
+`options.readout.missingSeries` controls unavailable rows when a series is outside its x eligibility.
+
+- `'placeholder'` (default): keep the row and render `missingText`, preserving tooltip height as series become unavailable.
+- `'omit'`: remove unavailable rows from the readout.
+
+`options.readout.missingText` controls placeholder text for unavailable rows.
+
+- `'---'` (default).
+
+Unavailable placeholder rows do not render SVG point markers/circles, because no value is being shown for that series at the hovered x-value.
+
 `options.readout.boxPlotFields` controls which box-plot values render in the readout row.
 
 - `'auto'` (default): uses median when available, then falls back to box midpoint.
@@ -554,7 +608,7 @@ For `areaStacked`, `areaFields` accepts field ids derived from each band key plu
 - Band field ids are inferred from key suffixes: `series1.p05` -> `p05`, `series1.p95` -> `p95`.
 - Full keys are also accepted as aliases in `areaFields` (for example `series1.p05`).
 
-- `'auto'` (default): orders fields as lower bounds in configured band order, then median, then upper bounds in reverse order.
+- `'auto'` (default): orders fields from high to low: upper bounds in configured band order, then median, then lower bounds in reverse order.
 - `string` or `string[]`: explicit field id order (for example `['p05', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95']`).
 
 When multiple fields are configured for `boxPlot`/`area`/`areaStacked`, the tooltip renders labeled values on indented sub-lines with an aligned value column.
@@ -569,6 +623,8 @@ The first valid configured field also drives marker y-position and distance rank
 Series readout controls:
 
 - `series.readoutPrecision`: optional fixed decimal precision used by default readout formatting.
+- `series.readoutXEligibility`: optional per-series override for `readout.xEligibility`.
+- `series.readoutXTolerance`: optional per-series override for `readout.xTolerance`.
 - `series.units`: optional unit suffix for readout values.
 - `series.displayUnits`: per-series unit toggle in readout (`true` by default).
 
@@ -620,6 +676,7 @@ Row labels and values share the same `row` font settings.
 - For `boxPlot`, `area`, and `areaStacked`, markers follow configured readout fields: when multiple fields are selected (for example `['q1', 'q3']`), one marker is rendered per field.
 - For `area` and `line` series on continuous x-scales, marker x-position follows the raw x-scale value.
 - For `bar`/`boxPlot` series, marker x-position follows the rendered rectangle center (including alignment and width).
+- Unavailable placeholder rows do not render markers.
 
 `options.readout.tooltipOffset` sets the horizontal pixel distance from pointer to tooltip anchor.
 
@@ -633,7 +690,157 @@ Marker style options:
 Readout overlays are constrained to chart/SVG bounds:
 
 - Readout rendering only occurs while the pointer is inside the plot area.
-- Tooltip is positioned to the right of the pointer by default, flips left when needed, and clamps to available SVG width/height.
+- Tooltip containment uses the total SVG rectangle, including chart margins,
+  intersected with the visible viewport when the chart is partially offscreen.
+- Tooltip prefers the right of the pointer, flips left when appropriate, and
+  clamps to all four edges. Near an edge, the box stops following the pointer
+  while its sampled values continue updating.
+- HTML/CSS lays out the content; only the final box is measured. Bounds and
+  placement update on hover, chart/content resize, zoom, and scrolling.
+- Long text wraps. Content larger than the available chart area is clipped;
+  hosted tooltips are non-interactive and do not have scrollbars. Use an external
+  readout for full-size or interactive content.
+- Custom content is subject to the same limits. Separate portals created by a
+  custom component are outside this containment contract.
+- The body portal uses fixed positioning. Arbitrarily rotated charts, transformed
+  `html`/`body` containing blocks, and top-layer dialogs require application-level
+  handling (for example an external readout); there is no portal-target prop.
+
+### Custom HTML Tooltip
+
+Pass a component, not its rendered element, to `ChartContainer.ReadoutComponent`.
+It receives `{ readout, options }` and may use React hooks. Define the component
+outside the chart's render function to preserve its identity between updates.
+Returning `null` renders no tooltip content. The component is mounted only while
+there is an active sample and `showTooltip` is true; no portal is rendered during SSR.
+
+```jsx
+function ForecastReadout({ readout }) {
+  return (
+    <section>
+      <strong>{readout.title}</strong>
+      {readout.rows.map((row) => (
+        <div key={row.seriesIndex}>
+          <span style={{ color: row.color }}>{row.label}</span>: {row.text}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+<ChartContainer
+  data={data}
+  options={{
+    ...options,
+    readout: {
+      ...options.readout,
+      tooltip: {
+        className: 'forecast-readout',
+        sx: { color: '#fff', borderRadius: 4, padding: 12 },
+      },
+    },
+  }}
+  ReadoutComponent={ForecastReadout}
+/>;
+```
+
+### External Readout
+
+`useChartReadoutState(controller)` subscribes to the same model without requiring
+an SVG descendant or a portal. Keep the subscription in the component that renders
+the readout, rather than the component that owns the chart. Hover updates do not
+notify the controller's zoom subscribers.
+
+```jsx
+import {
+  ChartContainer,
+  useChartController,
+  useChartReadoutState,
+} from '@noaa-gsl/wizard-charts';
+
+function ForecastPanel({ controller }) {
+  const readout = useChartReadoutState(controller);
+  if (!readout) return null;
+
+  return (
+    <aside>
+      <h3>{readout.title}</h3>
+      {readout.rows.map((row) => (
+        <p key={row.seriesIndex}>
+          {row.label}: {row.text}
+        </p>
+      ))}
+    </aside>
+  );
+}
+
+function ForecastChart({ data, options }) {
+  const { controller } = useChartController();
+  return (
+    <>
+      <ChartContainer
+        controller={controller}
+        data={data}
+        options={{
+          ...options,
+          readout: { ...options.readout, showTooltip: false },
+        }}
+      />
+      <ForecastPanel controller={controller} />
+    </>
+  );
+}
+```
+
+Use one controller per chart. `controller.getReadoutState()` reads the latest
+snapshot outside render. `controller.subscribeReadout(listener)` subscribes to
+changes and returns an unsubscribe function. Readout and zoom subscriptions are
+separate; `useChartController()` does not implicitly subscribe to readout updates.
+
+### Readout Model
+
+`ReadoutComponent` receives this non-null model as `readout`. The hook returns the
+model or `null` when inactive, outside the receiving chart's plot, without samples,
+or after the chart unmounts. In global mode each chart samples its own series and
+uses its own mapped coordinates. Treat snapshots and referenced data as read-only.
+
+| Property                   | Meaning                                                                                      |
+| -------------------------- | -------------------------------------------------------------------------------------------- |
+| `chartId`, `sourceChartId` | Receiving chart and originating hover chart identifiers.                                     |
+| `mode`                     | Effective `'local'` or `'global'` mode.                                                      |
+| `xValue`, `axisKey`        | Hovered domain value and primary readout axis (`'x'` or `'x2'`). Dates retain their type.    |
+| `title`                    | Title formatted using `readout.titleFormatter`.                                              |
+| `local`                    | `{ x, y }` in the receiving SVG coordinate system, not tooltip position.                     |
+| `sourceClient`             | `{ x, y }` browser coordinates of the originating pointer; not a target-chart portal anchor. |
+| `rows`                     | Per-series samples ordered by `readout.rowOrder`.                                            |
+
+Each row contains:
+
+| Property                                         | Meaning                                                                                                                                                                                                       |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`, `seriesIndex`, `seriesType`, `axisKeys`    | Configured series id (index fallback), index, plot type, and mapped axes.                                                                                                                                     |
+| `label`, `color`, `units`                        | Resolved series name, readout color, and units.                                                                                                                                                               |
+| `values`                                         | Plot-specific sampled values, such as `y`, area bounds, `value`, or wind `speed`/`direction`. These are not necessarily original raw data; existing wind precision rounding is preserved.                     |
+| `status`                                         | `'available'` for rows with a real sampled value, or `'outOfRange'` when the series is outside its x eligibility and rendered as a placeholder.                                                               |
+| `sampling`                                       | `'nearest'` or `'interpolate'`. Matrix uses nearest cell selection.                                                                                                                                           |
+| `datum`, `dataIndex`                             | Selected normalized source row/index where available; `null` for interpolated values and grid samples without a source index. A heatmap's nearest supporting sample is not claimed as its interpolated datum. |
+| `entries`                                        | Selected fields as `{ key, label, value }`, before display formatting.                                                                                                                                        |
+| `text`, `detailLines`                            | Formatted summary and `{ key, label, text }` detail lines, honoring existing formatters, units, precision and field selection.                                                                                |
+| `sampleX`, `xDistanceValue`, `xExtent`           | Domain-space sampling metadata for x eligibility and custom out-of-range displays.                                                                                                                            |
+| `distancePx`, `xPixel`, `yPixel`, `markerPoints` | Sample distance and SVG marker geometry; not HTML positioning coordinates. Placeholder rows have no marker geometry.                                                                                          |
+
+Consumers may ignore all formatted fields and use `values`, `entries`, or `datum`
+to build their own presentation. The public model is separate from debug payloads.
+
+### SVG Tooltip Migration
+
+The default tooltip is now HTML; there is no legacy SVG tooltip mode.
+`readout.className`/`sx` still target the SVG annotation group, while
+`readout.tooltip.className`/`sx` target the HTML surface. Update selectors that
+previously targeted tooltip `g`, `rect`, or `text` elements and replace SVG-only
+style properties with their CSS equivalents. Practical appearance options and
+formatters remain supported, but browser text layout is not pixel-identical to
+the previous SVG layout. Serializing the chart SVG no longer includes its tooltip.
 
 `options.readout.debug` controls console debug payload logging.
 

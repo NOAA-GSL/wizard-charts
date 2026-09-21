@@ -414,9 +414,9 @@ function resolveAreaStackedAutoFieldOrder(values = {}) {
     resolveAreaStackedFields(values);
 
   const ordered = [
-    ...lowerOrder,
+    ...upperOrder,
     ...(medianField ? [medianField] : []),
-    ...upperOrder.slice().reverse(),
+    ...lowerOrder.slice().reverse(),
   ];
 
   const deduped = dedupeFields(ordered);
@@ -481,6 +481,10 @@ function resolveAutoAreaValue(values = {}) {
 }
 
 export function resolveSeriesReadoutEntries(summary, readoutOptions = {}) {
+  if (summary?.status && summary.status !== 'available') {
+    return [{ key: 'missing', label: null, value: null }];
+  }
+
   const values = summary?.values || {};
 
   if (summary?.seriesType === 'areaStacked') {
@@ -566,6 +570,10 @@ function buildReadoutValueFormatterContext(
 }
 
 export function formatSeriesReadoutText(summary, readoutOptions = {}) {
+  if (summary?.status && summary.status !== 'available') {
+    return String(readoutOptions?.missingText ?? '---');
+  }
+
   const entries = resolveSeriesReadoutEntries(summary, readoutOptions);
   if (!entries.length) return 'n/a';
 
@@ -602,6 +610,8 @@ export function formatSeriesReadoutText(summary, readoutOptions = {}) {
 }
 
 export function resolveSeriesReadoutDetailLines(summary, readoutOptions = {}) {
+  if (summary?.status && summary.status !== 'available') return [];
+
   if (
     summary?.seriesType !== 'boxPlot' &&
     summary?.seriesType !== 'area' &&
