@@ -11,6 +11,7 @@ WIZARD Charts is a React charting library built on top of D3 for weather and for
 - [Dynamic Margins](#dynamic-margins)
 - [Data Model](#data-model)
 - [Options Overview](#options-overview)
+- [Plot Clipping](#plot-clipping)
 - [Zoom](#zoom)
 - [Hover Readout](#hover-readout)
 - [Series Configuration](#series-configuration)
@@ -112,7 +113,7 @@ type ChartContainerProps = {
 
 `width` and `height` define the chart's outer SVG box. Internal chart layout (scales, axes, and plot area) is measured from the SVG content box, so `box-sizing: border-box` with `border` and/or `padding` in `sx` is accounted for automatically.
 
-Series rendering inside `ChartContainer` is clipped to the computed inner plot area (inside margins). This prevents plot layers from visually spilling into axis/legend space.
+Series and axis reference markers inside `ChartContainer` are not globally clipped by default, allowing edge glyphs such as circles and box plots to extend into the margins. Set `options.clipToChartArea: true` to constrain these layers to the computed inner plot area. Clipping is always enforced while a zoomed domain is applied. See [Plot Clipping](#plot-clipping) for details.
 
 ## Dynamic Margins
 
@@ -221,6 +222,7 @@ All column arrays must be the same length.
 
 ```js
 {
+  clipToChartArea: false,
   series: [],
   axes: {
     x: {
@@ -323,6 +325,36 @@ All column arrays must be the same length.
 }
 ```
 
+## Plot Clipping
+
+`options.clipToChartArea` is a boolean that defaults to `false`.
+
+| Setting | Original view | Zoomed view |
+| --- | --- | --- |
+| `false` (default) | No global plot clipping | Clipped to the inner plot area |
+| `true` | Clipped to the inner plot area | Clipped to the inner plot area |
+
+- The inner plot area is the computed chart rectangle inside the margins.
+- Clipping applies to series layers and axis reference markers, not axes, the legend, custom `children`, or readout layers.
+- Zoom being enabled does not itself enable clipping. A zoomed domain on either `x` or `x2` enforces chart-wide clipping for wheel, drag-select, programmatic zoom, and subsequent panning.
+- Resetting zoom or returning both axes to their starting extents restores the configured clipping preference.
+- Animation reveal clips used by `area` and `areaStacked`, and local clips used by `heatmap` and `contourGrid`, are preserved regardless of this option.
+- With clipping disabled, explicit axis domain limits do not guarantee visual containment. Plot geometry may overlap axis or legend space; auto margins do not expand to accommodate it.
+- Hover/readout activation and zoom interactions remain restricted to the inner plot area. Tooltip containment is independent of this option.
+- This option does not override clipping imposed by the outer SVG or ancestor CSS.
+
+To retain the previous always-clipped behavior:
+
+```jsx
+<ChartContainer
+  data={data}
+  options={{
+    ...options,
+    clipToChartArea: true,
+  }}
+/>
+```
+
 ## Zoom
 
 Zoom currently supports wheel zoom, drag-select zoom-in, and modifier-drag panning, and updates x-domains only.
@@ -332,6 +364,7 @@ Zoom currently supports wheel zoom, drag-select zoom-in, and modifier-drag panni
 - Drag-select zoom is controlled by `options.zoom.dragEnabled` (`true` by default).
 - Modifier-drag panning is controlled by `options.zoom.panEnabled` (`true` by default).
 - Y-axis domains remain fixed while zooming; only `x`/`x2` domains change.
+- Plot layers are automatically clipped while a zoomed domain is applied, even when `options.clipToChartArea` is `false`. Resetting or returning to the starting extents restores the configured clipping preference.
 - Zoom focus is anchored to the pointer x-position in the plot area.
 - Wheel zoom requires a modifier key by default (`modifierKey: 'ctrl'`).
 - Panning uses the same `modifierKey` as wheel zoom and left-drag in the plot area.
@@ -1804,6 +1837,6 @@ const options = {
 - Dot-notation keys are supported for nested values (for example `forecast.p50`).
 - If using per-series columnar `data`, keep all arrays the same length.
 - `bar` and `boxPlot` `paddingFactor` values are clamped to `0-1`; out-of-range values emit a `console.warn` message.
-- Plot layers are clipped to the computed inner plot area.
+- Plot layers are not globally clipped by default. Set `options.clipToChartArea: true` for containment; zoomed views always enforce clipping. Animation and heatmap/contour-specific clips remain independent.
 - Supported axis keys are `x`, `y`, `x2`, and `y2`; unknown keys are ignored.
 - Set `animationDuration: 0` to disable animation.

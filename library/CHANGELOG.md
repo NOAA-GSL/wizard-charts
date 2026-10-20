@@ -4,9 +4,24 @@ All notable user-facing changes to this package are documented in this file.
 
 ## 1.2.2
 
+### Added
+
+- New root-level `options.clipToChartArea` boolean controls inner-chart clipping for series layers and axis reference markers.
+
+### Changed
+
+- **Default behavior change:** `clipToChartArea` defaults to `false`, allowing edge glyphs such as circles and box plots to extend into chart margins in the original view.
+- Zoomed views always enforce inner-chart clipping, regardless of `clipToChartArea`. This applies to wheel, drag-select, programmatic zoom, and panning on either `x` or `x2`; merely enabling zoom does not enable clipping.
+- Returning to the starting zoom extents now clears the corresponding domain overrides. Resetting or fully zooming out restores the configured clipping preference.
+- Animation reveal clips and heatmap/contour-grid local clips remain unchanged. Hover/zoom interaction bounds and tooltip containment are also unchanged.
+
 ### Fixed
 
 - X-axis grid and axis lines now respect `strokeGrid`, `strokeAxis`, and `strokeWidth` instead of being overridden by the package stylesheet. This applies to both `x` and `x2` axes.
+
+### Migration Notes
+
+- Set `options.clipToChartArea: true` to retain the previous always-clipped behavior. With the new default, explicit axis domain limits do not prevent plot geometry from extending into axis or legend space.
 
 ## 1.2.1
 

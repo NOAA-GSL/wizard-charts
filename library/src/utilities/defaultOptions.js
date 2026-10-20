@@ -84,6 +84,7 @@ export const defaultLineMarkerOptions = {
 };
 
 export const defaultOptions = {
+  clipToChartArea: false,
   series: [],
   axes: {
     x: defaultAxisOptions,
