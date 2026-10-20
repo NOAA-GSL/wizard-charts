@@ -2,6 +2,12 @@
 
 All notable user-facing changes to this package are documented in this file.
 
+## 1.2.2
+
+### Fixed
+
+- X-axis grid and axis lines now respect `strokeGrid`, `strokeAxis`, and `strokeWidth` instead of being overridden by the package stylesheet. This applies to both `x` and `x2` axes.
+
 ## 1.2.1
 
 ### Added
