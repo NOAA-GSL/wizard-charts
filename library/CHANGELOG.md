@@ -7,6 +7,8 @@ All notable user-facing changes to this package are documented in this file.
 ### Added
 
 - New root-level `options.clipToChartArea` boolean controls inner-chart clipping for series layers and axis reference markers.
+- New per-series `showInReadout` boolean defaults to `true`. Set it to `false` to skip sampling and omit a series from default/custom tooltip models, external readout state, and hover point markers without affecting plot rendering, legend inclusion, axis domains, zoom, or hover synchronization.
+- When all series opt out of the readout, no tooltip, vertical guide, or point markers render, and external readout state is `null`.
 
 ### Changed
 
@@ -14,6 +16,7 @@ All notable user-facing changes to this package are documented in this file.
 - Zoomed views always enforce inner-chart clipping, regardless of `clipToChartArea`. This applies to wheel, drag-select, programmatic zoom, and panning on either `x` or `x2`; merely enabling zoom does not enable clipping.
 - Returning to the starting zoom extents now clears the corresponding domain overrides. Resetting or fully zooming out restores the configured clipping preference.
 - Animation reveal clips and heatmap/contour-grid local clips remain unchanged. Hover/zoom interaction bounds and tooltip containment are also unchanged.
+- README terminology now distinguishes the complete readout feature from its floating HTML tooltip. Existing option names and the tooltip-only behavior of `readout.showTooltip` are unchanged.
 
 ### Fixed
 

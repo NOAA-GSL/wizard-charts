@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 import { buildReadoutModel, placeReadout } from './readoutModel.js';
 import {
   getSeriesXAvailability,
@@ -8,6 +9,209 @@ import {
 import { resolveSeriesReadoutEntries } from '../utilities/readoutHelpers.js';
 
 const bounds = { left: 100, top: 50, right: 500, bottom: 350 };
+
+test('series readout participation uses the shared sampler and renderer', async (context) => {
+  const { createServer } = await import('vite');
+  const { default: react } = await import('@vitejs/plugin-react');
+  const { createElement } = await import('react');
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  const { scaleLinear } = await import('d3');
+  const server = await createServer({
+    root: fileURLToPath(new URL('../../../', import.meta.url)),
+    configFile: false,
+    plugins: [react()],
+    server: { middlewareMode: true, hmr: false },
+    optimizeDeps: { noDiscovery: true, include: [], entries: [] },
+  });
+  context.after(() => server.close());
+
+  const { ChartContext } = await server.ssrLoadModule(
+    '/library/src/context/ChartProvider.jsx',
+  );
+  const { useHoverReadoutDebug } = await server.ssrLoadModule(
+    '/library/src/hooks/useHoverReadoutDebug.jsx',
+  );
+  const { default: Readout } = await server.ssrLoadModule(
+    '/library/src/readout/Readout.jsx',
+  );
+  const { defaultOptions, defaultSeriesOptions } = await server.ssrLoadModule(
+    '/library/src/utilities/defaultOptions.js',
+  );
+  const data = [
+    { x: 2, y: 3 },
+    { x: 8, y: 7 },
+  ];
+
+  function sample(series, { mode = 'local', xValue = 2, options = {} } = {}) {
+    const readoutOptions = { ...defaultOptions.readout, ...options };
+    const hoverEvent = { xValue, localX: xValue * 10, localY: 70 };
+    const value = {
+      chartValues: {
+        data,
+        options: { series },
+        margin: { left: 0, right: 0, top: 0, bottom: 0 },
+        innerWidth: 100,
+        innerHeight: 100,
+      },
+      computedScales: {
+        x: { scale: scaleLinear().domain([0, 10]).range([0, 100]) },
+        y: { scale: scaleLinear().domain([0, 10]).range([100, 0]) },
+      },
+      accessorsBySeries: series.map((entry, index) => ({
+        id: entry.id ?? index,
+        x: (datum) => datum.x,
+        y: (datum) => datum.y,
+        meta: entry,
+      })),
+    };
+    function Probe() {
+      const payload = useHoverReadoutDebug({
+        chartId: 'test-chart',
+        hoverEvent,
+        mode,
+        readoutOptions,
+      });
+      const model = buildReadoutModel({
+        hoverEvent,
+        readoutData: payload,
+        options: readoutOptions,
+        series,
+        getSeriesData: (index) => series[index].data ?? data,
+      });
+      return createElement('script', {
+        type: 'application/json',
+        dangerouslySetInnerHTML: { __html: JSON.stringify({ payload, model }) },
+      });
+    }
+
+    const serialized = renderToStaticMarkup(
+      createElement(ChartContext.Provider, { value }, createElement(Probe)),
+    );
+    const { payload, model } = JSON.parse(
+      serialized.slice(
+        '<script type="application/json">'.length,
+        -'</script>'.length,
+      ),
+    );
+    const markup = renderToStaticMarkup(
+      createElement(
+        ChartContext.Provider,
+        { value },
+        createElement(Readout, { model, options: readoutOptions }),
+      ),
+    );
+    return { payload, model, markup };
+  }
+
+  await context.test(
+    'only explicit false opts out; the default is true',
+    () => {
+      assert.equal(defaultSeriesOptions.showInReadout, true);
+      const { model } = sample(
+        [undefined, true, null, 0].map((showInReadout) => ({
+          type: 'line',
+          showInReadout,
+        })),
+      );
+      assert.deepEqual(
+        model.rows.map((row) => row.seriesIndex),
+        [0, 1, 2, 3],
+      );
+    },
+  );
+
+  for (const mode of ['local', 'global']) {
+    await context.test(
+      `${mode} exclusion preserves series indices and markers`,
+      () => {
+        const ownData = [{ x: 2, y: 9 }];
+        const { model, markup } = sample(
+          [
+            { type: 'line', id: 'first', showInLegend: false },
+            {
+              type: 'heatmap',
+              showInReadout: false,
+              get data() {
+                return assert.fail('opted-out series must not be sampled');
+              },
+            },
+            { type: 'circle', id: 'third', data: ownData },
+          ],
+          { mode },
+        );
+        assert.deepEqual(
+          model.rows.map((row) => row.seriesIndex),
+          [0, 2],
+        );
+        assert.deepEqual(
+          model.rows.map((row) => row.id),
+          ['first', 'third'],
+        );
+        assert.deepEqual(model.rows[1].datum, ownData[0]);
+        assert.equal((markup.match(/<circle /g) || []).length, 2);
+        assert.ok(markup.includes('wizard-charts-readout-vertical-line'));
+      },
+    );
+  }
+
+  await context.test(
+    'opt-out never leaves an unavailable placeholder row',
+    () => {
+      const { model } = sample(
+        [{ type: 'line' }, { type: 'line', showInReadout: false }],
+        { xValue: 9, options: { missingSeries: 'placeholder' } },
+      );
+      assert.deepEqual(
+        model.rows.map((row) => row.seriesIndex),
+        [0],
+      );
+      assert.equal(model.rows[0].status, 'outOfRange');
+      assert.equal(model.rows[0].text, '---');
+    },
+  );
+
+  await context.test(
+    'hiding the tooltip still publishes included series',
+    () => {
+      const { model, markup } = sample([{ type: 'line' }], {
+        options: { showTooltip: false },
+      });
+      assert.equal(model.rows.length, 1);
+      assert.ok(markup.includes('wizard-charts-readout-vertical-line'));
+      assert.equal((markup.match(/<circle /g) || []).length, 1);
+    },
+  );
+
+  await context.test(
+    'all supported series can opt out with no active readout',
+    () => {
+      const series = [
+        'area',
+        'areaStacked',
+        'bar',
+        'boxPlot',
+        'circle',
+        'heatmap',
+        'contourGrid',
+        'line',
+        'matrix',
+        'windBarbs',
+      ].map((type) => ({
+        type,
+        showInReadout: false,
+        get data() {
+          return assert.fail('opted-out series must not be sampled');
+        },
+      }));
+      for (const mode of ['local', 'global']) {
+        const { payload, model, markup } = sample(series, { mode });
+        assert.equal(payload, null);
+        assert.equal(model, null);
+        assert.equal(markup, '');
+      }
+    },
+  );
+});
 
 test('readout placement flips and holds at chart edges', () => {
   const place = (x, y) =>

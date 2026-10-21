@@ -197,6 +197,7 @@ export const defaultSeriesOptions = {
   isSecondaryXAxis: false,
   isVisible: true,
   showInLegend: true,
+  showInReadout: true,
   stroke: null,
   fill: null,
   className: '',

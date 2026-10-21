@@ -528,11 +528,39 @@ and/or `x2`). Supported scale types are `linear` and `time`.
 
 ## Hover Readout
 
+The **readout** is the complete hover-data feature: sampled series values,
+external readout state, vertical guides, and point markers. The **tooltip** is
+the floating HTML box that displays readout values. Hiding the tooltip does not
+disable the rest of the readout. Existing option names retain these meanings.
+
 Tooltips render as HTML/CSS through a React portal into `document.body`.
 The default tooltip and a custom `ReadoutComponent` share the same measured-box
 positioning and containment. Vertical guide lines and point markers remain SVG.
 Import the package stylesheet as shown in Quick Start; it includes the default
 HTML layout and styling hooks.
+
+`series.showInReadout` controls whether a series participates in the readout.
+
+- `true` (default): include the series. Only explicit `false` opts out.
+- `false`: skip sampling and omit the series from default and custom tooltip
+  models, external readout state, and hover point markers. No placeholder row is
+  retained, regardless of `readout.missingSeries`.
+- Plot rendering, legend inclusion, axis domains, zoom, and hover synchronization
+  are unchanged. This setting is independent of `series.showInLegend`.
+- Remaining rows retain their original `seriesIndex` values.
+- When all series opt out, there is no active readout: no tooltip, vertical guide,
+  or point markers, and external readout state is `null`.
+
+For example, keep a reference curve visible without including it in the readout:
+
+```js
+{
+  series: [
+    { type: 'line', name: 'Temperature', yKey: 'temperature' },
+    { type: 'line', name: 'Reference', yKey: 'reference', showInReadout: false },
+  ],
+}
+```
 
 `options.readout.hoverMode` supports two modes:
 
@@ -589,7 +617,7 @@ Position, clipping, and pointer transparency remain library-controlled.
 - Units only render when both `readout.displayUnits` and `series.displayUnits` are true.
 - If no series units are provided, nothing is appended.
 
-`options.readout.rowOrder` controls tooltip row ordering.
+`options.readout.rowOrder` controls readout row ordering, including external readout state.
 
 - `'seriesIndex'` (default): order rows by series index in `options.series`.
 - `'distance'`: order rows by distance from the hover pointer.
@@ -647,7 +675,7 @@ For `areaStacked`, `areaFields` accepts field ids derived from each band key plu
 When multiple fields are configured for `boxPlot`/`area`/`areaStacked`, the tooltip renders labeled values on indented sub-lines with an aligned value column.
 The first valid configured field also drives marker y-position and distance ranking.
 
-`options.readout.titleFormatter` optionally formats the x-value shown in the tooltip title.
+`options.readout.titleFormatter` optionally formats the x-value in the readout title, including the title supplied to custom and external readouts.
 
 - `null` (default): uses built-in formatting.
 - `(value, context) => string`: custom formatter.
@@ -655,13 +683,14 @@ The first valid configured field also drives marker y-position and distance rank
 
 Series readout controls:
 
+- `series.showInReadout`: include the series in sampling, readout models, and hover point markers (`true` by default).
 - `series.readoutPrecision`: optional fixed decimal precision used by default readout formatting.
 - `series.readoutXEligibility`: optional per-series override for `readout.xEligibility`.
 - `series.readoutXTolerance`: optional per-series override for `readout.xTolerance`.
 - `series.units`: optional unit suffix for readout values.
 - `series.displayUnits`: per-series unit toggle in readout (`true` by default).
 
-`options.readout.valueFormatter` optionally formats numeric values shown in tooltip rows.
+`options.readout.valueFormatter` optionally formats numeric readout row values, including formatted text supplied to custom and external readouts.
 
 - `null` (default): uses built-in numeric formatting.
 - `(value, context) => string`: custom formatter.
@@ -933,6 +962,7 @@ Each entry in `options.series` renders one plot layer.
   isSecondaryXAxis: false,
   isVisible: true,
   showInLegend: true,
+  showInReadout: true,
   stroke: null,
   fill: null,
   className: '',

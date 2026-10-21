@@ -1228,7 +1228,10 @@ export function useHoverReadoutDebug({
 
     const bySeries = seriesList
       .map((series, seriesIndex) => {
-        if (!SUPPORTED_SERIES_TYPES.has(series?.type)) {
+        if (
+          series?.showInReadout === false ||
+          !SUPPORTED_SERIES_TYPES.has(series?.type)
+        ) {
           return null;
         }
 
