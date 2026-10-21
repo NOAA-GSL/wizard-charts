@@ -1,6 +1,11 @@
-import test from 'node:test';
+import { afterAll, beforeAll, describe, test } from 'vitest';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import { createServer } from 'vite';
+import react from '@vitejs/plugin-react';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { scaleLinear } from 'd3';
 import { buildReadoutModel, placeReadout } from './readoutModel.js';
 import {
   getSeriesXAvailability,
@@ -10,33 +15,41 @@ import { resolveSeriesReadoutEntries } from '../utilities/readoutHelpers.js';
 
 const bounds = { left: 100, top: 50, right: 500, bottom: 350 };
 
-test('series readout participation uses the shared sampler and renderer', async (context) => {
-  const { createServer } = await import('vite');
-  const { default: react } = await import('@vitejs/plugin-react');
-  const { createElement } = await import('react');
-  const { renderToStaticMarkup } = await import('react-dom/server');
-  const { scaleLinear } = await import('d3');
-  const server = await createServer({
-    root: fileURLToPath(new URL('../../../', import.meta.url)),
-    configFile: false,
-    plugins: [react()],
-    server: { middlewareMode: true, hmr: false },
-    optimizeDeps: { noDiscovery: true, include: [], entries: [] },
-  });
-  context.after(() => server.close());
+describe('series readout participation uses the shared sampler and renderer', () => {
+  let server;
+  let ChartContext;
+  let useHoverReadoutDebug;
+  let Readout;
+  let defaultOptions;
+  let defaultSeriesOptions;
 
-  const { ChartContext } = await server.ssrLoadModule(
-    '/library/src/context/ChartProvider.jsx',
-  );
-  const { useHoverReadoutDebug } = await server.ssrLoadModule(
-    '/library/src/hooks/useHoverReadoutDebug.jsx',
-  );
-  const { default: Readout } = await server.ssrLoadModule(
-    '/library/src/readout/Readout.jsx',
-  );
-  const { defaultOptions, defaultSeriesOptions } = await server.ssrLoadModule(
-    '/library/src/utilities/defaultOptions.js',
-  );
+  beforeAll(async () => {
+    server = await createServer({
+      root: fileURLToPath(new URL('../../../', import.meta.url)),
+      configFile: false,
+      plugins: [react()],
+      server: { middlewareMode: true, hmr: false },
+      optimizeDeps: { noDiscovery: true, include: [], entries: [] },
+    });
+
+    ({ ChartContext } = await server.ssrLoadModule(
+      '/library/src/context/ChartProvider.jsx',
+    ));
+    ({ useHoverReadoutDebug } = await server.ssrLoadModule(
+      '/library/src/hooks/useHoverReadoutDebug.jsx',
+    ));
+    ({ default: Readout } = await server.ssrLoadModule(
+      '/library/src/readout/Readout.jsx',
+    ));
+    ({ defaultOptions, defaultSeriesOptions } = await server.ssrLoadModule(
+      '/library/src/utilities/defaultOptions.js',
+    ));
+  });
+
+  afterAll(async () => {
+    await server?.close();
+  });
+
   const data = [
     { x: 2, y: 3 },
     { x: 8, y: 7 },
@@ -103,114 +116,99 @@ test('series readout participation uses the shared sampler and renderer', async 
     return { payload, model, markup };
   }
 
-  await context.test(
-    'only explicit false opts out; the default is true',
-    () => {
-      assert.equal(defaultSeriesOptions.showInReadout, true);
-      const { model } = sample(
-        [undefined, true, null, 0].map((showInReadout) => ({
-          type: 'line',
-          showInReadout,
-        })),
-      );
-      assert.deepEqual(
-        model.rows.map((row) => row.seriesIndex),
-        [0, 1, 2, 3],
-      );
-    },
-  );
+  test('only explicit false opts out; the default is true', () => {
+    assert.equal(defaultSeriesOptions.showInReadout, true);
+    const { model } = sample(
+      [undefined, true, null, 0].map((showInReadout) => ({
+        type: 'line',
+        showInReadout,
+      })),
+    );
+    assert.deepEqual(
+      model.rows.map((row) => row.seriesIndex),
+      [0, 1, 2, 3],
+    );
+  });
 
   for (const mode of ['local', 'global']) {
-    await context.test(
-      `${mode} exclusion preserves series indices and markers`,
-      () => {
-        const ownData = [{ x: 2, y: 9 }];
-        const { model, markup } = sample(
-          [
-            { type: 'line', id: 'first', showInLegend: false },
-            {
-              type: 'heatmap',
-              showInReadout: false,
-              get data() {
-                return assert.fail('opted-out series must not be sampled');
-              },
+    test(`${mode} exclusion preserves series indices and markers`, () => {
+      const ownData = [{ x: 2, y: 9 }];
+      const { model, markup } = sample(
+        [
+          { type: 'line', id: 'first', showInLegend: false },
+          {
+            type: 'heatmap',
+            showInReadout: false,
+            get data() {
+              return assert.fail('opted-out series must not be sampled');
             },
-            { type: 'circle', id: 'third', data: ownData },
-          ],
-          { mode },
-        );
-        assert.deepEqual(
-          model.rows.map((row) => row.seriesIndex),
-          [0, 2],
-        );
-        assert.deepEqual(
-          model.rows.map((row) => row.id),
-          ['first', 'third'],
-        );
-        assert.deepEqual(model.rows[1].datum, ownData[0]);
-        assert.equal((markup.match(/<circle /g) || []).length, 2);
-        assert.ok(markup.includes('wizard-charts-readout-vertical-line'));
-      },
-    );
-  }
-
-  await context.test(
-    'opt-out never leaves an unavailable placeholder row',
-    () => {
-      const { model } = sample(
-        [{ type: 'line' }, { type: 'line', showInReadout: false }],
-        { xValue: 9, options: { missingSeries: 'placeholder' } },
+          },
+          { type: 'circle', id: 'third', data: ownData },
+        ],
+        { mode },
       );
       assert.deepEqual(
         model.rows.map((row) => row.seriesIndex),
-        [0],
+        [0, 2],
       );
-      assert.equal(model.rows[0].status, 'outOfRange');
-      assert.equal(model.rows[0].text, '---');
-    },
-  );
-
-  await context.test(
-    'hiding the tooltip still publishes included series',
-    () => {
-      const { model, markup } = sample([{ type: 'line' }], {
-        options: { showTooltip: false },
-      });
-      assert.equal(model.rows.length, 1);
+      assert.deepEqual(
+        model.rows.map((row) => row.id),
+        ['first', 'third'],
+      );
+      assert.deepEqual(model.rows[1].datum, ownData[0]);
+      assert.equal((markup.match(/<circle /g) || []).length, 2);
       assert.ok(markup.includes('wizard-charts-readout-vertical-line'));
-      assert.equal((markup.match(/<circle /g) || []).length, 1);
-    },
-  );
+    });
+  }
 
-  await context.test(
-    'all supported series can opt out with no active readout',
-    () => {
-      const series = [
-        'area',
-        'areaStacked',
-        'bar',
-        'boxPlot',
-        'circle',
-        'heatmap',
-        'contourGrid',
-        'line',
-        'matrix',
-        'windBarbs',
-      ].map((type) => ({
-        type,
-        showInReadout: false,
-        get data() {
-          return assert.fail('opted-out series must not be sampled');
-        },
-      }));
-      for (const mode of ['local', 'global']) {
-        const { payload, model, markup } = sample(series, { mode });
-        assert.equal(payload, null);
-        assert.equal(model, null);
-        assert.equal(markup, '');
-      }
-    },
-  );
+  test('opt-out never leaves an unavailable placeholder row', () => {
+    const { model } = sample(
+      [{ type: 'line' }, { type: 'line', showInReadout: false }],
+      { xValue: 9, options: { missingSeries: 'placeholder' } },
+    );
+    assert.deepEqual(
+      model.rows.map((row) => row.seriesIndex),
+      [0],
+    );
+    assert.equal(model.rows[0].status, 'outOfRange');
+    assert.equal(model.rows[0].text, '---');
+  });
+
+  test('hiding the tooltip still publishes included series', () => {
+    const { model, markup } = sample([{ type: 'line' }], {
+      options: { showTooltip: false },
+    });
+    assert.equal(model.rows.length, 1);
+    assert.ok(markup.includes('wizard-charts-readout-vertical-line'));
+    assert.equal((markup.match(/<circle /g) || []).length, 1);
+  });
+
+  test('all supported series can opt out with no active readout', () => {
+    const series = [
+      'area',
+      'areaStacked',
+      'bar',
+      'boxPlot',
+      'circle',
+      'heatmap',
+      'contourGrid',
+      'line',
+      'matrix',
+      'windBarbs',
+    ].map((type) => ({
+      type,
+      showInReadout: false,
+      get data() {
+        return assert.fail('opted-out series must not be sampled');
+      },
+    }));
+    for (const mode of ['local', 'global']) {
+      const { payload, model, markup } = sample(series, { mode });
+      assert.equal(payload, null);
+      assert.equal(model, null);
+      assert.equal(markup, '');
+    }
+  });
 });
 
 test('readout placement flips and holds at chart edges', () => {
