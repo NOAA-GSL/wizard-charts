@@ -30,12 +30,12 @@
     "preview": "vite preview",
     "size": "npx vite-bundle-visualizer"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.1.1",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "vitest": "^5.0.5"
   },
   "peerDependencies": {
     "d3": "~7.9.0",
