@@ -83,6 +83,7 @@ export function getXDistanceValue(first, second) {
 }
 
 export function getSeriesXAvailability({
+  containsHoverX = false,
   hoverXValue,
   nearest,
   policy,
@@ -93,7 +94,8 @@ export function getSeriesXAvailability({
   const sampleX = nearest?.values?.x ?? null;
   const xDistanceValue = getXDistanceValue(hoverXValue, sampleX);
 
-  if (policy === 'anyDistance') {
+  // A box can extend beyond its endpoint timestamp without being extrapolated.
+  if (policy === 'anyDistance' || containsHoverX) {
     return {
       status: 'available',
       sampleX,

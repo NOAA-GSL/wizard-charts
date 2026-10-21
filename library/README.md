@@ -11,6 +11,7 @@ WIZARD Charts is a React charting library built on top of D3 for weather and for
 - [Dynamic Margins](#dynamic-margins)
 - [Data Model](#data-model)
 - [Options Overview](#options-overview)
+- [Plot Clipping](#plot-clipping)
 - [Zoom](#zoom)
 - [Hover Readout](#hover-readout)
 - [Series Configuration](#series-configuration)
@@ -112,7 +113,7 @@ type ChartContainerProps = {
 
 `width` and `height` define the chart's outer SVG box. Internal chart layout (scales, axes, and plot area) is measured from the SVG content box, so `box-sizing: border-box` with `border` and/or `padding` in `sx` is accounted for automatically.
 
-Series rendering inside `ChartContainer` is clipped to the computed inner plot area (inside margins). This prevents plot layers from visually spilling into axis/legend space.
+Series and axis reference markers inside `ChartContainer` are not globally clipped by default, allowing edge glyphs such as circles and box plots to extend into the margins. Set `options.clipToChartArea: true` to constrain these layers to the computed inner plot area. Clipping is always enforced while a zoomed domain is applied. See [Plot Clipping](#plot-clipping) for details.
 
 ## Dynamic Margins
 
@@ -221,6 +222,7 @@ All column arrays must be the same length.
 
 ```js
 {
+  clipToChartArea: false,
   series: [],
   axes: {
     x: {
@@ -284,6 +286,7 @@ All column arrays must be the same length.
       stroke: '#374151',
       strokeWidth: 1,
       cornerRadius: 6,
+      zIndex: 1000,
       className: '',
       sx: {},
     },
@@ -323,6 +326,36 @@ All column arrays must be the same length.
 }
 ```
 
+## Plot Clipping
+
+`options.clipToChartArea` is a boolean that defaults to `false`.
+
+| Setting | Original view | Zoomed view |
+| --- | --- | --- |
+| `false` (default) | No global plot clipping | Clipped to the inner plot area |
+| `true` | Clipped to the inner plot area | Clipped to the inner plot area |
+
+- The inner plot area is the computed chart rectangle inside the margins.
+- Clipping applies to series layers and axis reference markers, not axes, the legend, custom `children`, or readout layers.
+- Zoom being enabled does not itself enable clipping. A zoomed domain on either `x` or `x2` enforces chart-wide clipping for wheel, drag-select, programmatic zoom, and subsequent panning.
+- Resetting zoom or returning both axes to their starting extents restores the configured clipping preference.
+- Animation reveal clips used by `area` and `areaStacked`, and local clips used by `heatmap` and `contourGrid`, are preserved regardless of this option.
+- With clipping disabled, explicit axis domain limits do not guarantee visual containment. Plot geometry may overlap axis or legend space; auto margins do not expand to accommodate it.
+- Hover/readout activation and zoom interactions remain restricted to the inner plot area. Tooltip containment is independent of this option.
+- This option does not override clipping imposed by the outer SVG or ancestor CSS.
+
+To retain the previous always-clipped behavior:
+
+```jsx
+<ChartContainer
+  data={data}
+  options={{
+    ...options,
+    clipToChartArea: true,
+  }}
+/>
+```
+
 ## Zoom
 
 Zoom currently supports wheel zoom, drag-select zoom-in, and modifier-drag panning, and updates x-domains only.
@@ -332,6 +365,7 @@ Zoom currently supports wheel zoom, drag-select zoom-in, and modifier-drag panni
 - Drag-select zoom is controlled by `options.zoom.dragEnabled` (`true` by default).
 - Modifier-drag panning is controlled by `options.zoom.panEnabled` (`true` by default).
 - Y-axis domains remain fixed while zooming; only `x`/`x2` domains change.
+- Plot layers are automatically clipped while a zoomed domain is applied, even when `options.clipToChartArea` is `false`. Resetting or returning to the starting extents restores the configured clipping preference.
 - Zoom focus is anchored to the pointer x-position in the plot area.
 - Wheel zoom requires a modifier key by default (`modifierKey: 'ctrl'`).
 - Panning uses the same `modifierKey` as wheel zoom and left-drag in the plot area.
@@ -495,11 +529,39 @@ and/or `x2`). Supported scale types are `linear` and `time`.
 
 ## Hover Readout
 
+The **readout** is the complete hover-data feature: sampled series values,
+external readout state, vertical guides, and point markers. The **tooltip** is
+the floating HTML box that displays readout values. Hiding the tooltip does not
+disable the rest of the readout. Existing option names retain these meanings.
+
 Tooltips render as HTML/CSS through a React portal into `document.body`.
 The default tooltip and a custom `ReadoutComponent` share the same measured-box
 positioning and containment. Vertical guide lines and point markers remain SVG.
 Import the package stylesheet as shown in Quick Start; it includes the default
 HTML layout and styling hooks.
+
+`series.showInReadout` controls whether a series participates in the readout.
+
+- `true` (default): include the series. Only explicit `false` opts out.
+- `false`: skip sampling and omit the series from default and custom tooltip
+  models, external readout state, and hover point markers. No placeholder row is
+  retained, regardless of `readout.missingSeries`.
+- Plot rendering, legend inclusion, axis domains, zoom, and hover synchronization
+  are unchanged. This setting is independent of `series.showInLegend`.
+- Remaining rows retain their original `seriesIndex` values.
+- When all series opt out, there is no active readout: no tooltip, vertical guide,
+  or point markers, and external readout state is `null`.
+
+For example, keep a reference curve visible without including it in the readout:
+
+```js
+{
+  series: [
+    { type: 'line', name: 'Temperature', yKey: 'temperature' },
+    { type: 'line', name: 'Reference', yKey: 'reference', showInReadout: false },
+  ],
+}
+```
 
 `options.readout.hoverMode` supports two modes:
 
@@ -522,16 +584,39 @@ HTML layout and styling hooks.
 - Use `className` for CSS-based overrides.
 - Use `sx` for inline style overrides.
 
-`options.readout.tooltip` controls the HTML content surface for both default and
-custom tooltips. The library owns a separate positioning/clipping container.
+`options.readout.tooltip` controls the HTML content surface and portal layer for
+both default and custom tooltips. The library owns a separate
+positioning/clipping container.
 
 - `fill`: background color.
 - `fillOpacity`: background-only opacity (`0..1`), without fading text.
 - `stroke`: border color.
 - `strokeWidth`: border width in pixels.
 - `cornerRadius`: border radius in pixels.
+- `zIndex`: numeric CSS z-index applied to the outer portal boundary (default
+  `1000`). Explicit `0` and negative values are supported.
 - `className`: class applied to the HTML tooltip surface.
 - `sx`: inline CSS style object applied to the HTML tooltip surface.
+
+Use `zIndex`, not `sx.zIndex`, to coordinate the tooltip with application overlays:
+
+```js
+{
+  readout: {
+    tooltip: {
+      zIndex: 30,
+    },
+  },
+}
+```
+
+The tooltip remains portaled into `document.body`. Its z-index participates in
+that stacking context; it is not directly comparable to every nested component's
+z-index. For example, a sidebar with `z-index: 50` inside an ancestor stacking
+context at `0` can still render below a body-level tooltip at `30`.
+The option does not move the tooltip into a chart ancestor or above native modal
+dialogs in the browser's top layer. `sx.zIndex` only styles the inner content
+surface and cannot change the portal boundary's stacking order.
 
 Default appearance uses low-specificity CSS so consumer classes can override it;
 `sx` takes precedence over ordinary stylesheet rules. Use `backgroundColor` to
@@ -556,7 +641,7 @@ Position, clipping, and pointer transparency remain library-controlled.
 - Units only render when both `readout.displayUnits` and `series.displayUnits` are true.
 - If no series units are provided, nothing is appended.
 
-`options.readout.rowOrder` controls tooltip row ordering.
+`options.readout.rowOrder` controls readout row ordering, including external readout state.
 
 - `'seriesIndex'` (default): order rows by series index in `options.series`.
 - `'distance'`: order rows by distance from the hover pointer.
@@ -567,10 +652,18 @@ Position, clipping, and pointer transparency remain library-controlled.
 
 `options.readout.xEligibility` controls whether a nearest-style series is eligible to show a real value at the hovered x-value.
 
-- `'withinBounds'` (default): show a real value only when the hovered x-value is within that series' own x extent.
+- `'withinBounds'` (default): show a real value when the hovered x-value is within that series' own x extent, or within the rendered horizontal bounds of the nearest box for a `boxPlot` series.
 - `'withinTolerance'`: show a real value when the hovered x-value is within the series x extent or the nearest sample is within `xTolerance`.
 - `'anyDistance'`: always show the nearest point, matching the previous behavior.
 - `series.readoutXEligibility` overrides the readout-level setting for one series.
+
+For `boxPlot`, both `'withinBounds'` and `'withinTolerance'` include the nearest
+box's rendered horizontal span, accounting for alignment, `paddingFactor`, and
+the current scale. The first box's left side and last box's right side can show
+readouts without enabling `'anyDistance'`. This remains x-based sampling; the
+pointer does not need to be inside the box vertically. The original `sampleX`
+and `xExtent` metadata are unchanged. Hover tracking remains limited to the inner
+plot area; portions of unclipped boxes in chart margins are not interactive.
 
 `options.readout.xTolerance` sets the tolerance for `'withinTolerance'`.
 
@@ -614,7 +707,7 @@ For `areaStacked`, `areaFields` accepts field ids derived from each band key plu
 When multiple fields are configured for `boxPlot`/`area`/`areaStacked`, the tooltip renders labeled values on indented sub-lines with an aligned value column.
 The first valid configured field also drives marker y-position and distance ranking.
 
-`options.readout.titleFormatter` optionally formats the x-value shown in the tooltip title.
+`options.readout.titleFormatter` optionally formats the x-value in the readout title, including the title supplied to custom and external readouts.
 
 - `null` (default): uses built-in formatting.
 - `(value, context) => string`: custom formatter.
@@ -622,13 +715,14 @@ The first valid configured field also drives marker y-position and distance rank
 
 Series readout controls:
 
+- `series.showInReadout`: include the series in sampling, readout models, and hover point markers (`true` by default).
 - `series.readoutPrecision`: optional fixed decimal precision used by default readout formatting.
 - `series.readoutXEligibility`: optional per-series override for `readout.xEligibility`.
 - `series.readoutXTolerance`: optional per-series override for `readout.xTolerance`.
 - `series.units`: optional unit suffix for readout values.
 - `series.displayUnits`: per-series unit toggle in readout (`true` by default).
 
-`options.readout.valueFormatter` optionally formats numeric values shown in tooltip rows.
+`options.readout.valueFormatter` optionally formats numeric readout row values, including formatted text supplied to custom and external readouts.
 
 - `null` (default): uses built-in numeric formatting.
 - `(value, context) => string`: custom formatter.
@@ -900,6 +994,7 @@ Each entry in `options.series` renders one plot layer.
   isSecondaryXAxis: false,
   isVisible: true,
   showInLegend: true,
+  showInReadout: true,
   stroke: null,
   fill: null,
   className: '',
@@ -1804,6 +1899,6 @@ const options = {
 - Dot-notation keys are supported for nested values (for example `forecast.p50`).
 - If using per-series columnar `data`, keep all arrays the same length.
 - `bar` and `boxPlot` `paddingFactor` values are clamped to `0-1`; out-of-range values emit a `console.warn` message.
-- Plot layers are clipped to the computed inner plot area.
+- Plot layers are not globally clipped by default. Set `options.clipToChartArea: true` for containment; zoomed views always enforce clipping. Animation and heatmap/contour-specific clips remain independent.
 - Supported axis keys are `x`, `y`, `x2`, and `y2`; unknown keys are ignored.
 - Set `animationDuration: 0` to disable animation.

@@ -617,13 +617,17 @@ function measureSvgContentSize(svgNode, fallbackWidth, fallbackHeight) {
   };
 }
 
-function PlotAreaClipGroup({ chartId, children }) {
+function PlotAreaClipGroup({ chartId, isZoomed, children }) {
   const { chartValues } = useContext(ChartContext);
   const margin = chartValues?.margin || {};
   const clipX = toNumericSize(margin.left, 0);
   const clipY = toNumericSize(margin.top, 0);
   const clipWidth = toNumericSize(chartValues?.innerWidth, 0);
   const clipHeight = toNumericSize(chartValues?.innerHeight, 0);
+  const shouldClip =
+    (chartValues.options.clipToChartArea || isZoomed) &&
+    clipWidth > 0 &&
+    clipHeight > 0;
 
   const clipPathId = useMemo(() => {
     const normalizedId = String(chartId || 'chart').replace(
@@ -633,18 +637,18 @@ function PlotAreaClipGroup({ chartId, children }) {
     return `wizard-charts-plot-clip-${normalizedId || 'default'}`;
   }, [chartId]);
 
-  if (clipWidth <= 0 || clipHeight <= 0) {
-    return children;
-  }
-
   return (
     <>
-      <defs>
-        <clipPath id={clipPathId} clipPathUnits="userSpaceOnUse">
-          <rect x={clipX} y={clipY} width={clipWidth} height={clipHeight} />
-        </clipPath>
-      </defs>
-      <g clipPath={`url(#${clipPathId})`}>{children}</g>
+      {shouldClip && (
+        <defs>
+          <clipPath id={clipPathId} clipPathUnits="userSpaceOnUse">
+            <rect x={clipX} y={clipY} width={clipWidth} height={clipHeight} />
+          </clipPath>
+        </defs>
+      )}
+      <g clipPath={shouldClip ? `url(#${clipPathId})` : undefined}>
+        {children}
+      </g>
     </>
   );
 }
@@ -888,6 +892,17 @@ function ChartContainer({
   const applyZoomOverrides = useCallback(
     (nextOverrides, source) => {
       const normalizedOverrides = normalizeZoomDomainOverrides(nextOverrides);
+      // Returning to the starting extent restores the unzoomed rendering policy.
+      for (const axisKey of ['x', 'x2']) {
+        if (
+          domainsEqual(
+            normalizedOverrides[axisKey],
+            zoomBoundsRef.current[axisKey],
+          )
+        ) {
+          normalizedOverrides[axisKey] = null;
+        }
+      }
       const previousOverrides = xDomainOverridesRef.current;
 
       if (zoomDomainOverridesEqual(previousOverrides, normalizedOverrides)) {
@@ -1854,7 +1869,12 @@ function ChartContainer({
           {axes.y2 && axisHasMappedSeries(series, 'y2') && (
             <YAxis options={axes.y2} axisKey="y2" />
           )}
-          <PlotAreaClipGroup chartId={chartId}>
+          <PlotAreaClipGroup
+            chartId={chartId}
+            isZoomed={Boolean(
+              appliedDomainOverrides.x || appliedDomainOverrides.x2,
+            )}
+          >
             {seriesNodes}
             {axes.x && hasAxisLineMarkers(axes.x) && (
               <LineMarker options={axes.x} axisKey="x" />

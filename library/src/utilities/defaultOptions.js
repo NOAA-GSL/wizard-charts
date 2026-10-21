@@ -84,6 +84,7 @@ export const defaultLineMarkerOptions = {
 };
 
 export const defaultOptions = {
+  clipToChartArea: false,
   series: [],
   axes: {
     x: defaultAxisOptions,
@@ -140,6 +141,7 @@ export const defaultOptions = {
       stroke: '#404040',
       strokeWidth: 1,
       cornerRadius: 6,
+      zIndex: 1000,
       className: '',
       sx: {},
     },
@@ -196,6 +198,7 @@ export const defaultSeriesOptions = {
   isSecondaryXAxis: false,
   isVisible: true,
   showInLegend: true,
+  showInReadout: true,
   stroke: null,
   fill: null,
   className: '',

@@ -30,6 +30,10 @@ import {
   resolveReadoutXTolerance,
 } from '../utilities/readoutEligibility';
 import { toComparable } from '../utilities/valueUtilities';
+import {
+  getBoxPlotBounds,
+  getBoxPlotWidth,
+} from '../utilities/boxPlotGeometry';
 
 const SUPPORTED_SERIES_TYPES = new Set([
   'area',
@@ -101,6 +105,17 @@ function getSeriesRectWidth({
     return null;
   }
 
+  if (seriesType === 'boxPlot') {
+    return getBoxPlotWidth({
+      xAccessor: accessors.x,
+      innerWidth,
+      paddingFactor: series?.paddingFactor,
+      seriesData,
+      seriesIndex,
+      xScale,
+    });
+  }
+
   const positions = seriesData
     .map((datum) => xScale(accessors.x?.(datum)))
     .filter((pixel) => Number.isFinite(pixel))
@@ -121,8 +136,7 @@ function getSeriesRectWidth({
 
   let rectWidth = (step || fallback) * paddingFactor;
 
-  // Bar uses band width when available; boxPlot currently uses computed step width.
-  if (seriesType === 'bar' && typeof xScale.bandwidth === 'function') {
+  if (typeof xScale.bandwidth === 'function') {
     rectWidth = xScale.bandwidth() * paddingFactor;
   }
 
@@ -166,17 +180,6 @@ function getBarCenterX({ alignment, rectWidth, xScale, xValue }) {
   return scaleCenter;
 }
 
-function getBoxPlotCenterX({ alignment, rectWidth, xScale, xValue }) {
-  const x = xScale?.(xValue);
-  if (!Number.isFinite(x)) return null;
-
-  if (!Number.isFinite(rectWidth)) return x;
-
-  if (alignment === 'left') return x - rectWidth / 2;
-  if (alignment === 'right') return x + rectWidth / 2;
-  return x;
-}
-
 function getSeriesCenterX({ rectWidth, series, xScale, xValue }) {
   if (series?.type === 'bar') {
     return getBarCenterX({
@@ -188,12 +191,14 @@ function getSeriesCenterX({ rectWidth, series, xScale, xValue }) {
   }
 
   if (series?.type === 'boxPlot') {
-    return getBoxPlotCenterX({
-      alignment: getAlignmentMode(series?.alignment),
-      rectWidth,
-      xScale,
-      xValue,
-    });
+    const x = xScale?.(xValue);
+    return (
+      getBoxPlotBounds({
+        x,
+        width: rectWidth,
+        alignment: series?.alignment,
+      })?.center ?? x
+    );
   }
 
   return getXCenter(xScale, xValue);
@@ -1228,7 +1233,10 @@ export function useHoverReadoutDebug({
 
     const bySeries = seriesList
       .map((series, seriesIndex) => {
-        if (!SUPPORTED_SERIES_TYPES.has(series?.type)) {
+        if (
+          series?.showInReadout === false ||
+          !SUPPORTED_SERIES_TYPES.has(series?.type)
+        ) {
           return null;
         }
 
@@ -1352,7 +1360,19 @@ export function useHoverReadoutDebug({
 
         if (!nearest) return null;
 
+        const boxBounds =
+          series.type === 'boxPlot'
+            ? getBoxPlotBounds({
+                x: xScale(nearest.values.x),
+                width: rectWidth,
+                alignment: series.alignment,
+              })
+            : null;
         const availability = getSeriesXAvailability({
+          containsHoverX:
+            boxBounds != null &&
+            localX >= boxBounds.left &&
+            localX <= boxBounds.right,
           hoverXValue: resolvedHoverXValue,
           nearest,
           policy: resolveReadoutXEligibility(series, readoutOptions),

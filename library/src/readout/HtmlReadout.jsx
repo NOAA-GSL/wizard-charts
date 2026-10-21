@@ -166,7 +166,7 @@ function TooltipHost({ model, options, svgRef, ReadoutComponent }) {
         pointerEvents: 'none',
         overflow: 'hidden',
         contain: 'paint',
-        zIndex: 1000,
+        zIndex: tooltip.zIndex ?? 1000,
       }}
     >
       <div

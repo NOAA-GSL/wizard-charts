@@ -73,17 +73,6 @@
   padding-left: 12px;
 }
 
-.gsl-chart-axis {
-  line {
-    stroke: #404040;
-    stroke-width: 1px;
-  }
-  text {
-    stroke: none;
-    fill: #d4d4d4;
-  }
-}
-
 @keyframes drawLine {
   to {
     stroke-dashoffset: 0;

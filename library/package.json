@@ -4,7 +4,7 @@
     "registry": "https://registry.npmjs.org/",
     "access": "public"
   },
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "An extension of D3 for visualizing weather data in a variety of charts.",
   "type": "module",
   "license": "Apache-2.0",
@@ -30,12 +30,12 @@
     "preview": "vite preview",
     "size": "npx vite-bundle-visualizer"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "@vitejs/plugin-react": "^6.1.1",
-    "vite": "^8.3.0"
+    "@vitejs/plugin-react": "^6.1.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
   },
   "peerDependencies": {
     "d3": "~7.9.0",

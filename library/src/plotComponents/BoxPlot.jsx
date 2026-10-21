@@ -1,7 +1,11 @@
 import { useRef } from 'react';
 import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
-import { mergeDeep, normalizePaddingFactor } from '../utilities/dataUtilities';
+import { mergeDeep } from '../utilities/dataUtilities';
+import {
+  getBoxPlotBounds,
+  getBoxPlotWidth,
+} from '../utilities/boxPlotGeometry';
 import { defaultBoxPlotOptions } from '../utilities/defaultOptions';
 
 function BoxPlot({ seriesIndex = 0, options = {} }) {
@@ -26,32 +30,17 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
   const accessors = getAccessors(seriesIndex);
   const seriesData = getSeriesData(seriesIndex);
   const { xScale, yScale } = getSeriesScales(seriesIndex);
-  const safePaddingFactor = normalizePaddingFactor(paddingFactor, {
-    context: `boxPlot series at index ${seriesIndex} paddingFactor`,
+  const barWidth = getBoxPlotWidth({
+    xAccessor: accessors.x,
+    innerWidth: chartValues.innerWidth,
+    paddingFactor,
+    seriesData,
+    seriesIndex,
+    xScale,
   });
 
   const rectGroupRef = useRef(null);
   const medianGroupRef = useRef(null);
-
-  // get x positions in pixels of all bars to calculate step and bar width
-  const positions = seriesData
-    .map((d) => xScale(accessors.x(d)))
-    .filter((p) => Number.isFinite(p))
-    .sort((a, b) => a - b);
-
-  // step is the pixel distance between neighboring points
-  let step = 0;
-  if (positions.length > 1) {
-    // get difference between all points (remove first index)
-    const diffs = positions.slice(1).map((value, i) => value - positions[i]);
-    // set step to the smallest difference, but not less than 0
-    // this ensures no overlap
-    step = Math.max(0, Math.min(...diffs));
-  }
-  // if step fails, use this fallback that divides the width by the number of points
-  const fallback = chartValues.innerWidth / Math.max(1, seriesData.length);
-  // barWidth is shrunk by a padding factor to create space between bars
-  const barWidth = (step || fallback) * safePaddingFactor;
 
   useAnimation({
     type: 'growBox',
@@ -79,14 +68,13 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
     <g style={{ visibility: isVisible ? 'visible' : 'hidden' }}>
       <g className={className} style={sx} ref={rectGroupRef}>
         {seriesData.map((dataPoint) => {
-          const cx = xScale(accessors.x(dataPoint));
-          if (!Number.isFinite(cx)) return null;
-          let x;
-          if (alignment === 'right') x = cx;
-          else if (alignment === 'left') x = cx - barWidth;
-          else x = cx - barWidth / 2; // center the bar on the x value
-
-          if (!Number.isFinite(barWidth) || barWidth <= 0) return null;
+          const bounds = getBoxPlotBounds({
+            x: xScale(accessors.x(dataPoint)),
+            width: barWidth,
+            alignment,
+          });
+          if (!bounds) return null;
+          const x = bounds.left;
 
           // prefer box-specific accessors at top-level (q3YKey/q1YKey); fall back to primary `y`
           const q3Val = accessors.q3YKey
@@ -141,8 +129,8 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
               />
               {yMax != null && (
                 <line
-                  x1={x + barWidth / 2}
-                  x2={x + barWidth / 2}
+                  x1={bounds.center}
+                  x2={bounds.center}
                   y1={centerY}
                   y2={yMax}
                   stroke={strokeWhisker}
@@ -153,8 +141,8 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
               )}
               {yMin != null && (
                 <line
-                  x1={x + barWidth / 2}
-                  x2={x + barWidth / 2}
+                  x1={bounds.center}
+                  x2={bounds.center}
                   y1={centerY}
                   y2={yMin}
                   stroke={strokeWhisker}
@@ -171,18 +159,12 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
       {/* median line moved to separate group to avoid drawLines animation */}
       <g ref={medianGroupRef}>
         {seriesData.map((dataPoint) => {
-          const cx = xScale(accessors.x(dataPoint));
-          if (
-            !Number.isFinite(cx) ||
-            !Number.isFinite(barWidth) ||
-            barWidth <= 0
-          ) {
-            return null;
-          }
-          let xPos;
-          if (alignment === 'right') xPos = cx;
-          else if (alignment === 'left') xPos = cx - barWidth;
-          else xPos = cx - barWidth / 2;
+          const bounds = getBoxPlotBounds({
+            x: xScale(accessors.x(dataPoint)),
+            width: barWidth,
+            alignment,
+          });
+          if (!bounds) return null;
 
           // compute box center Y to start median animation from
           const q3Val = accessors.q3YKey
@@ -210,8 +192,8 @@ function BoxPlot({ seriesIndex = 0, options = {} }) {
             <line
               key={`median-${accessors.x(dataPoint)}`}
               className="median"
-              x1={xPos}
-              x2={xPos + barWidth}
+              x1={bounds.left}
+              x2={bounds.right}
               y1={yMedian}
               y2={yMedian}
               stroke={strokeMedian}
