@@ -652,10 +652,18 @@ Position, clipping, and pointer transparency remain library-controlled.
 
 `options.readout.xEligibility` controls whether a nearest-style series is eligible to show a real value at the hovered x-value.
 
-- `'withinBounds'` (default): show a real value only when the hovered x-value is within that series' own x extent.
+- `'withinBounds'` (default): show a real value when the hovered x-value is within that series' own x extent, or within the rendered horizontal bounds of the nearest box for a `boxPlot` series.
 - `'withinTolerance'`: show a real value when the hovered x-value is within the series x extent or the nearest sample is within `xTolerance`.
 - `'anyDistance'`: always show the nearest point, matching the previous behavior.
 - `series.readoutXEligibility` overrides the readout-level setting for one series.
+
+For `boxPlot`, both `'withinBounds'` and `'withinTolerance'` include the nearest
+box's rendered horizontal span, accounting for alignment, `paddingFactor`, and
+the current scale. The first box's left side and last box's right side can show
+readouts without enabling `'anyDistance'`. This remains x-based sampling; the
+pointer does not need to be inside the box vertically. The original `sampleX`
+and `xExtent` metadata are unchanged. Hover tracking remains limited to the inner
+plot area; portions of unclipped boxes in chart margins are not interactive.
 
 `options.readout.xTolerance` sets the tolerance for `'withinTolerance'`.
 
