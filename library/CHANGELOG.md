@@ -6,6 +6,7 @@ All notable user-facing changes to this package are documented in this file.
 
 ### Added
 
+- New `readout.tooltip.zIndex` option controls the body-level tooltip portal boundary for default and custom tooltips. It defaults to the existing `1000`, supports explicit `0` and negative values, and leaves `tooltip.sx` scoped to the inner content surface. Application stacking-context constraints still apply.
 - New root-level `options.clipToChartArea` boolean controls inner-chart clipping for series layers and axis reference markers.
 - New per-series `showInReadout` boolean defaults to `true`. Set it to `false` to skip sampling and omit a series from default/custom tooltip models, external readout state, and hover point markers without affecting plot rendering, legend inclusion, axis domains, zoom, or hover synchronization.
 - When all series opt out of the readout, no tooltip, vertical guide, or point markers render, and external readout state is `null`.

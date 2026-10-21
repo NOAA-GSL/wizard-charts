@@ -64,7 +64,13 @@ function ReadoutPanel({ controller }) {
   );
 }
 
-function ReadoutChart({ mode, showTooltip, xEligibility, missingSeries }) {
+function ReadoutChart({
+  mode,
+  showTooltip,
+  tooltipZIndex,
+  xEligibility,
+  missingSeries,
+}) {
   const { controller, zoomState } = useChartController();
   const options = {
     animationDuration: 0,
@@ -108,6 +114,7 @@ function ReadoutChart({ mode, showTooltip, xEligibility, missingSeries }) {
       areaFields: ['upper', 'y', 'lower'],
       titleFormatter: (value) => `Forecast hour ${Number(value).toFixed(1)}`,
       tooltip: {
+        zIndex: tooltipZIndex,
         className: 'forecast-tooltip',
         sx: { color: '#f5f5f5', backgroundColor: '#202020' },
       },
@@ -154,6 +161,7 @@ function ReadoutChart({ mode, showTooltip, xEligibility, missingSeries }) {
 export default function ReadoutDemo() {
   const [mode, setMode] = useState('default');
   const [showTooltip, setShowTooltip] = useState(true);
+  const [tooltipZIndex, setTooltipZIndex] = useState(1000);
   const [xEligibility, setXEligibility] = useState('withinBounds');
   const [missingSeries, setMissingSeries] = useState('placeholder');
   return (
@@ -176,6 +184,17 @@ export default function ReadoutDemo() {
             onChange={(event) => setShowTooltip(event.target.checked)}
           />{' '}
           Tooltip
+        </label>
+        <label>
+          Tooltip z-index{' '}
+          <select
+            value={tooltipZIndex}
+            onChange={(event) => setTooltipZIndex(Number(event.target.value))}
+          >
+            <option value={1000}>1000 (default)</option>
+            <option value={30}>30</option>
+            <option value={0}>0</option>
+          </select>
         </label>
         <label>
           X eligibility{' '}
@@ -203,6 +222,7 @@ export default function ReadoutDemo() {
         <ReadoutChart
           mode={mode}
           showTooltip={showTooltip}
+          tooltipZIndex={tooltipZIndex}
           xEligibility={xEligibility}
           missingSeries={missingSeries}
         />

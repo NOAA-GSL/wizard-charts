@@ -286,6 +286,7 @@ All column arrays must be the same length.
       stroke: '#374151',
       strokeWidth: 1,
       cornerRadius: 6,
+      zIndex: 1000,
       className: '',
       sx: {},
     },
@@ -583,16 +584,39 @@ For example, keep a reference curve visible without including it in the readout:
 - Use `className` for CSS-based overrides.
 - Use `sx` for inline style overrides.
 
-`options.readout.tooltip` controls the HTML content surface for both default and
-custom tooltips. The library owns a separate positioning/clipping container.
+`options.readout.tooltip` controls the HTML content surface and portal layer for
+both default and custom tooltips. The library owns a separate
+positioning/clipping container.
 
 - `fill`: background color.
 - `fillOpacity`: background-only opacity (`0..1`), without fading text.
 - `stroke`: border color.
 - `strokeWidth`: border width in pixels.
 - `cornerRadius`: border radius in pixels.
+- `zIndex`: numeric CSS z-index applied to the outer portal boundary (default
+  `1000`). Explicit `0` and negative values are supported.
 - `className`: class applied to the HTML tooltip surface.
 - `sx`: inline CSS style object applied to the HTML tooltip surface.
+
+Use `zIndex`, not `sx.zIndex`, to coordinate the tooltip with application overlays:
+
+```js
+{
+  readout: {
+    tooltip: {
+      zIndex: 30,
+    },
+  },
+}
+```
+
+The tooltip remains portaled into `document.body`. Its z-index participates in
+that stacking context; it is not directly comparable to every nested component's
+z-index. For example, a sidebar with `z-index: 50` inside an ancestor stacking
+context at `0` can still render below a body-level tooltip at `30`.
+The option does not move the tooltip into a chart ancestor or above native modal
+dialogs in the browser's top layer. `sx.zIndex` only styles the inner content
+surface and cannot change the portal boundary's stacking order.
 
 Default appearance uses low-specificity CSS so consumer classes can override it;
 `sx` takes precedence over ordinary stylesheet rules. Use `backgroundColor` to
