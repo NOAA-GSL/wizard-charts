@@ -2,6 +2,8 @@
 
 All notable user-facing changes to this package are documented in this file.
 
+## 1.2.3
+
 ## 1.2.2
 
 ### Added
