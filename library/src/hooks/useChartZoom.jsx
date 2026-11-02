@@ -190,9 +190,16 @@ export function useChartZoom({
     [isZoomDomainOverrideActive, xDomainOverrides],
   );
 
-  useEffect(() => {
-    dragZoomStateRef.current = dragZoomState;
-  }, [dragZoomState]);
+  const updateDragZoomState = useCallback((nextState) => {
+    dragZoomStateRef.current = nextState;
+    setDragZoomState(nextState);
+  }, []);
+
+  const cancelDragZoom = useCallback(() => {
+    const dragState = dragZoomStateRef.current;
+    if (!dragState.isActive) return;
+    updateDragZoomState({ ...dragState, isActive: false });
+  }, [updateDragZoomState]);
 
   useEffect(() => {
     panStateRef.current = panState;
@@ -346,16 +353,9 @@ export function useChartZoom({
 
   const resetZoom = useCallback(() => {
     finalizePan();
-
-    if (dragZoomStateRef.current?.isActive) {
-      setDragZoomState((prev) => {
-        if (!prev.isActive) return prev;
-        return { ...prev, isActive: false };
-      });
-    }
-
+    cancelDragZoom();
     return applyZoomOverrides({ x: null, x2: null }, 'reset');
-  }, [applyZoomOverrides, finalizePan]);
+  }, [applyZoomOverrides, cancelDragZoom, finalizePan]);
 
   useEffect(() => {
     if (!controllerInternal) return;
@@ -398,7 +398,7 @@ export function useChartZoom({
       const plotBounds = plotBoundsRef.current;
 
       if (!svgNode || !plotBounds || !isDragZoomActive) {
-        setDragZoomState((prev) => ({ ...prev, isActive: false }));
+        cancelDragZoom();
         return;
       }
 
@@ -414,12 +414,12 @@ export function useChartZoom({
       const clampedEndX = clampToRange(endX, plotBounds.left, plotBounds.right);
       const selectedWidth = Math.abs(clampedEndX - startX);
 
-      setDragZoomState((prev) => ({
-        ...prev,
+      updateDragZoomState({
+        ...dragState,
         isActive: false,
         currentX: clampedEndX,
         currentY: clampToRange(endY, plotBounds.top, plotBounds.bottom),
-      }));
+      });
 
       if (selectedWidth < zoomOptions.minDragPixels) return;
 
@@ -450,10 +450,12 @@ export function useChartZoom({
     },
     [
       applyZoomOverrides,
+      cancelDragZoom,
       getZoomBounds,
       isDragZoomActive,
       plotBoundsRef,
       svgRef,
+      updateDragZoomState,
       xScaleRef,
       x2ScaleRef,
       zoomOptions.minDragPixels,
@@ -515,7 +517,7 @@ export function useChartZoom({
 
       event.preventDefault();
       event.stopPropagation();
-      setDragZoomState({
+      updateDragZoomState({
         isActive: true,
         startX: localX,
         startY: localY,
@@ -532,6 +534,7 @@ export function useChartZoom({
       plotBoundsRef,
       resetZoom,
       svgRef,
+      updateDragZoomState,
       xScaleRef,
       x2ScaleRef,
       zoomOptions.modifierKey,
@@ -592,18 +595,80 @@ export function useChartZoom({
     ],
   );
 
+  const updateDragZoom = useCallback(
+    (event) => {
+      const dragState = dragZoomStateRef.current;
+      if (!dragState.isActive) return;
+
+      if ((event.buttons & 1) === 0) {
+        cancelDragZoom();
+        return;
+      }
+
+      const svgNode = svgRef.current;
+      const plotBounds = plotBoundsRef.current;
+      if (!svgNode || !plotBounds) {
+        cancelDragZoom();
+        return;
+      }
+
+      const [dragX, dragY] = pointer(event, svgNode);
+      if (!Number.isFinite(dragX) || !Number.isFinite(dragY)) return;
+
+      setIsPointerOverPlot(
+        dragX >= plotBounds.left &&
+          dragX <= plotBounds.right &&
+          dragY >= plotBounds.top &&
+          dragY <= plotBounds.bottom,
+      );
+      const currentX = clampToRange(dragX, plotBounds.left, plotBounds.right);
+      const currentY = clampToRange(dragY, plotBounds.top, plotBounds.bottom);
+      if (currentX === dragState.currentX && currentY === dragState.currentY)
+        return;
+
+      updateDragZoomState({ ...dragState, currentX, currentY });
+    },
+    [cancelDragZoom, plotBoundsRef, svgRef, updateDragZoomState],
+  );
+
   useEffect(() => {
     if (!dragZoomState.isActive) return;
+    if (!isDragZoomActive) {
+      cancelDragZoom();
+      return;
+    }
     if (typeof window === 'undefined') return;
 
     const handleWindowMouseUp = (event) => {
-      finalizeDragZoom(event);
+      if (event.button === 0) finalizeDragZoom(event);
     };
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') cancelDragZoom();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') cancelDragZoom();
+    };
+
+    window.addEventListener('mousemove', updateDragZoom, true);
     window.addEventListener('mouseup', handleWindowMouseUp, true);
+    window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('blur', cancelDragZoom, true);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      window.removeEventListener('mousemove', updateDragZoom, true);
       window.removeEventListener('mouseup', handleWindowMouseUp, true);
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('blur', cancelDragZoom, true);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [dragZoomState.isActive, finalizeDragZoom]);
+  }, [
+    cancelDragZoom,
+    dragZoomState.isActive,
+    finalizeDragZoom,
+    isDragZoomActive,
+    updateDragZoom,
+  ]);
 
   useEffect(() => {
     if (!panState.isActive) return;
@@ -783,24 +848,6 @@ export function useChartZoom({
     }
 
     if (dragZoomState.isActive) {
-      const [dragX, dragY] = pointer(event, svgNode);
-      const plotBounds = plotBoundsRef.current;
-      if (!plotBounds) return true;
-
-      const isInsidePlot =
-        dragX >= plotBounds.left &&
-        dragX <= plotBounds.right &&
-        dragY >= plotBounds.top &&
-        dragY <= plotBounds.bottom;
-      setIsPointerOverPlot(isInsidePlot);
-      setDragZoomState((prev) => {
-        if (!prev.isActive) return prev;
-        return {
-          ...prev,
-          currentX: clampToRange(dragX, plotBounds.left, plotBounds.right),
-          currentY: clampToRange(dragY, plotBounds.top, plotBounds.bottom),
-        };
-      });
       return true;
     }
 
@@ -826,10 +873,6 @@ export function useChartZoom({
     setIsPointerOverPlot(false);
     setIsModifierPressed(false);
     finalizePan();
-
-    if (dragZoomStateRef.current?.isActive) {
-      setDragZoomState((prev) => ({ ...prev, isActive: false }));
-    }
   };
 
   const dragSelectionRect = useMemo(() => {

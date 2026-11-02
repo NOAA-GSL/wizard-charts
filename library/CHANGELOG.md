@@ -4,6 +4,11 @@ All notable user-facing changes to this package are documented in this file.
 
 ## 1.2.3
 
+### Changed
+
+- Drag-select zoom now stays active through chart margins and outside the chart until left-button release, with the selection clamped to the plot edges. Leaving and re-entering the chart no longer cancels a selection; panning retains its existing chart-leave behavior.
+- Active drag selections now cancel without applying zoom on Escape, window focus loss, a hidden tab, a missed button release, or disabling zoom/drag-select. Reset and unmount also discard selection tracking.
+
 ## 1.2.2
 
 ### Added

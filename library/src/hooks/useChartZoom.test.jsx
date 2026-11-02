@@ -41,7 +41,7 @@ function mountZoom({ axisType = 'linear', axisKeys = ['x'], zoom = {} } = {}) {
   };
   const xScaleRef = { current: axisKeys.includes('x') ? makeScale() : null };
   const x2ScaleRef = { current: axisKeys.includes('x2') ? makeScale() : null };
-  const options = {
+  let options = {
     zoom,
     axes: Object.fromEntries(axisKeys.map((key) => [key, { type: axisType }])),
     series: axisKeys.map((axisKey) => ({
@@ -114,6 +114,10 @@ function mountZoom({ axisType = 'linear', axisKeys = ['x'], zoom = {} } = {}) {
     onZoomStateChange,
     hoverSuppressed,
     unmount,
+    setZoomOptions: (nextZoom) => {
+      options = { ...options, zoom: { ...options.zoom, ...nextZoom } };
+      act(() => root.render(createElement(Harness)));
+    },
     current: () => latest,
   };
 }
@@ -131,6 +135,7 @@ function mouse(target, type, clientX = 300, extra = {}) {
       cancelable: true,
       clientX,
       clientY: 150,
+      buttons: type === 'mouseup' ? 0 : 1,
       ...extra,
     }),
   );
@@ -242,6 +247,57 @@ describe.each(['linear', 'time'])('%s zoom hook', (axisType) => {
     expect(chart.hoverSuppressed.at(-1)).toBe(false);
   });
 
+  test.each([
+    [20, 100, 200, 0, 50],
+    [580, 300, 200, 50, 100],
+    [-100, 100, 200, 0, 50],
+    [700, 300, 200, 50, 100],
+  ])(
+    'dragging to pixel %s selects through the nearest data edge',
+    (endX, rectX, width, start, end) => {
+      const chart = mountZoom({ axisType });
+      mouse(chart.svg, 'mousedown', 300);
+      if (endX < 0 || endX > 600) {
+        mouse(chart.svg, 'mouseout', endX, { relatedTarget: document.body });
+      }
+      mouse(window, 'mousemove', endX, { clientY: -100 });
+      expect(chart.current().dragSelectionRect).toEqual({
+        x: rectX,
+        y: 50,
+        width,
+        height: 300,
+      });
+      mouse(window, 'mouseup', endX, { clientY: -100 });
+      expect(chart.current().domainOverrides.x).toEqual(
+        chart.domain(start, end),
+      );
+      expect(chart.current().controller.getZoomState().source).toBe('drag');
+    },
+  );
+
+  test('allows re-entry and uses the latest pointer position', () => {
+    const chart = mountZoom({ axisType });
+    mouse(chart.svg, 'mousedown', 300);
+    mouse(chart.svg, 'mouseout', 700, { relatedTarget: document.body });
+    mouse(window, 'mousemove', 700);
+    expect(chart.current().dragSelectionRect.width).toBe(200);
+    mouse(chart.svg, 'mouseover', 400, { relatedTarget: document.body });
+    mouse(chart.svg, 'mousemove', 400);
+    expect(chart.hoverSuppressed.at(-1)).toBe(true);
+    expect(chart.current().dragSelectionRect.width).toBe(100);
+    mouse(window, 'mouseup', 400);
+    expect(chart.current().domainOverrides.x).toEqual(chart.domain(50, 75));
+  });
+
+  test('uses the release position without requiring an outside move event', () => {
+    const chart = mountZoom({ axisType });
+    mouse(chart.svg, 'mousedown', 300);
+    mouse(chart.svg, 'mouseout', 700, { relatedTarget: document.body });
+    mouse(window, 'mouseup', 700);
+    expect(chart.current().domainOverrides.x).toEqual(chart.domain(50, 100));
+    expect(chart.current().dragSelectionRect).toBeNull();
+  });
+
   test('modifier pan stays within starting bounds and right-click resets before panning', () => {
     const chart = mountZoom({ axisType });
     const controller = chart.current().controller;
@@ -310,7 +366,24 @@ describe('zoom event boundaries and lifecycle', () => {
     expect(chart.current().domainOverrides).toEqual({ x: null, x2: null });
   });
 
-  test('ignores small drags and cancels selections on mouse leave', () => {
+  test.each(['x2', 'both'])(
+    'outside release clamps %s axis selections',
+    (mapping) => {
+      const chart = mountZoom({
+        axisKeys: mapping === 'both' ? ['x', 'x2'] : ['x2'],
+      });
+      mouse(chart.svg, 'mousedown', 300);
+      mouse(chart.svg, 'mouseout', -100, { relatedTarget: document.body });
+      mouse(window, 'mousemove', -100);
+      mouse(window, 'mouseup', -100);
+      expect(chart.current().domainOverrides).toEqual({
+        x: mapping === 'both' ? [0, 50] : null,
+        x2: [0, 50],
+      });
+    },
+  );
+
+  test('ignores small drags and keeps selections active after chart leave', () => {
     const chart = mountZoom();
     mouse(chart.svg, 'mousedown', 200);
     mouse(window, 'mouseup', 202);
@@ -318,9 +391,93 @@ describe('zoom event boundaries and lifecycle', () => {
     mouse(chart.svg, 'mousedown', 200);
     mouse(chart.svg, 'mousemove', 400);
     mouse(chart.svg, 'mouseout', 400, { relatedTarget: document.body });
+    mouse(window, 'mousemove', 700);
+    expect(chart.current().dragSelectionRect).toEqual({
+      x: 200,
+      y: 50,
+      width: 300,
+      height: 300,
+    });
+    mouse(window, 'mouseup', 700);
     expect(chart.current().dragSelectionRect).toBeNull();
-    mouse(window, 'mouseup', 400);
+    expect(chart.current().domainOverrides.x).toEqual([25, 100]);
+  });
+
+  test.each([
+    'Escape',
+    'blur',
+    'hidden',
+    'missed-release',
+    'reset',
+    'disabled',
+    'drag-disabled',
+  ])('cancels selection and removes temporary listeners on %s', (reason) => {
+    const removeWindowListener = vi.spyOn(window, 'removeEventListener');
+    const removeDocumentListener = vi.spyOn(document, 'removeEventListener');
+    const chart = mountZoom();
+    const controller = chart.current().controller;
+    act(() => controller.setZoomWindow({ center: 50, windowSize: 40 }));
+    const previousState = controller.getZoomState();
+    mouse(chart.svg, 'mousedown', 200);
+    mouse(chart.svg, 'mousemove', 400);
+    expect(chart.current().dragSelectionRect).not.toBeNull();
+
+    if (reason === 'Escape') {
+      dispatch(window, new KeyboardEvent('keydown', { key: 'Escape' }));
+    } else if (reason === 'blur') {
+      dispatch(window, new Event('blur'));
+    } else if (reason === 'hidden') {
+      vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+      dispatch(document, new Event('visibilitychange'));
+    } else if (reason === 'missed-release') {
+      mouse(window, 'mousemove', 700, { buttons: 0 });
+    } else if (reason === 'reset') {
+      act(() => controller.resetZoom());
+    } else {
+      chart.setZoomOptions(
+        reason === 'disabled' ? { enabled: false } : { dragEnabled: false },
+      );
+      chart.setZoomOptions({ enabled: true, dragEnabled: true });
+    }
+
+    expect(chart.current().dragSelectionRect).toBeNull();
+    for (const type of ['mousemove', 'mouseup', 'keydown', 'blur']) {
+      expect(removeWindowListener).toHaveBeenCalledWith(
+        type,
+        expect.any(Function),
+        true,
+      );
+    }
+    expect(removeDocumentListener).toHaveBeenCalledWith(
+      'visibilitychange',
+      expect.any(Function),
+    );
+    mouse(window, 'mouseup', 700);
+    expect(controller.getZoomState().domain).toEqual(
+      reason === 'reset' ? { x: null, x2: null } : previousState.domain,
+    );
+    expect(controller.getZoomState().source).not.toBe('drag');
+  });
+
+  test('only left-button release commits and completion removes gesture tracking', () => {
+    const removeWindowListener = vi.spyOn(window, 'removeEventListener');
+    const chart = mountZoom();
+    mouse(chart.svg, 'mousedown', 200);
+    mouse(chart.svg, 'mousemove', 400);
+    mouse(window, 'mouseup', 400, { button: 2, buttons: 1 });
+    expect(chart.current().dragSelectionRect).not.toBeNull();
     expect(chart.current().isZoomed).toBe(false);
+    mouse(window, 'mouseup', 700);
+    expect(chart.current().domainOverrides.x).toEqual([25, 100]);
+    expect(chart.current().dragSelectionRect).toBeNull();
+    expect(removeWindowListener).toHaveBeenCalledWith(
+      'mousemove',
+      expect.any(Function),
+      true,
+    );
+    mouse(window, 'mousemove', 100);
+    mouse(window, 'mouseup', 100);
+    expect(chart.current().domainOverrides.x).toEqual([25, 100]);
   });
 
   test.each(['keyup', 'blur', 'mouseup', 'mouseleave'])(
@@ -393,6 +550,8 @@ describe('zoom event boundaries and lifecycle', () => {
   test('removes all native listeners and unbinds controller commands on unmount', () => {
     const add = vi.spyOn(window, 'addEventListener');
     const remove = vi.spyOn(window, 'removeEventListener');
+    const addDocumentListener = vi.spyOn(document, 'addEventListener');
+    const removeDocumentListener = vi.spyOn(document, 'removeEventListener');
     const chart = mountZoom();
     const controller = chart.current().controller;
     mouse(chart.svg, 'mousedown', 200);
@@ -404,6 +563,7 @@ describe('zoom event boundaries and lifecycle', () => {
       'keyup',
       'blur',
       'mouseup',
+      'mousemove',
     ]);
     const capture = (options) =>
       typeof options === 'object' ? options.capture : options;
@@ -418,6 +578,13 @@ describe('zoom event boundaries and lifecycle', () => {
             capture(removedOptions) === capture(options),
         ),
       ).toBe(true);
+    }
+    const visibilityListeners = addDocumentListener.mock.calls.filter(
+      ([type]) => type === 'visibilitychange',
+    );
+    expect(visibilityListeners).toHaveLength(1);
+    for (const [type, listener] of visibilityListeners) {
+      expect(removeDocumentListener).toHaveBeenCalledWith(type, listener);
     }
     expect(controller.setZoomWindow({ center: 50, windowSize: 20 })).toBe(
       false,

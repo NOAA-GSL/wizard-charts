@@ -341,7 +341,7 @@ All column arrays must be the same length.
 - Resetting zoom or returning both axes to their starting extents restores the configured clipping preference.
 - Animation reveal clips used by `area` and `areaStacked`, and local clips used by `heatmap` and `contourGrid`, are preserved regardless of this option.
 - With clipping disabled, explicit axis domain limits do not guarantee visual containment. Plot geometry may overlap axis or legend space; auto margins do not expand to accommodate it.
-- Hover/readout activation and zoom interactions remain restricted to the inner plot area. Tooltip containment is independent of this option.
+- Hover/readout activation and zoom gesture initiation remain restricted to the inner plot area. Active drag selections can continue outside the chart; see [Zoom](#zoom). Tooltip containment is independent of this option.
 - This option does not override clipping imposed by the outer SVG or ancestor CSS.
 
 To retain the previous always-clipped behavior:
@@ -371,6 +371,9 @@ Zoom currently supports wheel zoom, drag-select zoom-in, and modifier-drag panni
 - Panning uses the same `modifierKey` as wheel zoom and left-drag in the plot area.
 - While modifier is held over the inner plot area, cursor switches to `panCursor` (`'move'` by default).
 - Drag-select zoom uses plain left-click drag in the plot area by default.
+- Once a selection starts, it remains active through chart margins and outside the chart until the left mouse button is released. The selection stays clamped to the plot edges, so releasing past an edge selects through that edge without expanding the domain or automatically panning. Moving back into the chart updates the selection normally.
+- Escape, window focus loss, a hidden tab, or movement reporting that the left button is no longer pressed cancels the selection without applying zoom. Disabling zoom or drag-select, resetting zoom, or unmounting the chart also discards an active selection. Chart leave still clears hover readouts and stops panning, but no longer cancels drag-select.
+- Tracking outside the browser window depends on browser event delivery. Focus-loss and missed-release cancellation prevent a selection from remaining stuck if a release is not delivered.
 - Right-click inside the inner plot area resets zoom back to the starting x-domain extent.
 - Supported zoom axis scale types are `linear` and `time` only.
 
