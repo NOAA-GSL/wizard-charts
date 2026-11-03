@@ -1633,8 +1633,8 @@ Axis defaults:
     values: [],
     labels: [],
     amount: 10,
-    isAngled: false,
-    collisionStrategy: 'auto',
+    angle: 0,
+    reduceLabels: true,
     collisionMinGap: 5,
     length: 5,
     labelPadding: 5,
@@ -1666,17 +1666,25 @@ Label behavior:
 
 Tick behavior:
 
-- Leave `ticks.values` empty to use the axis' generated ticks. Continuous axes (`linear`, `time`) use D3 `scale.ticks(count)` generation, with `ticks.amount` as the count hint. Band axes use the resolved domain.
-- Provide `ticks.values` to render only those tick positions.
-- `ticks.amount` is a hint, not an exact count. For `linear` and `time` axes, D3 adjusts the count to produce evenly spaced ticks that span the full domain. The actual number of ticks may differ slightly from the requested amount. It is ignored entirely when `ticks.values` is provided.
-- Provide `ticks.labels` to override labels by index. If a label is missing for a given tick value, the axis falls back to `ticks.formatter(value)`, then `String(value)`.
+- Leave `ticks.values` empty to use generated positions. Continuous axes use D3 `scale.ticks(amount)`; band axes use the resolved domain. Matrix-only `linear`/`time` x axes retain their separate data-aligned column positions, ignoring `amount`.
+- `ticks.amount` defaults to `10` and is a hint, not an exact count. D3 chooses useful numeric steps or calendar intervals, so the actual count can differ. Generated positions are recalculated from the visible domain during zoom; a six-hour interval can become a 30-minute interval in a smaller window. `amount` is ignored when explicit values are supplied.
+- Provide `ticks.values` to guarantee marks and grid lines at those valid, unique positions within the visible domain. Out-of-view, invalid, and duplicate positions are discarded. Explicit positions do not expand the domain or generate additional positions during zoom.
+- Provide `ticks.labels` only alongside explicit `ticks.values`, pairing by index. Pairs are established before viewport filtering, so labels stay attached to their values. Missing labels fall back to `ticks.formatter(value)`, then `String(value)`. A labels array without explicit values is ignored.
+- For generated continuous ticks, an omitted formatter uses D3 `scale.tickFormat(amount)` for scale-aware precision and adaptive time labels. Band and matrix data-aligned labels retain their value-string fallback. A custom `ticks.formatter(value)` overrides the default. An empty string hides only that label, consistently on all axes.
 - For `time` axes, JavaScript `Date` values represent instants in time. `timeFormatter(...)` displays those instants using the viewer's local calendar fields, while `utcTimeFormatter(...)` displays UTC calendar fields. Generated tick positions still come from D3 `scaleTime()` unless you provide explicit `ticks.values`.
-- `ticks.collisionStrategy` controls overlap handling:
-  - `'auto'` (default): x/x2 try 45-degree rotation first, then reduce ticks if needed; y/y2 reduce ticks.
-  - `'rotate'`: x/x2 rotate to 45 degrees but do not reduce tick count.
-  - `'reduce'`: keep orientation and reduce tick count.
-  - `'none'`: disable automatic collision handling.
-- `ticks.collisionMinGap` sets the minimum pixel gap between adjacent label bounds before labels are considered colliding.
+- `ticks.angle` sets label rotation in degrees from `-90` through `90`, defaulting to `0`. Non-numeric, non-finite, or out-of-range values fall back to `0`. Rotation is never applied automatically. On bottom x axes, negative angles pivot at the label end and positive angles at its start; zero centers the label. Top axes mirror these anchors so labels extend outward. Y axes anchor at the end on the left and start on the right, with side-aware outward placement for every angle.
+- `ticks.reduceLabels` defaults to `true`. It hides overlapping labels using their final formatted, rotated screen-space bounds, including irregular explicit positions. It never removes marks or grid lines. Selection is deterministic but does not guarantee endpoint labels. Set it to `false` to show every nonempty label, even if labels overlap.
+- `ticks.collisionMinGap` sets the minimum pixel gap between visible label bounds, defaulting to `5`. Hidden labels do not reserve margin space, but marks still do. Auto margins can change as visible labels change during zoom or resizing.
+- Axis `nice` still applies to base domains, but does not expand an active zoom override. Returning to the original view restores base-domain nicening.
+
+Tick migration for 1.3.0 (intentional breaking changes):
+
+- Replace `ticks.isAngled: true` with `ticks.angle: -45`; replace `false` with `0` or omit it.
+- Remove `ticks.collisionStrategy`. Replace `'none'` with `reduceLabels: false`. For `'rotate'`, specify `angle` and `reduceLabels: false`. For `'auto'` or `'reduce'`, use the default `reduceLabels: true` and explicitly set an angle if desired. There are no legacy-option aliases.
+- Pair indexed `labels` with explicit `values`, or switch to a formatter for generated ticks.
+- Expect more marks/grid lines where collisions previously removed entire ticks, and scale-aware default labels where no formatter is supplied.
+
+The Testing Playground includes **Tick data** plus **Generated ticks (Tick data)** and **Explicit ticks (Tick data)** option presets for checking all-axis rotation, label reduction, resizing, and zoom.
 
 Line marker behavior:
 

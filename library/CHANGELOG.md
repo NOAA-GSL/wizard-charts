@@ -2,12 +2,29 @@
 
 All notable user-facing changes to this package are documented in this file.
 
-## 1.2.3
+## 1.3.0
 
 ### Changed
 
+- **Intentional breaking change:** tick collisions now hide labels only. All valid in-view tick marks and grid lines remain, including explicit and matrix data-aligned positions. Label selection uses formatted, rotated screen-space bounds instead of index-stride tick removal.
+- Replaced `axes.*.ticks.isAngled` and `collisionStrategy` with `angle` (finite numeric degrees from `-90` to `90`, default `0`) and `reduceLabels` (default `true`). Rotation is consumer-controlled, with outward-facing anchors/pivots on all four axes and matching margin measurement.
+- Generated continuous ticks use D3's scale-aware default formatting. Custom formatters still override defaults. Empty labels consistently hide only their text on both x and y axes.
+- Indexed `ticks.labels` now applies only alongside explicit `ticks.values`; labels are paired before viewport filtering. Generated ticks continue adapting to the current zoom domain using the `amount` hint, while matrix-only x axes retain data-aligned column positions.
+- Added Testing Playground presets for generated/all-axis rotated ticks and irregular explicit tick labels.
 - Drag-select zoom now stays active through chart margins and outside the chart until left-button release, with the selection clamped to the plot edges. Leaving and re-entering the chart no longer cancels a selection; panning retains its existing chart-leave behavior.
 - Active drag selections now cancel without applying zoom on Escape, window focus loss, a hidden tab, a missed button release, or disabling zoom/drag-select. Reset and unmount also discard selection tracking.
+
+### Fixed
+
+- Explicit and matrix-derived tick positions outside the visible domain no longer render or affect label reduction and margins. Invalid and duplicate positions are discarded before formatting.
+- Active x/x2 zoom overrides preserve their exact bounds even with `nice: true`; base-domain nicening is restored on reset.
+- Hidden labels no longer reserve tick-label padding or text space in auto margins. Marks still reserve their own space.
+
+### Migration Notes
+
+- Replace `isAngled: true` with `angle: -45`. Remove `collisionStrategy`; use `reduceLabels: false` to disable collision filtering or the default `true` to hide overlapping labels. There are no backward-compatible aliases or automatic rotations.
+- Pair `labels` with explicit `values`, or use a formatter with generated positions. Missing explicit labels still fall back to the formatter and then the string value.
+- More marks/grid lines can remain visible than before. Default continuous labels can change because they now use D3 formatting rather than raw string conversion.
 
 ## 1.2.2
 

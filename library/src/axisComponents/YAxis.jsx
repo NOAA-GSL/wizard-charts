@@ -3,6 +3,7 @@ import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
 import { mergeDeep } from '../utilities/dataUtilities';
 import { defaultAxisOptions } from '../utilities/defaultOptions';
+import { getTickValueKey } from '../utilities/measurements';
 
 function YAxis({ options = {}, axisKey = 'y' }) {
   const ticksGroupRef = useRef(null);
@@ -71,8 +72,6 @@ function YAxis({ options = {}, axisKey = 'y' }) {
   const axisLabelX = xAxisLinePosition + tickDirection * axisLabelCenterOffset;
 
   const textStyle = {
-    alignmentBaseline: 'central', // central looks better than middle
-    textAnchor: `${isSecondaryAxis ? 'start' : 'end'}`,
     fill: tickFontColor,
     fontFamily: tickFontFamily,
     fontSize: `${tickFontSize}px`,
@@ -91,8 +90,16 @@ function YAxis({ options = {}, axisKey = 'y' }) {
     return null;
   }
 
+  const labelPivotX =
+    xAxisLinePosition +
+    tickDirection * (Math.max(0, tickLength) + tickLabelPadding);
+
   return (
-    <g className={finalOptions.className} ref={ticksGroupRef}>
+    <g
+      className={finalOptions.className}
+      ref={ticksGroupRef}
+      data-axis={axisKey}
+    >
       {axisLabelText && (
         <text
           className="gsl-chart-axis-label"
@@ -128,10 +135,14 @@ function YAxis({ options = {}, axisKey = 'y' }) {
         if (!Number.isFinite(tickY)) return null;
 
         return (
-          <g key={String(tick.value)} transform={`translate(0, ${tickY})`}>
+          <g
+            key={getTickValueKey(tick.value)}
+            transform={`translate(0, ${tickY})`}
+          >
             {/* Horizontal grid line */}
             {hasGridLines && (
               <line
+                className="gsl-chart-grid-line"
                 x1={xStart}
                 x2={xEnd}
                 stroke={strokeGrid}
@@ -141,6 +152,7 @@ function YAxis({ options = {}, axisKey = 'y' }) {
             {/* Tick Mark */}
             {hasAxisLine && (
               <line
+                className="gsl-chart-tick-line"
                 x1={xAxisLinePosition}
                 x2={xAxisLinePosition + tickDirection * tickLength}
                 stroke={strokeAxis}
@@ -148,16 +160,17 @@ function YAxis({ options = {}, axisKey = 'y' }) {
               />
             )}
             {/* Tick Label */}
-            <text
-              style={textStyle}
-              className="gsl-chart-tick-label"
-              x={
-                xAxisLinePosition +
-                tickDirection * (tickLength + tickLabelPadding)
-              }
-            >
-              {tick.label}
-            </text>
+            {tick.showLabel && (
+              <text
+                style={textStyle}
+                className="gsl-chart-tick-label"
+                dominantBaseline="central"
+                textAnchor={tick.labelGeometry.textAnchor}
+                transform={`translate(${labelPivotX + tick.labelGeometry.offsetX}, ${tick.labelGeometry.offsetY}) rotate(${tick.labelGeometry.angle})`}
+              >
+                {tick.label}
+              </text>
+            )}
           </g>
         );
       })}

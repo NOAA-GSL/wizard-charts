@@ -533,6 +533,9 @@ export const computeScales = (chartValues, axisConfig) => {
 
     let domain;
     const scaleType = type || 'linear';
+    const domainOverride = isX
+      ? normalizeDomainOverride(domainOverrides?.[axisKey], scaleType)
+      : null;
     const lineMarkerDomainValues = getLineMarkerDomainValues(axisOptions);
 
     if (scaleType === 'band') {
@@ -666,19 +669,18 @@ export const computeScales = (chartValues, axisConfig) => {
         domain = [safeMin, safeMax];
       }
 
-      if (isX && (scaleType === 'linear' || scaleType === 'time')) {
-        const domainOverride = normalizeDomainOverride(
-          domainOverrides?.[axisKey],
-          scaleType,
-        );
-        if (domainOverride) {
-          domain = domainOverride;
-        }
+      if (domainOverride) {
+        domain = domainOverride;
       }
     }
     const baseRange = getRange(axisKey, chartValues);
     const resolvedRange = isReversed ? [baseRange[1], baseRange[0]] : baseRange;
-    const scale = getScale(scaleType, domain, resolvedRange, nice);
+    const scale = getScale(
+      scaleType,
+      domain,
+      resolvedRange,
+      nice && !domainOverride,
+    );
     const finalDomain = scale.domain();
     const range = scale.range();
     scales[axisKey] = { scale, domain: finalDomain, range };
