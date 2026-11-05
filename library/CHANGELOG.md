@@ -4,6 +4,10 @@ All notable user-facing changes to this package are documented in this file.
 
 ## 1.3.0
 
+### Added
+
+- Added a CDF demo with selectable precipitation forecast times, preserving repeated precipitation amounts and using the existing line renderer and local readout.
+
 ### Changed
 
 - **Intentional breaking change:** tick collisions now hide labels only. All valid in-view tick marks and grid lines remain, including explicit and matrix data-aligned positions. Label selection uses formatted, rotated screen-space bounds instead of index-stride tick removal.

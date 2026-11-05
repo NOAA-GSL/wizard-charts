@@ -2,6 +2,7 @@ import { Link, Route, Switch, useLocation } from 'wouter';
 import MainDemo from './components/MainDemo';
 import TestingPlayground from './components/TestingPlayground';
 import ReadoutDemo from './components/ReadoutDemo';
+import Cdf from './components/Cdf';
 
 function App() {
   const [location] = useLocation();
@@ -31,12 +32,20 @@ function App() {
         >
           Readouts
         </Link>
+        <Link
+          href="/cdf"
+          className={`nav-link ${location === '/cdf' ? 'active' : ''}`}
+          aria-current={location === '/cdf' ? 'page' : undefined}
+        >
+          CDF
+        </Link>
       </div>
 
       <Switch>
         <Route path="/" component={MainDemo} />
         <Route path="/testing-playground" component={TestingPlayground} />
         <Route path="/readouts" component={ReadoutDemo} />
+        <Route path="/cdf" component={Cdf} />
         <Route>404: Page not found</Route>
       </Switch>
     </div>
