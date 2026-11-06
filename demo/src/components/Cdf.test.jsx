@@ -56,6 +56,7 @@ describe('CDF demo', () => {
       });
       expect(options.axes.y).toMatchObject({ domainMin: 0, domainMax: 100 });
       expect(options.readout.hoverMode).toBe('local');
+      expect(options.readout.snapTo).toBe('nearestPoint');
     },
   );
 
@@ -69,5 +70,19 @@ describe('CDF demo', () => {
       '2026-11-05 00:00',
       '2026-11-05 06:00',
     ]);
+  });
+
+  test('switches between snapped and pointer-following readouts without changing data', () => {
+    const originalData = ChartContainer.mock.lastCall[0].data;
+    const selector = container.querySelector('#cdf-snap-to');
+    for (const mode of ['none', 'nearestPoint']) {
+      act(() => {
+        selector.value = mode;
+        selector.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      const { data, options } = ChartContainer.mock.lastCall[0];
+      expect(options.readout.snapTo).toBe(mode);
+      expect(data).toBe(originalData);
+    }
   });
 });

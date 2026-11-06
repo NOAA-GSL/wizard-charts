@@ -103,8 +103,8 @@ function TooltipHost({ model, options, svgRef, ReadoutComponent }) {
       }
 
       const point = svg.createSVGPoint();
-      point.x = model.local.x;
-      point.y = model.local.y;
+      point.x = model.anchor?.x ?? model.local.x;
+      point.y = model.anchor?.y ?? model.local.y;
       const anchor = point.matrixTransform(matrix);
       const inherited = view.getComputedStyle(svg);
       Object.assign(boundary.style, {

@@ -128,6 +128,7 @@ export const defaultOptions = {
   },
   readout: {
     hoverMode: 'local',
+    snapTo: 'none',
     showVerticalLine: true,
     showTooltip: true,
     className: '',

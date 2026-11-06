@@ -6,7 +6,9 @@ All notable user-facing changes to this package are documented in this file.
 
 ### Added
 
+- New `readout.snapTo: 'nearestPoint'` selects a single visible source point across line/circle series by x/y pixel distance and snaps the title, guide, marker, and tooltip anchor to it. The default `'none'` preserves existing pointer-following behavior and per-series rows. Snapped models expose `anchor` and `pointerXValue` while preserving raw hover coordinates in `local` and `sourceClient`.
 - Added a CDF demo with selectable precipitation forecast times, preserving repeated precipitation amounts and using the existing line renderer and local readout.
+- The CDF demo now defaults to nearest-point snapping and offers a Readout Position selector for comparison with pointer-following behavior.
 
 ### Changed
 

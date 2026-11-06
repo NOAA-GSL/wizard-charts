@@ -276,6 +276,7 @@ All column arrays must be the same length.
   },
   readout: {
     hoverMode: 'local',
+    snapTo: 'none', // 'none' | 'nearestPoint'
     showVerticalLine: true,
     showTooltip: true,
     className: '',
@@ -570,6 +571,39 @@ For example, keep a reference curve visible without including it in the readout:
 
 - `'local'` (default): hover tracking is local to each chart and does not require any wrapper.
 - `'global'`: charts synchronize hover readout events through `HoverPointProvider`.
+
+`options.readout.snapTo` controls readout point selection and positioning:
+
+- `'none'` (default): retain existing per-series sampling and rows. The title,
+  vertical guide, and tooltip anchor follow the pointer's x/y position. This does
+  not enable interpolation; each plot retains its existing sampling behavior.
+- `'nearestPoint'`: select one visible source point across participating `line`
+  and `circle` series by Euclidean distance in plot pixels. Only that point's
+  series appears in the readout. The title uses its actual x-value and mapped
+  x-axis; the guide, marker, and tooltip anchor snap to its plotted coordinates.
+- Omitting the option or providing an unrecognized value behaves as `'none'`.
+- Duplicate x-values remain distinct points: pointer y-position affects which
+  point wins. Exact distance ties use series order, then source-data order.
+- Only valid points within the current inner plot bounds can be selected,
+  including while zoomed. Hidden series and `showInReadout: false` are excluded.
+  Other plot types do not participate in this first version of point snapping.
+  With no eligible points, the readout is inactive rather than a placeholder.
+- Snapping selects the nearest visible point even when the pointer lies outside
+  that series' own x extent; `xEligibility`, `xTolerance`, and missing-row policies
+  continue to apply to the existing `'none'` behavior.
+- Global hover events remain unchanged. Each receiving chart independently snaps
+  using its own points, scales, and mapped hover coordinates; charts need not
+  select the same x-value. Snapped positions are not republished to other charts.
+- `showTooltip`, `showVerticalLine`, and `showPointMarkers` remain independent.
+
+For example, opt in for a CDF or scatterplot:
+
+```js
+readout: { snapTo: 'nearestPoint' }
+```
+
+Use `readout: { snapTo: 'none' }` or omit `snapTo` to preserve pointer following.
+The CDF demo provides both modes under **Readout Position**.
 
 `options.readout.showVerticalLine` controls whether a dashed vertical guide line renders at the hovered x position.
 
@@ -905,9 +939,11 @@ uses its own mapped coordinates. Treat snapshots and referenced data as read-onl
 | -------------------------- | -------------------------------------------------------------------------------------------- |
 | `chartId`, `sourceChartId` | Receiving chart and originating hover chart identifiers.                                     |
 | `mode`                     | Effective `'local'` or `'global'` mode.                                                      |
-| `xValue`, `axisKey`        | Hovered domain value and primary readout axis (`'x'` or `'x2'`). Dates retain their type.    |
+| `xValue`, `axisKey`        | Displayed domain value and x-axis (`'x'` or `'x2'`): the pointer by default, or the selected point when snapped. Dates retain their type. |
 | `title`                    | Title formatted using `readout.titleFormatter`.                                              |
 | `local`                    | `{ x, y }` in the receiving SVG coordinate system, not tooltip position.                     |
+| `anchor`                   | Optional `{ x, y }` guide/tooltip anchor in receiving SVG coordinates, present when snapped. `local` retains the unsnapped hover position. |
+| `pointerXValue`            | Original hovered x-value on the original readout axis, present when snapped; `xValue` is the selected point's x-value instead. |
 | `sourceClient`             | `{ x, y }` browser coordinates of the originating pointer; not a target-chart portal anchor. |
 | `rows`                     | Per-series samples ordered by `readout.rowOrder`.                                            |
 

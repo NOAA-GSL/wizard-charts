@@ -57,6 +57,7 @@ const options = {
 
 export default function Cdf() {
   const [forecastIndex, setForecastIndex] = useState(0);
+  const [snapTo, setSnapTo] = useState('nearestPoint');
 
   return (
     <section
@@ -77,10 +78,19 @@ export default function Cdf() {
             </option>
           ))}
         </select>
+        <label htmlFor="cdf-snap-to">Readout Position</label>
+        <select
+          id="cdf-snap-to"
+          value={snapTo}
+          onChange={(event) => setSnapTo(event.target.value)}
+        >
+          <option value="nearestPoint">Nearest Point</option>
+          <option value="none">Pointer</option>
+        </select>
       </div>
       <ChartContainer
         data={forecastData[forecastIndex]}
-        options={options}
+        options={{ ...options, readout: { ...options.readout, snapTo } }}
         height={460}
         className="cdf-chart"
       />
