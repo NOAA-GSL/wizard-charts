@@ -144,6 +144,70 @@ button:disabled {
   margin: 16px 0;
 }
 
+.text-plot-demo {
+  max-width: 1440px;
+  margin: 24px auto 40px;
+}
+
+.text-plot-demo-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 16px 24px;
+  padding: 20px 0;
+  border-top: 1px solid #404040;
+  border-bottom: 1px solid #404040;
+}
+
+.text-plot-demo-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.text-plot-demo-controls input,
+.text-plot-demo-controls select {
+  width: 100%;
+  min-width: 0;
+}
+
+.text-plot-demo-controls input[type='number'] {
+  padding: 4px 8px;
+  color: inherit;
+  background: #303030;
+  border: 1px solid #555555;
+  border-radius: 4px;
+}
+
+.text-plot-demo-controls .text-plot-checkbox {
+  flex-direction: row;
+  align-items: center;
+}
+
+.text-plot-demo-controls input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+}
+
+.text-plot-chart-heading,
+.text-plot-zoom-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.text-plot-chart-heading {
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.text-plot-zoom-controls button {
+  font-size: 11px;
+  text-transform: none;
+}
+
 .external-readout {
   min-height: 140px;
   padding: 16px 0;

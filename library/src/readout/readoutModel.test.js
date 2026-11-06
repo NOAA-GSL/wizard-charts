@@ -67,12 +67,15 @@ describe('series readout participation uses the shared sampler and renderer', ()
       options = {},
       xScale = scaleLinear().domain([0, 10]).range([0, 100]),
       x2Scale,
+      yScale = scaleLinear().domain([0, 10]).range([100, 0]),
+      y2Scale,
       innerWidth = 100,
       localX = (x2Scale || xScale)(xValue),
+      localY = 70,
     } = {},
   ) {
     const readoutOptions = { ...defaultOptions.readout, ...options };
-    const hoverEvent = { xValue, localX, localY: 70 };
+    const hoverEvent = { xValue, localX, localY };
     const value = {
       chartValues: {
         data,
@@ -84,7 +87,8 @@ describe('series readout participation uses the shared sampler and renderer', ()
       computedScales: {
         x: { scale: xScale },
         x2: { scale: x2Scale },
-        y: { scale: scaleLinear().domain([0, 10]).range([100, 0]) },
+        y: { scale: yScale },
+        y2: { scale: y2Scale },
       },
       accessorsBySeries: series.map((entry, index) => ({
         id: entry.id ?? index,
@@ -146,6 +150,251 @@ describe('series readout participation uses the shared sampler and renderer', ()
         : '';
     return { payload, model, markup, boxMarkup };
   }
+
+  for (const snapTo of [undefined, 'none', 'unsupported']) {
+    test(`snapTo ${snapTo} preserves pointer-following multi-series readouts`, () => {
+      assert.equal(defaultOptions.readout.snapTo, 'none');
+      const { model, markup } = sample([{ type: 'line' }, { type: 'circle' }], {
+        xValue: 3,
+        options: { snapTo },
+      });
+      assert.equal(model.rows.length, 2);
+      assert.equal(model.xValue, 3);
+      assert.deepEqual(model.local, { x: 30, y: 70 });
+      assert.equal(model.anchor, undefined);
+      assert.match(markup, /x1="30" x2="30"/);
+    });
+  }
+
+  for (const mode of ['local', 'global']) {
+    test(`${mode} nearestPoint snaps duplicate x values to the nearest y`, () => {
+      const points = [0, 3, 6, 9].map((y) => ({ x: 0, y }));
+      const { model, markup } = sample([{ type: 'line', data: points }], {
+        mode,
+        xValue: 0.2,
+        localY: 41,
+        options: { snapTo: 'nearestPoint', titleFormatter: (x) => `x=${x}` },
+      });
+      assert.deepEqual(model.rows[0].datum, points[2]);
+      assert.equal(model.rows.length, 1);
+      assert.equal(model.title, 'x=0');
+      assert.equal(model.xValue, 0);
+      assert.equal(model.pointerXValue, 0.2);
+      assert.deepEqual(model.local, { x: 2, y: 41 });
+      assert.deepEqual(model.anchor, { x: 0, y: 40 });
+      assert.match(markup, /x1="0" x2="0"/);
+      assert.match(markup, /cx="0" cy="40"/);
+    });
+  }
+
+  test('nearestPoint ranks by full point distance rather than x distance', () => {
+    const series = [
+      {
+        type: 'line',
+        data: [
+          { x: 2, y: 0 },
+          { x: 4, y: 6 },
+        ],
+      },
+    ];
+    const pointer = { xValue: 2.1, localY: 40 };
+    assert.equal(sample(series, pointer).model.rows[0].values.x, 2);
+    const { model } = sample(series, {
+      ...pointer,
+      options: { snapTo: 'nearestPoint' },
+    });
+    assert.equal(model.rows[0].values.x, 4);
+    assert.deepEqual(model.anchor, { x: 40, y: 40 });
+  });
+
+  test('nearestPoint selects one series and ignores hidden or opted-out points', () => {
+    const { model } = sample(
+      [
+        { type: 'line', data: [{ x: 2, y: 0 }] },
+        { type: 'circle', id: 'selected', data: [{ x: 4, y: 6 }] },
+        { type: 'line', isVisible: false, data: [{ x: 2.1, y: 6 }] },
+        { type: 'line', showInReadout: false, data: [{ x: 2.1, y: 6 }] },
+      ],
+      { xValue: 2.1, localY: 40, options: { snapTo: 'nearestPoint' } },
+    );
+    assert.equal(model.rows.length, 1);
+    assert.equal(model.rows[0].id, 'selected');
+    assert.equal(model.rows[0].seriesIndex, 1);
+  });
+
+  test('nearestPoint uses each selected series secondary x/y scales', () => {
+    const { model } = sample(
+      [
+        { type: 'line', data: [{ x: 2, y: 0 }] },
+        {
+          type: 'circle',
+          data: [{ x: 6, y: 75 }],
+          isSecondaryXAxis: true,
+          isSecondaryYAxis: true,
+        },
+      ],
+      {
+        xValue: 3.1,
+        localX: 31,
+        localY: 26,
+        x2Scale: scaleLinear().domain([0, 20]).range([0, 100]),
+        y2Scale: scaleLinear().domain([0, 100]).range([100, 0]),
+        options: {
+          snapTo: 'nearestPoint',
+          titleFormatter: (x, context) => `${context.axisKey}:${x}`,
+        },
+      },
+    );
+    assert.equal(model.rows[0].seriesIndex, 1);
+    assert.equal(model.axisKey, 'x2');
+    assert.equal(model.xValue, 6);
+    assert.equal(model.title, 'x2:6');
+    assert.deepEqual(model.anchor, { x: 30, y: 25 });
+    assert.ok(Math.abs(model.rows[0].xDistanceValue - 0.2) < 1e-10);
+  });
+
+  test('nearestPoint retains Date values for secondary-axis title formatters', () => {
+    const start = Date.UTC(2026, 10, 4);
+    const hour = 3600000;
+    const selectedDate = new Date(start + 6 * hour);
+    const { model } = sample(
+      [
+        {
+          type: 'line',
+          isSecondaryXAxis: true,
+          data: [
+            { x: new Date(start + 2 * hour), y: 0 },
+            { x: selectedDate, y: 6 },
+          ],
+        },
+      ],
+      {
+        xValue: new Date(start + 3 * hour),
+        localY: 40,
+        x2Scale: scaleTime()
+          .domain([new Date(start), new Date(start + 10 * hour)])
+          .range([0, 100]),
+        options: {
+          snapTo: 'nearestPoint',
+          titleFormatter: (x, context) =>
+            `${context.axisKey}:${x instanceof Date ? x.toISOString() : 'not-date'}`,
+        },
+      },
+    );
+    assert.equal(model.xValue, selectedDate.toISOString());
+    assert.equal(model.title, `x2:${selectedDate.toISOString()}`);
+    assert.deepEqual(model.anchor, { x: 60, y: 40 });
+  });
+
+  for (const width of [100, 200]) {
+    for (const reversed of [false, true]) {
+      test(`nearestPoint excludes clipped points at width ${width}, reversed ${reversed}`, () => {
+        const xScale = scaleLinear()
+          .domain([4, 6])
+          .range(reversed ? [width, 0] : [0, width]);
+        const { model } = sample(
+          [
+            {
+              type: 'line',
+              data: [
+                { x: 3.99, y: 6 },
+                { x: 5, y: 9 },
+              ],
+            },
+          ],
+          {
+            xValue: 4.01,
+            localY: 40,
+            innerWidth: width,
+            xScale,
+            options: { snapTo: 'nearestPoint' },
+          },
+        );
+        assert.equal(model.rows[0].values.x, 5);
+        assert.equal(model.anchor.x, width / 2);
+      });
+    }
+  }
+
+  test('nearestPoint uses source order to resolve equal-distance ties', () => {
+    const { model } = sample(
+      [
+        {
+          type: 'line',
+          data: [
+            { x: 4, y: 4 },
+            { x: 6, y: 4 },
+          ],
+        },
+        { type: 'circle', data: [{ x: 4, y: 4 }] },
+      ],
+      { xValue: 5, localY: 60, options: { snapTo: 'nearestPoint' } },
+    );
+    assert.equal(model.rows[0].seriesIndex, 0);
+    assert.equal(model.rows[0].dataIndex, 0);
+  });
+
+  test('nearestPoint returns no readout when no visible valid point exists', () => {
+    for (const points of [
+      [],
+      [{ x: 2, y: null }],
+      [{ x: 2 }],
+      [{ x: 2, y: NaN }],
+      [{ x: null, y: 3 }],
+      [{ x: Infinity, y: 3 }],
+      [{ x: 2, y: 11 }],
+      [
+        { x: -1, y: 3 },
+        { x: 11, y: 3 },
+      ],
+    ]) {
+      const { model, markup } = sample([{ type: 'line', data: points }], {
+        options: { snapTo: 'nearestPoint' },
+      });
+      assert.equal(model, null);
+      assert.equal(markup, '');
+    }
+  });
+
+  test('nearestPoint skips grid and summary series before accessing their data', () => {
+    const { model } = sample(
+      [
+        'bar',
+        'boxPlot',
+        'area',
+        'areaStacked',
+        'matrix',
+        'heatmap',
+        'contourGrid',
+        'windBarbs',
+      ].map((type) => ({
+        type,
+        get data() {
+          return assert.fail('unsupported snapping series must not be sampled');
+        },
+      })),
+      { options: { snapTo: 'nearestPoint' } },
+    );
+    assert.equal(model, null);
+  });
+
+  test('nearestPoint can hide the tooltip without disabling the snapped guide', () => {
+    const { model, markup } = sample([{ type: 'line' }], {
+      xValue: 3,
+      options: { snapTo: 'nearestPoint', showTooltip: false },
+    });
+    assert.deepEqual(model.anchor, { x: 20, y: 70 });
+    assert.match(markup, /x1="20" x2="20"/);
+  });
+
+  test('nearestPoint remains inactive outside the inner plot', () => {
+    const { model, markup } = sample([{ type: 'line' }], {
+      xValue: -1,
+      options: { snapTo: 'nearestPoint' },
+    });
+    assert.equal(model, null);
+    assert.equal(markup, '');
+  });
 
   test('only explicit false opts out; the default is true', () => {
     assert.equal(defaultSeriesOptions.showInReadout, true);

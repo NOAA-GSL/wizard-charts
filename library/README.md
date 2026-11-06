@@ -13,6 +13,7 @@ WIZARD Charts is a React charting library built on top of D3 for weather and for
 - [Options Overview](#options-overview)
 - [Plot Clipping](#plot-clipping)
 - [Zoom](#zoom)
+- [Text Plots](#text-plots)
 - [Hover Readout](#hover-readout)
 - [Series Configuration](#series-configuration)
 - [Legend](#legend)
@@ -224,6 +225,7 @@ All column arrays must be the same length.
 {
   clipToChartArea: false,
   series: [],
+  textPlots: [],
   axes: {
     x: {
       // optional reference lines for this axis
@@ -276,6 +278,7 @@ All column arrays must be the same length.
   },
   readout: {
     hoverMode: 'local',
+    snapTo: 'none', // 'none' | 'nearestPoint'
     showVerticalLine: true,
     showTooltip: true,
     className: '',
@@ -330,10 +333,10 @@ All column arrays must be the same length.
 
 `options.clipToChartArea` is a boolean that defaults to `false`.
 
-| Setting | Original view | Zoomed view |
-| --- | --- | --- |
-| `false` (default) | No global plot clipping | Clipped to the inner plot area |
-| `true` | Clipped to the inner plot area | Clipped to the inner plot area |
+| Setting           | Original view                  | Zoomed view                    |
+| ----------------- | ------------------------------ | ------------------------------ |
+| `false` (default) | No global plot clipping        | Clipped to the inner plot area |
+| `true`            | Clipped to the inner plot area | Clipped to the inner plot area |
 
 - The inner plot area is the computed chart rectangle inside the margins.
 - Clipping applies to series layers and axis reference markers, not axes, the legend, custom `children`, or readout layers.
@@ -341,7 +344,7 @@ All column arrays must be the same length.
 - Resetting zoom or returning both axes to their starting extents restores the configured clipping preference.
 - Animation reveal clips used by `area` and `areaStacked`, and local clips used by `heatmap` and `contourGrid`, are preserved regardless of this option.
 - With clipping disabled, explicit axis domain limits do not guarantee visual containment. Plot geometry may overlap axis or legend space; auto margins do not expand to accommodate it.
-- Hover/readout activation and zoom interactions remain restricted to the inner plot area. Tooltip containment is independent of this option.
+- Hover/readout activation and zoom gesture initiation remain restricted to the inner plot area. Active drag selections can continue outside the chart; see [Zoom](#zoom). Tooltip containment is independent of this option.
 - This option does not override clipping imposed by the outer SVG or ancestor CSS.
 
 To retain the previous always-clipped behavior:
@@ -371,6 +374,9 @@ Zoom currently supports wheel zoom, drag-select zoom-in, and modifier-drag panni
 - Panning uses the same `modifierKey` as wheel zoom and left-drag in the plot area.
 - While modifier is held over the inner plot area, cursor switches to `panCursor` (`'move'` by default).
 - Drag-select zoom uses plain left-click drag in the plot area by default.
+- Once a selection starts, it remains active through chart margins and outside the chart until the left mouse button is released. The selection stays clamped to the plot edges, so releasing past an edge selects through that edge without expanding the domain or automatically panning. Moving back into the chart updates the selection normally.
+- Escape, window focus loss, a hidden tab, or movement reporting that the left button is no longer pressed cancels the selection without applying zoom. Disabling zoom or drag-select, resetting zoom, or unmounting the chart also discards an active selection. Chart leave still clears hover readouts and stops panning, but no longer cancels drag-select.
+- Tracking outside the browser window depends on browser event delivery. Focus-loss and missed-release cancellation prevent a selection from remaining stuck if a release is not delivered.
 - Right-click inside the inner plot area resets zoom back to the starting x-domain extent.
 - Supported zoom axis scale types are `linear` and `time` only.
 
@@ -527,6 +533,151 @@ When no zoom window is active, `start`, `startValue`, `center`, `centerValue`,
 Programmatic zoom control applies to mapped zoomable x-axes automatically (`x`
 and/or `x2`). Supported scale types are `linear` and `time`.
 
+## Text Plots
+
+`options.textPlots` adds persistent, single-line SVG labels above plot marks and
+below the hover readout. Unlike tooltips, these labels remain visible without a
+pointer, are included in serialized SVG, and do not subscribe to hover state.
+They do not change domains, margins, legend entries, or readout rows.
+
+Series-backed labels currently support `line` and `circle`. Reference a series
+using `seriesId` or `seriesIndex` (default `0`); an unknown reference renders
+nothing. Labels inherit the series' accessors, dataset overrides, secondary axes,
+visibility, units, and readout precision. `showInReadout: false` does not hide text
+plots. Manual annotations use existing chart scales rather than creating scales.
+
+```js
+const options = {
+  series: [
+    {
+      id: 'temperature',
+      type: 'line',
+      xKey: 'time',
+      yKey: 'temperature',
+      units: 'F',
+    },
+  ],
+  axes: { x: { type: 'time' } },
+  textPlots: [
+    {
+      seriesId: 'temperature',
+      selection: { mode: 'auto', priority: 'extrema' },
+      precision: 0,
+      displayUnits: false,
+      offset: [0, -12],
+      minGap: 8,
+    },
+    {
+      seriesId: 'temperature',
+      selection: {
+        mode: 'xValues',
+        values: [new Date('2026-08-02T12:00:00Z')],
+        sampling: 'nearest',
+        xTolerance: 30 * 60 * 1000,
+      },
+    },
+    {
+      axisKeys: { x: 'x', y: 'y' },
+      data: [
+        {
+          x: new Date('2026-08-02T12:00:00Z'),
+          y: 82,
+          text: 'Front arrives',
+          offset: [8, -16],
+        },
+      ],
+    },
+  ],
+};
+```
+
+### Selection and Zoom
+
+- `selection.mode: 'auto'` (default): all valid points are candidates; measured
+  screen-space bounds and `minGap` determine which labels fit. Zooming and resizing
+  recompute layout, revealing more detail as spacing increases.
+- `selection.priority: 'uniform'` (default, used only in `'auto'` mode): process candidates from left to right.
+  `'extrema'` prioritizes the visible minimum/maximum, then local peaks/troughs,
+  then remaining points. Collisions and boundaries can still suppress extrema.
+- `selection.mode: 'extrema'`: only local peaks and troughs are candidates,
+  ranked by turn strength. Never fill remaining space with ordinary points or
+  add source/viewport endpoints just because they are minimum/maximum values.
+  Collision and boundary rules still apply. Flat or monotonic series, and zoomed
+  stretches with no qualifying turns, can have no labels. `selection.priority`
+  is ignored in this mode.
+- `selection.mode: 'all'`: every valid visible point is a candidate. Combine with
+  `collision: 'allow'` to render all labels regardless of overlap.
+- `selection.mode: 'everyNth'`, `selection.every: 3`: select original source
+  indices `0, 3, 6, ...`. Missing data and zoom do not renumber the cadence.
+- `selection.mode: 'xValues'`: sample `selection.values` using `'nearest'` (default)
+  or `'exact'`. Numeric/Date requests outside the series' valid x extent are
+  omitted; `selection.xTolerance` optionally limits nearest matching in domain
+  units (milliseconds for Dates). Categorical requests match exactly. Ties use
+  the first valid source point; repeated requests for that point produce one label.
+  Labels anchor to the sampled point's actual x/y, not to an interpolated value.
+
+Use the selection mode to restrict labels, or the automatic priority to prefer
+extrema while still filling available space:
+
+```js
+selection: { mode: 'extrema' }
+// Alternatively: selection: { mode: 'auto', priority: 'extrema' }
+```
+
+Extrema detection follows source/render order, considers neighbors outside the
+viewport, and never crosses missing/invalid-value gaps. A flat local peak/trough
+uses the middle source point (the earlier middle for even-length plateaus).
+Local turns rank by the smaller vertical screen-space excursion to adjacent
+turns or segment endpoints. This is a deterministic noise-ranking heuristic,
+not smoothing or a full statistical prominence calculation. It does not modify
+the underlying data. In automatic extrema-priority mode, flat non-turning runs
+use a stable first point for global minimum/maximum priority. Extrema-only mode
+has no global-minimum/maximum fallback.
+
+All groups share one collision layout. Manual annotations and requested-x
+selections precede automatic candidates and extrema-only labels. Equal priorities use turn strength,
+then screen x, source index, and configuration order. Layout is deterministic
+for unchanged data/options/viewport but does not promise identical selections
+while panning or resizing.
+
+### Label Options
+
+| Option                                              | Default                                    | Behavior                                                                                                                                      |
+| --------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isVisible`                                         | `true`                                     | Hide the whole label group when false.                                                                                                        |
+| `offset`                                            | `[0, -10]`                                 | SVG screen-unit `[x, y]` displacement; positive y is downward. Text is centered horizontally with its bottom at the displaced anchor.         |
+| `collision`                                         | `'hide'`                                   | Hide labels overlapping previously accepted label bounds; `'allow'` permits overlaps. It does not avoid chart marks or axis reference labels. |
+| `minGap`                                            | `6`                                        | Minimum screen-unit gap between label bounds. Each pair uses the larger configured gap.                                                       |
+| `overflow`                                          | `'hide'`                                   | Hide labels whose text bounds cross plot edges. `'allow'` permits overflow, subject to chart clipping. Offscreen anchors are always omitted.  |
+| `precision`                                         | series precision                           | Override `series.readoutPrecision`; otherwise use adaptive number formatting.                                                                 |
+| `units`                                             | series/y-axis units                        | Override the series' units, or its y-axis units when series units are empty.                                                                  |
+| `displayUnits`                                      | `true`                                     | Append units unless this or the source series' `displayUnits` is false.                                                                       |
+| `valueFormatter`                                    | `null`                                     | `(value, context) => text`; null/undefined returns and exceptions fall back to default formatting. An empty string hides the label.           |
+| `fontFamily`, `fontSize`, `fontWeight`, `fontColor` | `'inherit'`, `12`, `700`, `'currentColor'` | Label typography.                                                                                                                             |
+| `haloColor`, `haloWidth`                            | `'#ffffff'`, `3`                           | Outline behind text for legibility; use the chart background color on dark charts, or width `0` for no halo.                                  |
+| `className`, `sx`                                   | `''`, `{}`                                 | Per-label SVG class/style. Use the font/offset options rather than CSS font/transform overrides for accurate collision measurement.           |
+
+Formatter context includes `datum`, `dataIndex`, `xValue`, `seriesType`, `units`,
+`displayUnits`, `readoutPrecision`, and `defaultText`. Label formatting is
+independent of `options.readout` formatter settings.
+
+Providing `data` selects manual mode instead of sampling a series. Each row
+requires domain coordinates `x` and `y`, plus either `text` or a numeric `value`
+(defaults to `y`). Rows can override label options and set `isVisible: false`;
+optional row IDs should be unique within the group. `axisKeys` defaults to
+`{ x: 'x', y: 'y' }` and supports `x2`/`y2`. Explicit text is rendered literally
+and bypasses number formatting. Missing/non-finite sampled y values and invalid
+anchors are omitted; numeric zero is preserved.
+
+Text plots do not reserve automatic margin space, move labels to alternate
+locations, or draw leader lines. Zoomed views always enforce chart-area clipping,
+even with `overflow: 'allow'`. Web font or inherited CSS changes may require a
+chart layout update to refresh text measurements.
+
+The demo's **Text Plots** page includes forecast/noise/plateau datasets, selection
+and styling controls, manual annotations, a uniform/extrema comparison, and
+programmatic zoom/reset.
+
 ## Hover Readout
 
 The **readout** is the complete hover-data feature: sampled series values,
@@ -567,6 +718,41 @@ For example, keep a reference curve visible without including it in the readout:
 
 - `'local'` (default): hover tracking is local to each chart and does not require any wrapper.
 - `'global'`: charts synchronize hover readout events through `HoverPointProvider`.
+
+`options.readout.snapTo` controls readout point selection and positioning:
+
+- `'none'` (default): retain existing per-series sampling and rows. The title,
+  vertical guide, and tooltip anchor follow the pointer's x/y position. This does
+  not enable interpolation; each plot retains its existing sampling behavior.
+- `'nearestPoint'`: select one visible source point across participating `line`
+  and `circle` series by Euclidean distance in plot pixels. Only that point's
+  series appears in the readout. The title uses its actual x-value and mapped
+  x-axis; the guide, marker, and tooltip anchor snap to its plotted coordinates.
+- Omitting the option or providing an unrecognized value behaves as `'none'`.
+- Duplicate x-values remain distinct points: pointer y-position affects which
+  point wins. Exact distance ties use series order, then source-data order.
+- Only valid points within the current inner plot bounds can be selected,
+  including while zoomed. Hidden series and `showInReadout: false` are excluded.
+  Other plot types do not participate in this first version of point snapping.
+  With no eligible points, the readout is inactive rather than a placeholder.
+- Snapping selects the nearest visible point even when the pointer lies outside
+  that series' own x extent; `xEligibility`, `xTolerance`, and missing-row policies
+  continue to apply to the existing `'none'` behavior.
+- Global hover events remain unchanged. Each receiving chart independently snaps
+  using its own points, scales, and mapped hover coordinates; charts need not
+  select the same x-value. Snapped positions are not republished to other charts.
+- `showTooltip`, `showVerticalLine`, and `showPointMarkers` remain independent.
+
+For example, opt in for a CDF or scatterplot:
+
+```js
+readout: {
+  snapTo: 'nearestPoint';
+}
+```
+
+Use `readout: { snapTo: 'none' }` or omit `snapTo` to preserve pointer following.
+The CDF demo provides both modes under **Readout Position**.
 
 `options.readout.showVerticalLine` controls whether a dashed vertical guide line renders at the hovered x position.
 
@@ -898,15 +1084,17 @@ model or `null` when inactive, outside the receiving chart's plot, without sampl
 or after the chart unmounts. In global mode each chart samples its own series and
 uses its own mapped coordinates. Treat snapshots and referenced data as read-only.
 
-| Property                   | Meaning                                                                                      |
-| -------------------------- | -------------------------------------------------------------------------------------------- |
-| `chartId`, `sourceChartId` | Receiving chart and originating hover chart identifiers.                                     |
-| `mode`                     | Effective `'local'` or `'global'` mode.                                                      |
-| `xValue`, `axisKey`        | Hovered domain value and primary readout axis (`'x'` or `'x2'`). Dates retain their type.    |
-| `title`                    | Title formatted using `readout.titleFormatter`.                                              |
-| `local`                    | `{ x, y }` in the receiving SVG coordinate system, not tooltip position.                     |
-| `sourceClient`             | `{ x, y }` browser coordinates of the originating pointer; not a target-chart portal anchor. |
-| `rows`                     | Per-series samples ordered by `readout.rowOrder`.                                            |
+| Property                   | Meaning                                                                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `chartId`, `sourceChartId` | Receiving chart and originating hover chart identifiers.                                                                                   |
+| `mode`                     | Effective `'local'` or `'global'` mode.                                                                                                    |
+| `xValue`, `axisKey`        | Displayed domain value and x-axis (`'x'` or `'x2'`): the pointer by default, or the selected point when snapped. Dates retain their type.  |
+| `title`                    | Title formatted using `readout.titleFormatter`.                                                                                            |
+| `local`                    | `{ x, y }` in the receiving SVG coordinate system, not tooltip position.                                                                   |
+| `anchor`                   | Optional `{ x, y }` guide/tooltip anchor in receiving SVG coordinates, present when snapped. `local` retains the unsnapped hover position. |
+| `pointerXValue`            | Original hovered x-value on the original readout axis, present when snapped; `xValue` is the selected point's x-value instead.             |
+| `sourceClient`             | `{ x, y }` browser coordinates of the originating pointer; not a target-chart portal anchor.                                               |
+| `rows`                     | Per-series samples ordered by `readout.rowOrder`.                                                                                          |
 
 Each row contains:
 
@@ -1630,8 +1818,8 @@ Axis defaults:
     values: [],
     labels: [],
     amount: 10,
-    isAngled: false,
-    collisionStrategy: 'auto',
+    angle: 0,
+    reduceLabels: true,
     collisionMinGap: 5,
     length: 5,
     labelPadding: 5,
@@ -1663,17 +1851,25 @@ Label behavior:
 
 Tick behavior:
 
-- Leave `ticks.values` empty to use the axis' generated ticks. Continuous axes (`linear`, `time`) use D3 `scale.ticks(count)` generation, with `ticks.amount` as the count hint. Band axes use the resolved domain.
-- Provide `ticks.values` to render only those tick positions.
-- `ticks.amount` is a hint, not an exact count. For `linear` and `time` axes, D3 adjusts the count to produce evenly spaced ticks that span the full domain. The actual number of ticks may differ slightly from the requested amount. It is ignored entirely when `ticks.values` is provided.
-- Provide `ticks.labels` to override labels by index. If a label is missing for a given tick value, the axis falls back to `ticks.formatter(value)`, then `String(value)`.
+- Leave `ticks.values` empty to use generated positions. Continuous axes use D3 `scale.ticks(amount)`; band axes use the resolved domain. Matrix-only `linear`/`time` x axes retain their separate data-aligned column positions, ignoring `amount`.
+- `ticks.amount` defaults to `10` and is a hint, not an exact count. D3 chooses useful numeric steps or calendar intervals, so the actual count can differ. Generated positions are recalculated from the visible domain during zoom; a six-hour interval can become a 30-minute interval in a smaller window. `amount` is ignored when explicit values are supplied.
+- Provide `ticks.values` to guarantee marks and grid lines at those valid, unique positions within the visible domain. Out-of-view, invalid, and duplicate positions are discarded. Explicit positions do not expand the domain or generate additional positions during zoom.
+- Provide `ticks.labels` only alongside explicit `ticks.values`, pairing by index. Pairs are established before viewport filtering, so labels stay attached to their values. Missing labels fall back to `ticks.formatter(value)`, then `String(value)`. A labels array without explicit values is ignored.
+- For generated continuous ticks, an omitted formatter uses D3 `scale.tickFormat(amount)` for scale-aware precision and adaptive time labels. Band and matrix data-aligned labels retain their value-string fallback. A custom `ticks.formatter(value)` overrides the default. An empty string hides only that label, consistently on all axes.
 - For `time` axes, JavaScript `Date` values represent instants in time. `timeFormatter(...)` displays those instants using the viewer's local calendar fields, while `utcTimeFormatter(...)` displays UTC calendar fields. Generated tick positions still come from D3 `scaleTime()` unless you provide explicit `ticks.values`.
-- `ticks.collisionStrategy` controls overlap handling:
-  - `'auto'` (default): x/x2 try 45-degree rotation first, then reduce ticks if needed; y/y2 reduce ticks.
-  - `'rotate'`: x/x2 rotate to 45 degrees but do not reduce tick count.
-  - `'reduce'`: keep orientation and reduce tick count.
-  - `'none'`: disable automatic collision handling.
-- `ticks.collisionMinGap` sets the minimum pixel gap between adjacent label bounds before labels are considered colliding.
+- `ticks.angle` sets label rotation in degrees from `-90` through `90`, defaulting to `0`. Non-numeric, non-finite, or out-of-range values fall back to `0`. Rotation is never applied automatically. On bottom x axes, negative angles pivot at the label end and positive angles at its start; zero centers the label. Top axes mirror these anchors so labels extend outward. Y axes anchor at the end on the left and start on the right, with side-aware outward placement for every angle.
+- `ticks.reduceLabels` defaults to `true`. It hides overlapping labels using their final formatted, rotated screen-space bounds, including irregular explicit positions. It never removes marks or grid lines. Selection is deterministic but does not guarantee endpoint labels. Set it to `false` to show every nonempty label, even if labels overlap.
+- `ticks.collisionMinGap` sets the minimum pixel gap between visible label bounds, defaulting to `5`. Hidden labels do not reserve margin space, but marks still do. Auto margins can change as visible labels change during zoom or resizing.
+- Axis `nice` still applies to base domains, but does not expand an active zoom override. Returning to the original view restores base-domain nicening.
+
+Tick migration for 1.3.0 (intentional breaking changes):
+
+- Replace `ticks.isAngled: true` with `ticks.angle: -45`; replace `false` with `0` or omit it.
+- Remove `ticks.collisionStrategy`. Replace `'none'` with `reduceLabels: false`. For `'rotate'`, specify `angle` and `reduceLabels: false`. For `'auto'` or `'reduce'`, use the default `reduceLabels: true` and explicitly set an angle if desired. There are no legacy-option aliases.
+- Pair indexed `labels` with explicit `values`, or switch to a formatter for generated ticks.
+- Expect more marks/grid lines where collisions previously removed entire ticks, and scale-aware default labels where no formatter is supplied.
+
+The Testing Playground includes **Tick data** plus **Generated ticks (Tick data)** and **Explicit ticks (Tick data)** option presets for checking all-axis rotation, label reduction, resizing, and zoom.
 
 Line marker behavior:
 

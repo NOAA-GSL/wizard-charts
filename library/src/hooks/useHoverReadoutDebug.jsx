@@ -34,6 +34,7 @@ import {
   getBoxPlotBounds,
   getBoxPlotWidth,
 } from '../utilities/boxPlotGeometry';
+import { getPlotBoundsFromChartValues } from '../utilities/measurements';
 
 const SUPPORTED_SERIES_TYPES = new Set([
   'area',
@@ -1230,12 +1231,17 @@ export function useHoverReadoutDebug({
     });
 
     const seriesList = chartValues.options?.series || [];
+    const snapToNearestPoint = readoutOptions.snapTo === 'nearestPoint';
+    const plotBounds = getPlotBoundsFromChartValues(chartValues);
 
     const bySeries = seriesList
       .map((series, seriesIndex) => {
         if (
           series?.showInReadout === false ||
-          !SUPPORTED_SERIES_TYPES.has(series?.type)
+          !SUPPORTED_SERIES_TYPES.has(series?.type) ||
+          (snapToNearestPoint &&
+            (series.isVisible === false ||
+              (series.type !== 'line' && series.type !== 'circle')))
         ) {
           return null;
         }
@@ -1261,9 +1267,10 @@ export function useHoverReadoutDebug({
           seriesData,
           xScale,
         });
-        const resolvedHoverXValue =
-          hoverXValue ??
-          resolveHoverXValue({ hoverEvent, hoverX: localX, xScale });
+        const resolvedHoverXValue = snapToNearestPoint
+          ? resolveHoverXValue({ hoverX: localX, xScale })
+          : (hoverXValue ??
+            resolveHoverXValue({ hoverEvent, hoverX: localX, xScale }));
 
         if (series.type === 'matrix') {
           return summarizeMatrixSeriesPoint({
@@ -1351,9 +1358,24 @@ export function useHoverReadoutDebug({
           });
 
           if (!summary) return;
+          if (
+            snapToNearestPoint &&
+            (summary.values.y == null ||
+              !Number.isFinite(Number(summary.values.y)) ||
+              !Number.isFinite(summary.yPixel) ||
+              summary.xPixel < plotBounds.left ||
+              summary.xPixel > plotBounds.right ||
+              summary.yPixel < plotBounds.top ||
+              summary.yPixel > plotBounds.bottom)
+          ) {
+            return;
+          }
 
-          // Rank by x-distance first for a stable cross-series readout column.
-          if (isBetterByXThenDistance(summary, nearest)) {
+          if (
+            snapToNearestPoint
+              ? !nearest || summary.distancePx < nearest.distancePx
+              : isBetterByXThenDistance(summary, nearest)
+          ) {
             nearest = summary;
           }
         });
@@ -1375,7 +1397,9 @@ export function useHoverReadoutDebug({
             localX <= boxBounds.right,
           hoverXValue: resolvedHoverXValue,
           nearest,
-          policy: resolveReadoutXEligibility(series, readoutOptions),
+          policy: snapToNearestPoint
+            ? 'anyDistance'
+            : resolveReadoutXEligibility(series, readoutOptions),
           tolerance: resolveReadoutXTolerance(series, readoutOptions),
           xExtent,
         });
@@ -1403,22 +1427,6 @@ export function useHoverReadoutDebug({
       .sort((a, b) => a.distancePx - b.distancePx);
 
     if (bySeries.length === 0) return null;
-
-    const margin = chartValues.margin || {
-      top: 0,
-      right: 0,
-      bottom: 0,
-      left: 0,
-    };
-    const innerWidth = Number(chartValues.innerWidth) || 0;
-    const innerHeight = Number(chartValues.innerHeight) || 0;
-
-    const plotBounds = {
-      top: margin.top,
-      right: margin.left + innerWidth,
-      bottom: margin.top + innerHeight,
-      left: margin.left,
-    };
 
     const isInsidePlot =
       localX >= plotBounds.left &&

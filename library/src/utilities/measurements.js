@@ -20,7 +20,6 @@ import {
   LEGEND_MARKER_TEXT_GAP,
   LEGEND_COLORBAR_LABEL_GAP,
   LEGEND_COLORBAR_TICK_LABEL_GAP,
-  DEFAULT_TICK_COLLISION_STRATEGY,
   DEFAULT_TICK_COLLISION_MIN_GAP,
 } from './constants';
 
@@ -118,18 +117,6 @@ function getAxisLabelText(axisOptions = {}) {
   return `${labelText} (${unitsText})`;
 }
 
-function getTextAnchorHorizontalExtents(textAnchor, width) {
-  if (textAnchor === 'end') {
-    return { left: width, right: 0 };
-  }
-
-  if (textAnchor === 'start') {
-    return { left: 0, right: width };
-  }
-
-  return { left: width / 2, right: width / 2 };
-}
-
 function getAxisTickPosition(axisScale, value) {
   const basePosition = axisScale(value);
   if (!Number.isFinite(basePosition)) return null;
@@ -145,9 +132,6 @@ function getAxisEdgeOverflow({
   axisKey,
   axisScale,
   ticks,
-  tickFont,
-  tickAngle,
-  isAngledTicks,
   axisLabelText,
   axisLabelDimensions,
   chartWidth,
@@ -165,25 +149,14 @@ function getAxisEdgeOverflow({
   const isXAxis = isXValueAxis(axisKey);
 
   ticks.forEach((tick) => {
+    if (!tick.showLabel) return;
     const tickPosition = getAxisTickPosition(axisScale, tick.value);
     if (!Number.isFinite(tickPosition)) return;
-
-    const labelText = String(tick.label ?? '');
-    const labelDimensions = getTextDimensions(
-      labelText,
-      tickFont,
-      isXAxis ? tickAngle : 0,
-    );
+    const bounds = tick.labelGeometry.bounds;
 
     if (isXAxis) {
-      const textAnchor = isAngledTicks ? 'end' : 'middle';
-      const { left, right } = getTextAnchorHorizontalExtents(
-        textAnchor,
-        labelDimensions.width,
-      );
-
-      const labelLeft = tickPosition - left;
-      const labelRight = tickPosition + right;
+      const labelLeft = tickPosition + bounds.left;
+      const labelRight = tickPosition + bounds.right;
 
       overflow.left = Math.max(overflow.left, Math.max(0, -labelLeft));
       overflow.right = Math.max(
@@ -194,9 +167,8 @@ function getAxisEdgeOverflow({
       return;
     }
 
-    const halfLabelHeight = labelDimensions.height / 2;
-    const labelTop = tickPosition - halfLabelHeight;
-    const labelBottom = tickPosition + halfLabelHeight;
+    const labelTop = tickPosition + bounds.top;
+    const labelBottom = tickPosition + bounds.bottom;
 
     overflow.top = Math.max(overflow.top, Math.max(0, -labelTop));
     overflow.bottom = Math.max(
@@ -236,194 +208,102 @@ function getAxisEdgeOverflow({
   return overflow;
 }
 
-function normalizeTickCollisionStrategy(strategy) {
-  if (typeof strategy !== 'string') return DEFAULT_TICK_COLLISION_STRATEGY;
-
-  const normalized = strategy.trim().toLowerCase();
-  if (
-    normalized === DEFAULT_TICK_COLLISION_STRATEGY ||
-    normalized === 'rotate' ||
-    normalized === 'reduce' ||
-    normalized === 'none'
-  ) {
-    return normalized;
-  }
-
-  return DEFAULT_TICK_COLLISION_STRATEGY;
-}
-
-function hasTickLabelCollision({
-  axisKey,
-  axisScale,
-  ticks,
-  tickFont,
-  tickAngle = 0,
-  isAngledTicks = false,
-  minGap = DEFAULT_TICK_COLLISION_MIN_GAP,
-}) {
-  if (!axisScale || !Array.isArray(ticks) || ticks.length < 2) {
-    return false;
-  }
-
+function getTickLabelGeometry({ axisKey, angle, label, tickFont }) {
   const isXAxis = isXValueAxis(axisKey);
-  const gap = toNonNegativeNumber(minGap, DEFAULT_TICK_COLLISION_MIN_GAP);
-
-  const occupiedRanges = ticks
-    .map((tick) => {
-      const tickPosition = getAxisTickPosition(axisScale, tick.value);
-      if (!Number.isFinite(tickPosition)) return null;
-
-      const labelText = String(tick.label ?? '');
-      const labelDimensions = getTextDimensions(
-        labelText,
-        tickFont,
-        isXAxis ? tickAngle : 0,
-      );
-
-      if (isXAxis) {
-        const textAnchor = isAngledTicks ? 'end' : 'middle';
-        const { left, right } = getTextAnchorHorizontalExtents(
-          textAnchor,
-          labelDimensions.width,
-        );
-
-        return {
-          start: tickPosition - left,
-          end: tickPosition + right,
-          position: tickPosition,
-        };
-      }
-
-      const halfLabelHeight = labelDimensions.height / 2;
-      return {
-        start: tickPosition - halfLabelHeight,
-        end: tickPosition + halfLabelHeight,
-        position: tickPosition,
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.position - b.position);
-
-  if (occupiedRanges.length < 2) return false;
-
-  let previousEnd = occupiedRanges[0].end;
-  for (let i = 1; i < occupiedRanges.length; i += 1) {
-    const current = occupiedRanges[i];
-    if (previousEnd + gap > current.start) return true;
-    previousEnd = Math.max(previousEnd, current.end);
-  }
-
-  return false;
-}
-
-function sampleTickObjectsWithStride(ticks, stride) {
-  if (!Array.isArray(ticks) || ticks.length === 0) return [];
-
-  const safeStride = Math.max(1, Math.floor(toNonNegativeNumber(stride, 1)));
-  if (safeStride <= 1 || ticks.length <= 1) return ticks;
-
-  return ticks.filter((_, index) => index % safeStride === 0);
-}
-
-function resolveAxisTickCollisions({
-  axisKey,
-  axisScale,
-  ticks,
-  tickFont,
-  isAngledTicks = false,
-  collisionStrategy = DEFAULT_TICK_COLLISION_STRATEGY,
-  collisionMinGap = DEFAULT_TICK_COLLISION_MIN_GAP,
-}) {
-  if (!axisScale || !Array.isArray(ticks) || ticks.length < 2) {
-    return {
-      ticks: Array.isArray(ticks) ? ticks : [],
-      isAngledTicks: Boolean(isAngledTicks),
-    };
-  }
-
-  const strategy = normalizeTickCollisionStrategy(collisionStrategy);
-  if (strategy === 'none') {
-    return {
-      ticks,
-      isAngledTicks: Boolean(isAngledTicks),
-    };
-  }
-
-  const isXAxis = isXValueAxis(axisKey);
-  let resolvedTicks = ticks;
-  let resolvedIsAngledTicks = Boolean(isAngledTicks);
-
-  const hasCollision = (candidateTicks, candidateIsAngledTicks) =>
-    hasTickLabelCollision({
-      axisKey,
-      axisScale,
-      ticks: candidateTicks,
-      tickFont,
-      tickAngle: isXAxis && candidateIsAngledTicks ? -45 : 0,
-      isAngledTicks: candidateIsAngledTicks,
-      minGap: collisionMinGap,
-    });
-
-  if (!hasCollision(resolvedTicks, resolvedIsAngledTicks)) {
-    return {
-      ticks: resolvedTicks,
-      isAngledTicks: resolvedIsAngledTicks,
-    };
-  }
-
-  const shouldRotate =
-    isXAxis &&
-    !resolvedIsAngledTicks &&
-    (strategy === DEFAULT_TICK_COLLISION_STRATEGY || strategy === 'rotate');
-
-  if (shouldRotate) {
-    resolvedIsAngledTicks = true;
-
-    if (!hasCollision(resolvedTicks, resolvedIsAngledTicks)) {
-      return {
-        ticks: resolvedTicks,
-        isAngledTicks: resolvedIsAngledTicks,
-      };
-    }
-  }
-
-  const shouldReduce =
-    strategy === DEFAULT_TICK_COLLISION_STRATEGY || strategy === 'reduce';
-  if (!shouldReduce) {
-    return {
-      ticks: resolvedTicks,
-      isAngledTicks: resolvedIsAngledTicks,
-    };
-  }
-
-  let reducedTicks = resolvedTicks;
-  for (let stride = 2; stride <= resolvedTicks.length; stride += 1) {
-    const candidateTicks = sampleTickObjectsWithStride(resolvedTicks, stride);
-    reducedTicks = candidateTicks;
-
-    if (!hasCollision(candidateTicks, resolvedIsAngledTicks)) {
-      break;
-    }
-
-    if (candidateTicks.length <= 2) {
-      break;
-    }
-  }
-
-  if (
-    reducedTicks.length > 1 &&
-    hasCollision(reducedTicks, resolvedIsAngledTicks)
-  ) {
-    reducedTicks = [reducedTicks[0]];
-  }
+  const isSecondaryAxis = axisKey === 'x2' || axisKey === 'y2';
+  const textAnchor = isXAxis
+    ? angle === 0
+      ? 'middle'
+      : angle < 0 !== isSecondaryAxis
+        ? 'end'
+        : 'start'
+    : isSecondaryAxis
+      ? 'start'
+      : 'end';
+  const { width, height } = getTextDimensions(label, tickFont);
+  const left =
+    textAnchor === 'end' ? -width : textAnchor === 'start' ? 0 : -width / 2;
+  const radians = (angle * Math.PI) / 180;
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  const corners = [
+    [left, -height / 2],
+    [left + width, -height / 2],
+    [left, height / 2],
+    [left + width, height / 2],
+  ].map(([horizontal, vertical]) => ({
+    x: horizontal * cosine - vertical * sine,
+    y: horizontal * sine + vertical * cosine,
+  }));
+  const minX = Math.min(...corners.map((corner) => corner.x));
+  const maxX = Math.max(...corners.map((corner) => corner.x));
+  const minY = Math.min(...corners.map((corner) => corner.y));
+  const maxY = Math.max(...corners.map((corner) => corner.y));
+  const offsetX = isXAxis ? 0 : isSecondaryAxis ? -minX : -maxX;
+  const offsetY = isXAxis ? (isSecondaryAxis ? -maxY : -minY) : 0;
 
   return {
-    ticks: reducedTicks,
-    isAngledTicks: resolvedIsAngledTicks,
+    angle,
+    textAnchor,
+    offsetX,
+    offsetY,
+    bounds: {
+      left: minX + offsetX,
+      right: maxX + offsetX,
+      top: minY + offsetY,
+      bottom: maxY + offsetY,
+    },
   };
 }
 
-function getTickValueKey(value) {
+function resolveAxisTickLabels({
+  axisKey,
+  axisScale,
+  ticks,
+  tickFont,
+  angle,
+  reduceLabels,
+  minGap = DEFAULT_TICK_COLLISION_MIN_GAP,
+}) {
+  const isXAxis = isXValueAxis(axisKey);
+  const gap = toNonNegativeNumber(minGap, DEFAULT_TICK_COLLISION_MIN_GAP);
+  const resolvedTicks = ticks.map((tick) => ({
+    ...tick,
+    showLabel: tick.label !== '',
+    labelGeometry: getTickLabelGeometry({
+      axisKey,
+      angle,
+      label: tick.label,
+      tickFont,
+    }),
+  }));
+  if (!reduceLabels) return resolvedTicks;
+
+  const occupiedRanges = resolvedTicks
+    .filter((tick) => tick.showLabel)
+    .map((tick) => {
+      const position = getAxisTickPosition(axisScale, tick.value);
+      const bounds = tick.labelGeometry.bounds;
+      return {
+        tick,
+        start: position + (isXAxis ? bounds.left : bounds.top),
+        end: position + (isXAxis ? bounds.right : bounds.bottom),
+      };
+    });
+  occupiedRanges.sort(
+    (first, second) => first.end - second.end || first.start - second.start,
+  );
+
+  let previousEnd = -Infinity;
+  occupiedRanges.forEach(({ tick, start, end }) => {
+    tick.showLabel = start >= previousEnd + gap;
+    if (tick.showLabel) previousEnd = end;
+  });
+
+  return resolvedTicks;
+}
+
+export function getTickValueKey(value) {
   return value instanceof Date ? `d:${value.getTime()}` : `v:${String(value)}`;
 }
 
@@ -871,15 +751,14 @@ export function buildAxisTicks({
 
   const ticksOpts = axisOptions.ticks || {};
   const explicitTickValues = normalizeTickValues(ticksOpts.values);
-  const explicitTickLabels = normalizeTickLabels(ticksOpts.labels);
+  const explicitTickLabels = explicitTickValues
+    ? normalizeTickLabels(ticksOpts.labels)
+    : null;
 
   const tickAmount =
     Number.isFinite(ticksOpts.amount) && ticksOpts.amount > 0
       ? ticksOpts.amount
       : null;
-  const tickFormatter = ticksOpts.formatter;
-  const fallbackEmptyLabelToValue = !isXValueAxis(axisKey);
-
   const isBandScale = typeof scale?.bandwidth === 'function';
   const dataAlignedTickValues =
     !explicitTickValues &&
@@ -899,20 +778,51 @@ export function buildAxisTicks({
         : [];
 
   const tickValues = explicitTickValues || generatedTickValues;
+  const defaultFormatter =
+    !explicitTickValues &&
+    dataAlignedTickValues.length === 0 &&
+    typeof scale.tickFormat === 'function'
+      ? scale.tickFormat(tickAmount ?? 10)
+      : String;
+  const tickFormatter =
+    typeof ticksOpts.formatter === 'function'
+      ? ticksOpts.formatter
+      : defaultFormatter;
+  const resolvedDomain = domain || scale.domain();
+  const domainBounds = resolvedDomain.map(toComparable);
+  const domainMin = Math.min(...domainBounds);
+  const domainMax = Math.max(...domainBounds);
+  const seen = new Set();
 
-  return tickValues.map((value, index) => {
-    const rawLabel =
-      explicitTickLabels?.[index] ??
-      (tickFormatter ? tickFormatter(value) : String(value));
-
-    const displayLabel =
-      fallbackEmptyLabelToValue && rawLabel === '' ? String(value) : rawLabel;
-
-    return {
+  return tickValues
+    .map((value, index) => ({
       value,
-      label: displayLabel,
-    };
-  });
+      label: explicitTickLabels?.[index],
+    }))
+    .filter((tick) => {
+      if (tick.value == null) return false;
+      if (!Number.isFinite(getAxisTickPosition(scale, tick.value)))
+        return false;
+      if (!isBandScale) {
+        const comparable = toComparable(tick.value);
+        if (
+          !Number.isFinite(comparable) ||
+          comparable < domainMin ||
+          comparable > domainMax
+        ) {
+          return false;
+        }
+      }
+
+      const key = getTickValueKey(tick.value);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((tick) => ({
+      value: tick.value,
+      label: String(tick.label ?? tickFormatter(tick.value) ?? ''),
+    }));
 }
 
 export function normalizeMarginInput(margin = {}) {
@@ -1035,40 +945,45 @@ export function buildAxisLayout({ chartValues, computedScales = {} }) {
       'sans-serif',
     );
 
-    const configuredIsAngledTicks = isXAxis && Boolean(ticksOpts.isAngled);
+    const tickAngle =
+      Number.isFinite(ticksOpts.angle) && Math.abs(ticksOpts.angle) <= 90
+        ? ticksOpts.angle
+        : 0;
     const collisionMinGap = toNonNegativeNumber(
       ticksOpts.collisionMinGap,
       DEFAULT_TICK_COLLISION_MIN_GAP,
     );
-    const { ticks, isAngledTicks } = resolveAxisTickCollisions({
+    const ticks = resolveAxisTickLabels({
       axisKey,
       axisScale,
       ticks: initialTicks,
       tickFont,
-      isAngledTicks: configuredIsAngledTicks,
-      collisionStrategy: ticksOpts.collisionStrategy,
-      collisionMinGap,
+      angle: tickAngle,
+      reduceLabels: ticksOpts.reduceLabels !== false,
+      minGap: collisionMinGap,
     });
 
     const configuredTickLength = toNumber(ticksOpts.length, 5);
     const tickLength = hasAxisLine ? configuredTickLength : 0;
     const outwardTickLength = ticks.length > 0 ? Math.max(0, tickLength) : 0;
+    const visibleLabels = ticks.filter((tick) => tick.showLabel);
     const tickLabelPadding =
-      ticks.length > 0 ? toNonNegativeNumber(ticksOpts.labelPadding, 5) : 0;
-
-    const tickAngle = isAngledTicks ? -45 : 0;
-    const tickLabels = ticks.map((tick) => String(tick.label ?? ''));
-    const tickDimensions = getMaxTextDimensions(
-      tickLabels,
-      tickFont,
-      tickAngle,
-    );
-    const tickTextOutsideSize =
-      ticks.length > 0
-        ? isXAxis
-          ? tickDimensions.height
-          : tickDimensions.width
+      visibleLabels.length > 0
+        ? toNonNegativeNumber(ticksOpts.labelPadding, 5)
         : 0;
+    const tickTextOutsideSize = Math.max(
+      0,
+      ...visibleLabels.map((tick) => {
+        const bounds = tick.labelGeometry.bounds;
+        return isXAxis
+          ? isSecondaryAxis
+            ? -bounds.top
+            : bounds.bottom
+          : isSecondaryAxis
+            ? bounds.right
+            : -bounds.left;
+      }),
+    );
 
     const axisLabelText = getAxisLabelText(axisOptions);
     const axisLabelFont = toFontString(
@@ -1104,9 +1019,6 @@ export function buildAxisLayout({ chartValues, computedScales = {} }) {
       axisKey,
       axisScale,
       ticks,
-      tickFont,
-      tickAngle,
-      isAngledTicks,
       axisLabelText,
       axisLabelDimensions,
       chartWidth: chartValues.width,
@@ -1128,7 +1040,7 @@ export function buildAxisLayout({ chartValues, computedScales = {} }) {
       isSecondaryAxis,
       side,
       ticks,
-      isAngledTicks,
+      tickAngle,
       hasAxisLine,
       hasGridLines: Boolean(axisOptions.hasGridLines),
       strokeAxis: axisOptions.strokeAxis,

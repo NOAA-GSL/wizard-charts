@@ -3,6 +3,7 @@ import { useChartHelpers } from '../hooks/useChartHelpers';
 import useAnimation from '../hooks/useAnimation';
 import { mergeDeep } from '../utilities/dataUtilities';
 import { defaultAxisOptions } from '../utilities/defaultOptions';
+import { getTickValueKey } from '../utilities/measurements';
 
 function XAxis({ options = {}, axisKey = 'x' }) {
   const ticksGroupRef = useRef(null);
@@ -24,7 +25,6 @@ function XAxis({ options = {}, axisKey = 'x' }) {
   const strokeWidth = layout?.strokeWidth ?? finalOptions.strokeWidth;
 
   const ticks = layout?.ticks || [];
-  const isAngledTicks = layout?.isAngledTicks ?? finalOptions.ticks.isAngled;
   const tickLength =
     layout?.tickLength ?? (hasAxisLine ? finalOptions.ticks.length : 0);
   const tickDirection = layout?.tickDirection ?? (isSecondaryAxis ? -1 : 1);
@@ -69,8 +69,6 @@ function XAxis({ options = {}, axisKey = 'x' }) {
   const yBottom = Math.max(...yRange);
 
   const textStyle = {
-    alignmentBaseline: 'middle',
-    textAnchor: 'end',
     fill: tickFontColor,
     fontFamily: tickFontFamily,
     fontSize: `${tickFontSize}px`,
@@ -78,20 +76,9 @@ function XAxis({ options = {}, axisKey = 'x' }) {
     color: tickFontColor,
   };
 
-  let textTransform;
-  let textY;
   const baselineY = isSecondaryAxis ? yTop : yBottom;
-
-  if (isAngledTicks) {
-    textStyle.textAnchor = 'end';
-    // remove y and place rotated labels relative to axis baseline
-    textY = null;
-    textTransform = `translate(0, ${baselineY + tickDirection * (tickLength + tickLabelPadding)}) rotate(-45)`;
-  } else {
-    textStyle.alignmentBaseline = isSecondaryAxis ? 'auto' : 'hanging';
-    textStyle.textAnchor = 'middle';
-    textY = baselineY + tickDirection * (tickLength + tickLabelPadding);
-  }
+  const labelPivotY =
+    baselineY + tickDirection * (Math.max(0, tickLength) + tickLabelPadding);
 
   useAnimation({
     type: 'fadeIn',
@@ -110,6 +97,7 @@ function XAxis({ options = {}, axisKey = 'x' }) {
   return (
     <g
       ref={ticksGroupRef}
+      data-axis={axisKey}
       className={`gsl-chart-axis ${finalOptions.className}`}
     >
       {/* horizontal line above the text for the x axis */}
@@ -132,10 +120,14 @@ function XAxis({ options = {}, axisKey = 'x' }) {
         if (!Number.isFinite(tickX)) return null;
 
         return (
-          <g key={String(tick.value)} transform={`translate(${tickX},0)`}>
+          <g
+            key={getTickValueKey(tick.value)}
+            transform={`translate(${tickX},0)`}
+          >
             {/* Vertical grid line */}
             {hasGridLines && (
               <line
+                className="gsl-chart-grid-line"
                 y1={yBottom}
                 y2={yTop}
                 stroke={strokeGrid}
@@ -153,14 +145,17 @@ function XAxis({ options = {}, axisKey = 'x' }) {
               />
             )}
             {/* Tick Label */}
-            <text
-              className="gsl-chart-tick-label"
-              style={textStyle}
-              y={textY}
-              transform={textTransform}
-            >
-              {tick.label}
-            </text>
+            {tick.showLabel && (
+              <text
+                className="gsl-chart-tick-label"
+                style={textStyle}
+                dominantBaseline="central"
+                textAnchor={tick.labelGeometry.textAnchor}
+                transform={`translate(${tick.labelGeometry.offsetX}, ${labelPivotY + tick.labelGeometry.offsetY}) rotate(${tick.labelGeometry.angle})`}
+              >
+                {tick.label}
+              </text>
+            )}
           </g>
         );
       })}

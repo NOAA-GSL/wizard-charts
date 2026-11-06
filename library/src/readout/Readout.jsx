@@ -39,8 +39,8 @@ function Readout({ model, options = {}, svgRef, ReadoutComponent }) {
         {options.showVerticalLine && (
           <line
             className="wizard-charts-readout-vertical-line"
-            x1={model.local.x}
-            x2={model.local.x}
+            x1={model.anchor?.x ?? model.local.x}
+            x2={model.anchor?.x ?? model.local.x}
             y1={top}
             y2={bottom}
             stroke="#d4d4d4"

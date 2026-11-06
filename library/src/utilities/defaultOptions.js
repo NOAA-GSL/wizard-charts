@@ -1,7 +1,4 @@
-import {
-  DEFAULT_TICK_COLLISION_MIN_GAP,
-  DEFAULT_TICK_COLLISION_STRATEGY,
-} from './constants';
+import { DEFAULT_TICK_COLLISION_MIN_GAP } from './constants';
 
 export const dataVizColors = {
   seaGreen: '#0FB5AE',
@@ -48,8 +45,8 @@ export const defaultAxisOptions = {
     values: [],
     labels: [],
     amount: 10, // hint for generated continuous tick count when values is empty
-    isAngled: false,
-    collisionStrategy: DEFAULT_TICK_COLLISION_STRATEGY, // 'auto' | 'rotate' | 'reduce' | 'none'
+    angle: 0,
+    reduceLabels: true,
     collisionMinGap: DEFAULT_TICK_COLLISION_MIN_GAP,
     length: 5,
     labelPadding: 5,
@@ -86,6 +83,7 @@ export const defaultLineMarkerOptions = {
 export const defaultOptions = {
   clipToChartArea: false,
   series: [],
+  textPlots: [],
   axes: {
     x: defaultAxisOptions,
     y: defaultAxisOptions,
@@ -131,6 +129,7 @@ export const defaultOptions = {
   },
   readout: {
     hoverMode: 'local',
+    snapTo: 'none',
     showVerticalLine: true,
     showTooltip: true,
     className: '',
@@ -178,6 +177,27 @@ export const defaultOptions = {
     debug: false,
   },
   animationDuration: 1000, // in ms
+};
+
+export const defaultTextPlotOptions = {
+  isVisible: true,
+  selection: { mode: 'auto', priority: 'uniform' },
+  offset: [0, -10],
+  collision: 'hide',
+  overflow: 'hide',
+  minGap: 6,
+  precision: undefined,
+  units: undefined,
+  displayUnits: true,
+  valueFormatter: null,
+  fontFamily: 'inherit',
+  fontSize: 12,
+  fontWeight: 700,
+  fontColor: 'currentColor',
+  haloColor: '#ffffff',
+  haloWidth: 3,
+  className: '',
+  sx: {},
 };
 
 export const defaultSeriesOptions = {

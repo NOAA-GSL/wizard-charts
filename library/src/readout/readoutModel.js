@@ -15,7 +15,33 @@ export function buildReadoutModel({
 }) {
   if (!hoverEvent || !readoutData?.isInsidePlot) return null;
 
-  const rows = (readoutData.nearest?.bySeries || []).map((summary) => {
+  const summaries = readoutData.nearest?.bySeries || [];
+  const snapToNearestPoint = options.snapTo === 'nearestPoint';
+  const nearestPoint = snapToNearestPoint
+    ? summaries.reduce((nearest, summary) => {
+        if (
+          (summary.seriesType !== 'line' && summary.seriesType !== 'circle') ||
+          (summary.status && summary.status !== 'available') ||
+          summary.dataIndex == null ||
+          summary.values?.x == null ||
+          !Number.isFinite(summary.distancePx) ||
+          !Number.isFinite(summary.xPixel) ||
+          !Number.isFinite(summary.yPixel)
+        ) {
+          return nearest;
+        }
+        return !nearest || summary.distancePx < nearest.distancePx
+          ? summary
+          : nearest;
+      }, null)
+    : null;
+  const selectedSummaries = snapToNearestPoint
+    ? nearestPoint
+      ? [nearestPoint]
+      : []
+    : summaries;
+
+  const rows = selectedSummaries.map((summary) => {
     const config = series[summary.seriesIndex] || {};
     const status = summary.status || 'available';
     const isAvailable = status === 'available';
@@ -70,16 +96,23 @@ export function buildReadoutModel({
 
   if (!rows.length) return null;
 
+  const xValue = nearestPoint ? nearestPoint.values.x : hoverEvent.xValue;
+  const selectedAxisKey = nearestPoint ? nearestPoint.axisKeys.x : axisKey;
+
   return {
     chartId: readoutData.chartId,
     sourceChartId: readoutData.sourceChartId,
     mode: readoutData.mode,
-    xValue: hoverEvent.xValue,
-    axisKey,
-    title: formatReadoutXValue(hoverEvent.xValue, options.titleFormatter, {
-      axisKey,
+    xValue,
+    axisKey: selectedAxisKey,
+    title: formatReadoutXValue(xValue, options.titleFormatter, {
+      axisKey: selectedAxisKey,
     }),
     local: { x: hoverEvent.localX, y: hoverEvent.localY },
+    ...(nearestPoint && {
+      anchor: { x: nearestPoint.xPixel, y: nearestPoint.yPixel },
+      pointerXValue: hoverEvent.xValue,
+    }),
     sourceClient: { x: hoverEvent.clientX, y: hoverEvent.clientY },
     rows,
   };

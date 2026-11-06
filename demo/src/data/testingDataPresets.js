@@ -157,6 +157,48 @@ const windBarbPresetSource = `{
   }
 }`;
 
+const tickDataSource = `Array.from({ length: 101 }, (_, index) => ({
+  x: index,
+  y: 20 + 10 * Math.sin(index / 10)
+}))`;
+
+const generatedTicksSource = `{
+  series: [
+    { type: 'line', name: 'Primary', xKey: 'x', yKey: 'y', stroke: '#147AF3' },
+    {
+      type: 'circle', name: 'Secondary', xKey: 'x', yKey: 'y',
+      isSecondaryXAxis: true, isSecondaryYAxis: true,
+      fill: '#008F5D', radius: 2
+    }
+  ],
+  axes: {
+    x: { nice: true, hasGridLines: true, label: { text: 'Primary x' }, ticks: { amount: 20, angle: -35, reduceLabels: true } },
+    x2: { nice: true, label: { text: 'Secondary x' }, ticks: { amount: 20, angle: 35, reduceLabels: true } },
+    y: { nice: true, hasGridLines: true, label: { text: 'Primary y' }, ticks: { amount: 10, angle: -25 } },
+    y2: { nice: true, label: { text: 'Secondary y' }, ticks: { amount: 10, angle: 25 } }
+  }
+}`;
+
+const explicitTicksSource = `{
+  series: [
+    { type: 'line', name: 'Signal', xKey: 'x', yKey: 'y', stroke: '#147AF3' }
+  ],
+  axes: {
+    x: {
+      hasGridLines: true,
+      label: { text: 'Explicit positions' },
+      ticks: {
+        values: [0, 1, 2, 10, 20, 40, 60, 80, 100],
+        labels: ['Start', 'Nearby one', 'Nearby two', 'Ten', 'Twenty', 'Forty', 'Sixty', 'Eighty', 'End'],
+        angle: 0,
+        reduceLabels: true,
+        collisionMinGap: 5
+      }
+    },
+    y: { nice: true, hasGridLines: true }
+  }
+}`;
+
 export const testingDataPresets = {
   data: [
     {
@@ -170,6 +212,12 @@ export const testingDataPresets = {
       label: 'Wind data',
       value: testDataWind,
       source: JSON.stringify(testDataWind, null, 2),
+    },
+    {
+      id: 'tick-data',
+      label: 'Tick data',
+      source: tickDataSource,
+      value: evaluatePresetSource(tickDataSource, 'tick data preset'),
     },
     createDemoDatasetPreset({
       id: 'demo-time-series-data',
@@ -212,6 +260,16 @@ export const testingDataPresets = {
       id: 'wind-barb',
       label: 'Wind Barb',
       source: windBarbPresetSource,
+    }),
+    createOptionsPreset({
+      id: 'generated-ticks',
+      label: 'Generated ticks (Tick data)',
+      source: generatedTicksSource,
+    }),
+    createOptionsPreset({
+      id: 'explicit-ticks',
+      label: 'Explicit ticks (Tick data)',
+      source: explicitTicksSource,
     }),
     ...Object.entries(demoOptions).map(createDemoOptionsPreset),
   ],

@@ -200,7 +200,7 @@ export const demoOptions = {
       // can also use the default x and y
       x: {
         type: 'time', // band, linear, log, time
-        ticks: { formatter: utcTimeFormatter('%m-%d %Hz') }, // optional formatting function for ticks
+        ticks: { formatter: utcTimeFormatter('%m-%d %Hz'), amount: 20 }, // optional formatting function for ticks
         nice: false,
         hasGridLines: true,
       },
