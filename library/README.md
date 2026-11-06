@@ -13,6 +13,7 @@ WIZARD Charts is a React charting library built on top of D3 for weather and for
 - [Options Overview](#options-overview)
 - [Plot Clipping](#plot-clipping)
 - [Zoom](#zoom)
+- [Text Plots](#text-plots)
 - [Hover Readout](#hover-readout)
 - [Series Configuration](#series-configuration)
 - [Legend](#legend)
@@ -224,6 +225,7 @@ All column arrays must be the same length.
 {
   clipToChartArea: false,
   series: [],
+  textPlots: [],
   axes: {
     x: {
       // optional reference lines for this axis
@@ -331,10 +333,10 @@ All column arrays must be the same length.
 
 `options.clipToChartArea` is a boolean that defaults to `false`.
 
-| Setting | Original view | Zoomed view |
-| --- | --- | --- |
-| `false` (default) | No global plot clipping | Clipped to the inner plot area |
-| `true` | Clipped to the inner plot area | Clipped to the inner plot area |
+| Setting           | Original view                  | Zoomed view                    |
+| ----------------- | ------------------------------ | ------------------------------ |
+| `false` (default) | No global plot clipping        | Clipped to the inner plot area |
+| `true`            | Clipped to the inner plot area | Clipped to the inner plot area |
 
 - The inner plot area is the computed chart rectangle inside the margins.
 - Clipping applies to series layers and axis reference markers, not axes, the legend, custom `children`, or readout layers.
@@ -531,6 +533,136 @@ When no zoom window is active, `start`, `startValue`, `center`, `centerValue`,
 Programmatic zoom control applies to mapped zoomable x-axes automatically (`x`
 and/or `x2`). Supported scale types are `linear` and `time`.
 
+## Text Plots
+
+`options.textPlots` adds persistent, single-line SVG labels above plot marks and
+below the hover readout. Unlike tooltips, these labels remain visible without a
+pointer, are included in serialized SVG, and do not subscribe to hover state.
+They do not change domains, margins, legend entries, or readout rows.
+
+Series-backed labels currently support `line` and `circle`. Reference a series
+using `seriesId` or `seriesIndex` (default `0`); an unknown reference renders
+nothing. Labels inherit the series' accessors, dataset overrides, secondary axes,
+visibility, units, and readout precision. `showInReadout: false` does not hide text
+plots. Manual annotations use existing chart scales rather than creating scales.
+
+```js
+const options = {
+  series: [
+    {
+      id: 'temperature',
+      type: 'line',
+      xKey: 'time',
+      yKey: 'temperature',
+      units: 'F',
+    },
+  ],
+  axes: { x: { type: 'time' } },
+  textPlots: [
+    {
+      seriesId: 'temperature',
+      selection: { mode: 'auto', priority: 'extrema' },
+      precision: 0,
+      displayUnits: false,
+      offset: [0, -12],
+      minGap: 8,
+    },
+    {
+      seriesId: 'temperature',
+      selection: {
+        mode: 'xValues',
+        values: [new Date('2026-08-02T12:00:00Z')],
+        sampling: 'nearest',
+        xTolerance: 30 * 60 * 1000,
+      },
+    },
+    {
+      axisKeys: { x: 'x', y: 'y' },
+      data: [
+        {
+          x: new Date('2026-08-02T12:00:00Z'),
+          y: 82,
+          text: 'Front arrives',
+          offset: [8, -16],
+        },
+      ],
+    },
+  ],
+};
+```
+
+### Selection and Zoom
+
+- `selection.mode: 'auto'` (default): all valid points are candidates; measured
+  screen-space bounds and `minGap` determine which labels fit. Zooming and resizing
+  recompute layout, revealing more detail as spacing increases.
+- `selection.priority: 'uniform'` (default): process candidates from left to right.
+  `'extrema'` prioritizes the visible minimum/maximum, then local peaks/troughs,
+  then remaining points. Collisions and boundaries can still suppress extrema.
+- `selection.mode: 'all'`: every valid visible point is a candidate. Combine with
+  `collision: 'allow'` to render all labels regardless of overlap.
+- `selection.mode: 'everyNth'`, `selection.every: 3`: select original source
+  indices `0, 3, 6, ...`. Missing data and zoom do not renumber the cadence.
+- `selection.mode: 'xValues'`: sample `selection.values` using `'nearest'` (default)
+  or `'exact'`. Numeric/Date requests outside the series' valid x extent are
+  omitted; `selection.xTolerance` optionally limits nearest matching in domain
+  units (milliseconds for Dates). Categorical requests match exactly. Ties use
+  the first valid source point; repeated requests for that point produce one label.
+  Labels anchor to the sampled point's actual x/y, not to an interpolated value.
+
+Extrema detection follows source/render order, considers neighbors outside the
+viewport, and never crosses missing/invalid-value gaps. A flat local peak/trough
+uses the middle source point (the earlier middle for even-length plateaus).
+Local turns rank by the smaller vertical screen-space excursion to adjacent
+turns or segment endpoints. This is a deterministic noise-ranking heuristic,
+not smoothing or a full statistical prominence calculation. It does not modify
+the underlying data. Flat non-turning runs use a stable first point for global
+minimum/maximum priority.
+
+All groups share one collision layout. Manual annotations and requested-x
+selections precede automatic candidates. Equal priorities use turn strength,
+then screen x, source index, and configuration order. Layout is deterministic
+for unchanged data/options/viewport but does not promise identical selections
+while panning or resizing.
+
+### Label Options
+
+| Option                                              | Default                                    | Behavior                                                                                                                                      |
+| --------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isVisible`                                         | `true`                                     | Hide the whole label group when false.                                                                                                        |
+| `offset`                                            | `[0, -10]`                                 | SVG screen-unit `[x, y]` displacement; positive y is downward. Text is centered horizontally with its bottom at the displaced anchor.         |
+| `collision`                                         | `'hide'`                                   | Hide labels overlapping previously accepted label bounds; `'allow'` permits overlaps. It does not avoid chart marks or axis reference labels. |
+| `minGap`                                            | `6`                                        | Minimum screen-unit gap between label bounds. Each pair uses the larger configured gap.                                                       |
+| `overflow`                                          | `'hide'`                                   | Hide labels whose text bounds cross plot edges. `'allow'` permits overflow, subject to chart clipping. Offscreen anchors are always omitted.  |
+| `precision`                                         | series precision                           | Override `series.readoutPrecision`; otherwise use adaptive number formatting.                                                                 |
+| `units`                                             | series/y-axis units                        | Override the series' units, or its y-axis units when series units are empty.                                                                  |
+| `displayUnits`                                      | `true`                                     | Append units unless this or the source series' `displayUnits` is false.                                                                       |
+| `valueFormatter`                                    | `null`                                     | `(value, context) => text`; null/undefined returns and exceptions fall back to default formatting. An empty string hides the label.           |
+| `fontFamily`, `fontSize`, `fontWeight`, `fontColor` | `'inherit'`, `12`, `700`, `'currentColor'` | Label typography.                                                                                                                             |
+| `haloColor`, `haloWidth`                            | `'#ffffff'`, `3`                           | Outline behind text for legibility; use the chart background color on dark charts, or width `0` for no halo.                                  |
+| `className`, `sx`                                   | `''`, `{}`                                 | Per-label SVG class/style. Use the font/offset options rather than CSS font/transform overrides for accurate collision measurement.           |
+
+Formatter context includes `datum`, `dataIndex`, `xValue`, `seriesType`, `units`,
+`displayUnits`, `readoutPrecision`, and `defaultText`. Label formatting is
+independent of `options.readout` formatter settings.
+
+Providing `data` selects manual mode instead of sampling a series. Each row
+requires domain coordinates `x` and `y`, plus either `text` or a numeric `value`
+(defaults to `y`). Rows can override label options and set `isVisible: false`;
+optional row IDs should be unique within the group. `axisKeys` defaults to
+`{ x: 'x', y: 'y' }` and supports `x2`/`y2`. Explicit text is rendered literally
+and bypasses number formatting. Missing/non-finite sampled y values and invalid
+anchors are omitted; numeric zero is preserved.
+
+Text plots do not reserve automatic margin space, move labels to alternate
+locations, or draw leader lines. Zoomed views always enforce chart-area clipping,
+even with `overflow: 'allow'`. Web font or inherited CSS changes may require a
+chart layout update to refresh text measurements.
+
+The demo's **Text Plots** page includes forecast/noise/plateau datasets, selection
+and styling controls, manual annotations, a uniform/extrema comparison, and
+programmatic zoom/reset.
+
 ## Hover Readout
 
 The **readout** is the complete hover-data feature: sampled series values,
@@ -599,7 +731,9 @@ For example, keep a reference curve visible without including it in the readout:
 For example, opt in for a CDF or scatterplot:
 
 ```js
-readout: { snapTo: 'nearestPoint' }
+readout: {
+  snapTo: 'nearestPoint';
+}
 ```
 
 Use `readout: { snapTo: 'none' }` or omit `snapTo` to preserve pointer following.
@@ -935,17 +1069,17 @@ model or `null` when inactive, outside the receiving chart's plot, without sampl
 or after the chart unmounts. In global mode each chart samples its own series and
 uses its own mapped coordinates. Treat snapshots and referenced data as read-only.
 
-| Property                   | Meaning                                                                                      |
-| -------------------------- | -------------------------------------------------------------------------------------------- |
-| `chartId`, `sourceChartId` | Receiving chart and originating hover chart identifiers.                                     |
-| `mode`                     | Effective `'local'` or `'global'` mode.                                                      |
-| `xValue`, `axisKey`        | Displayed domain value and x-axis (`'x'` or `'x2'`): the pointer by default, or the selected point when snapped. Dates retain their type. |
-| `title`                    | Title formatted using `readout.titleFormatter`.                                              |
-| `local`                    | `{ x, y }` in the receiving SVG coordinate system, not tooltip position.                     |
+| Property                   | Meaning                                                                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `chartId`, `sourceChartId` | Receiving chart and originating hover chart identifiers.                                                                                   |
+| `mode`                     | Effective `'local'` or `'global'` mode.                                                                                                    |
+| `xValue`, `axisKey`        | Displayed domain value and x-axis (`'x'` or `'x2'`): the pointer by default, or the selected point when snapped. Dates retain their type.  |
+| `title`                    | Title formatted using `readout.titleFormatter`.                                                                                            |
+| `local`                    | `{ x, y }` in the receiving SVG coordinate system, not tooltip position.                                                                   |
 | `anchor`                   | Optional `{ x, y }` guide/tooltip anchor in receiving SVG coordinates, present when snapped. `local` retains the unsnapped hover position. |
-| `pointerXValue`            | Original hovered x-value on the original readout axis, present when snapped; `xValue` is the selected point's x-value instead. |
-| `sourceClient`             | `{ x, y }` browser coordinates of the originating pointer; not a target-chart portal anchor. |
-| `rows`                     | Per-series samples ordered by `readout.rowOrder`.                                            |
+| `pointerXValue`            | Original hovered x-value on the original readout axis, present when snapped; `xValue` is the selected point's x-value instead.             |
+| `sourceClient`             | `{ x, y }` browser coordinates of the originating pointer; not a target-chart portal anchor.                                               |
+| `rows`                     | Per-series samples ordered by `readout.rowOrder`.                                                                                          |
 
 Each row contains:
 

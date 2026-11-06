@@ -143,3 +143,28 @@ export const surfaceWindData = surfaceWindTimes.map((timestamp, i) => {
     direction: Math.round(((direction % 360) + 360) % 360),
   };
 });
+
+const textPlotForecast = Array.from({ length: 121 }, (_, index) => {
+  const temperature =
+    73 + 12 * Math.sin(((index - 3) * Math.PI) / 12) + 2 * Math.sin(index / 15);
+  return {
+    time: new Date(+demoStartDate + index * 3600_000),
+    temperature: Math.round(temperature * 10) / 10,
+  };
+});
+const textPlotPlateau = [61, 65, 72, 80, 85, 85, 85, 80, 72, 65, 61, 61];
+
+export const textPlotDemoDatasets = {
+  forecast: textPlotForecast,
+  noisy: textPlotForecast.map((datum, index) => ({
+    ...datum,
+    temperature: datum.temperature + 1.8 * Math.sin(index * 2.4),
+  })),
+  plateaus: textPlotForecast.map((datum, index) => ({
+    ...datum,
+    temperature:
+      (index >= 43 && index <= 47) || index === 85
+        ? NaN
+        : textPlotPlateau[index % textPlotPlateau.length],
+  })),
+};

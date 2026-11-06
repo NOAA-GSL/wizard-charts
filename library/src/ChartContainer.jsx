@@ -34,6 +34,7 @@ import Heatmap from './plotComponents/Heatmap';
 import ContourGrid from './plotComponents/ContourGrid';
 import WindBarbs from './plotComponents/WindBarbs';
 import LineMarker from './plotComponents/LineMarker';
+import TextPlot from './plotComponents/TextPlot';
 
 const SIZE_EPSILON = 0.25;
 const AUTO_SIZE = 'auto';
@@ -575,6 +576,7 @@ function ChartContainer({
             {axes.y2 && hasAxisLineMarkers(axes.y2) && (
               <LineMarker options={axes.y2} axisKey="y2" />
             )}
+            <TextPlot />
             {dragSelectionRect && (
               <rect
                 x={dragSelectionRect.x}

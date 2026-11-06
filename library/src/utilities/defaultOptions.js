@@ -83,6 +83,7 @@ export const defaultLineMarkerOptions = {
 export const defaultOptions = {
   clipToChartArea: false,
   series: [],
+  textPlots: [],
   axes: {
     x: defaultAxisOptions,
     y: defaultAxisOptions,
@@ -176,6 +177,27 @@ export const defaultOptions = {
     debug: false,
   },
   animationDuration: 1000, // in ms
+};
+
+export const defaultTextPlotOptions = {
+  isVisible: true,
+  selection: { mode: 'auto', priority: 'uniform' },
+  offset: [0, -10],
+  collision: 'hide',
+  overflow: 'hide',
+  minGap: 6,
+  precision: undefined,
+  units: undefined,
+  displayUnits: true,
+  valueFormatter: null,
+  fontFamily: 'inherit',
+  fontSize: 12,
+  fontWeight: 700,
+  fontColor: 'currentColor',
+  haloColor: '#ffffff',
+  haloWidth: 3,
+  className: '',
+  sx: {},
 };
 
 export const defaultSeriesOptions = {

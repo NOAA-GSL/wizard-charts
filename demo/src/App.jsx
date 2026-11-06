@@ -3,6 +3,7 @@ import MainDemo from './components/MainDemo';
 import TestingPlayground from './components/TestingPlayground';
 import ReadoutDemo from './components/ReadoutDemo';
 import Cdf from './components/Cdf';
+import TextPlotDemo from './components/TextPlotDemo';
 
 function App() {
   const [location] = useLocation();
@@ -39,6 +40,13 @@ function App() {
         >
           CDF
         </Link>
+        <Link
+          href="/text-plots"
+          className={`nav-link ${location === '/text-plots' ? 'active' : ''}`}
+          aria-current={location === '/text-plots' ? 'page' : undefined}
+        >
+          Text Plots
+        </Link>
       </div>
 
       <Switch>
@@ -46,6 +54,7 @@ function App() {
         <Route path="/testing-playground" component={TestingPlayground} />
         <Route path="/readouts" component={ReadoutDemo} />
         <Route path="/cdf" component={Cdf} />
+        <Route path="/text-plots" component={TextPlotDemo} />
         <Route>404: Page not found</Route>
       </Switch>
     </div>
