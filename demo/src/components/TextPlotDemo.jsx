@@ -1,14 +1,25 @@
 import { useState } from 'react';
-import { ChartContainer, useChartController } from '@noaa-gsl/wizard-charts';
+import { scaleTime, timeDay } from 'd3';
+import {
+  ChartContainer,
+  timeFormatter,
+  useChartController,
+} from '@noaa-gsl/wizard-charts';
 import { textPlotDemoDatasets } from '../data/demoDatasets';
 
 const hour = 3600_000;
+const formatDayTick = timeFormatter('%a %d');
+const formatTimeTick = scaleTime().tickFormat();
 const axisOptions = {
   x: {
     type: 'time',
     hasGridLines: true,
     strokeGrid: '#363636',
-    ticks: { amount: 6 },
+    ticks: {
+      amount: 6,
+      formatter: (value) =>
+        timeDay(value) < value ? formatTimeTick(value) : formatDayTick(value),
+    },
   },
   y: {
     domainMin: 50,
@@ -129,7 +140,7 @@ export default function TextPlotDemo() {
     textPlots.push({
       ...appearance,
       data: [
-        { x: data[54].time, y: 92, text: 'Front arrives', offset: [0, -6] },
+        { x: data[54].time, y: 92, text: 'Manual Annotation', offset: [0, -6] },
       ],
     });
 
@@ -144,8 +155,8 @@ export default function TextPlotDemo() {
             value={preset}
             onChange={(event) => setPreset(event.target.value)}
           >
-            <option value="forecast">Regional Forecast</option>
-            <option value="noisy">Noisy Forecast</option>
+            <option value="forecast">Smooth Line</option>
+            <option value="noisy">Noisy Line</option>
             <option value="plateaus">Plateaus and Gaps</option>
           </select>
         </label>
@@ -242,7 +253,7 @@ export default function TextPlotDemo() {
         </label>
       </div>
       <ForecastChart
-        title="Regional Temperature Forecast"
+        title="Temperature Forecast"
         data={data}
         textPlots={textPlots}
         className="text-plot-interactive"

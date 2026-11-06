@@ -4,13 +4,17 @@ import { createRoot } from 'react-dom/client';
 import { ChartContainer, useChartController } from '@noaa-gsl/wizard-charts';
 import TextPlotDemo from './TextPlotDemo';
 
-vi.mock('@noaa-gsl/wizard-charts', () => ({
-  ChartContainer: vi.fn(() => null),
-  useChartController: vi.fn(() => ({
-    controller: { setZoomWindow: vi.fn(), resetZoom: vi.fn() },
-    zoomState: { isZoomed: false },
-  })),
-}));
+vi.mock('@noaa-gsl/wizard-charts', async () => {
+  const { timeFormat } = await import('d3');
+  return {
+    ChartContainer: vi.fn(() => null),
+    timeFormatter: timeFormat,
+    useChartController: vi.fn(() => ({
+      controller: { setZoomWindow: vi.fn(), resetZoom: vi.fn() },
+      zoomState: { isZoomed: false },
+    })),
+  };
+});
 
 let container;
 let root;
@@ -41,12 +45,41 @@ afterEach(() => {
 });
 
 describe('text plot demo', () => {
+  test('uses consistent weekday/date ticks while preserving zoomed time formatting', () => {
+    const formatter = chart().options.axes.x.ticks.formatter;
+    expect([1, 2, 3].map((day) => formatter(new Date(2026, 7, day)))).toEqual([
+      'Sat 01',
+      'Sun 02',
+      'Mon 03',
+    ]);
+    expect(formatter(new Date(2027, 0, 1))).toBe('Fri 01');
+    expect(formatter(new Date(2026, 7, 1, 9))).toBe('09 AM');
+    expect(formatter(new Date(2026, 7, 1, 9, 30))).toBe('09:30');
+    expect(formatter(new Date(2026, 7, 1, 9, 30, 15))).toBe(':15');
+  });
+  test('uses the simplified dataset names and forecast heading', () => {
+    expect(
+      [...container.querySelectorAll('#text-preset option')].map(
+        (option) => option.textContent,
+      ),
+    ).toEqual(['Smooth Line', 'Noisy Line', 'Plateaus and Gaps']);
+    expect(
+      [...container.querySelectorAll('h2')].some(
+        (heading) => heading.textContent === 'Temperature Forecast',
+      ),
+    ).toBe(true);
+    expect(
+      container.querySelector(
+        '[aria-label="Zoom Temperature Forecast to 24 hours"]',
+      ),
+    ).not.toBeNull();
+  });
   test('starts with extrema priority, a manual annotation, and a uniform/extrema comparison', () => {
     expect(chart().options.textPlots[0].selection).toMatchObject({
       mode: 'auto',
       priority: 'extrema',
     });
-    expect(chart().options.textPlots[1].data[0].text).toBe('Front arrives');
+    expect(chart().options.textPlots[1].data[0].text).toBe('Manual Annotation');
     for (const priority of ['uniform', 'extrema']) {
       const comparison = chart(`text-plot-comparison-${priority}`);
       expect(comparison.data).toBe(chart().data);
