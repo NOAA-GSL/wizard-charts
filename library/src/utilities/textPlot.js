@@ -138,6 +138,11 @@ export function buildSeriesTextCandidates({
     const every = Math.max(1, Math.floor(Number(selection.every) || 1));
     return valid.filter((point) => point.dataIndex % every === 0);
   }
+  if (mode === 'extrema') {
+    return valid
+      .filter((point) => point.extremum)
+      .map((point) => ({ ...point, priority: 1 }));
+  }
   if (mode === 'auto' && selection.priority === 'extrema') {
     valid.forEach((point) => {
       point.priority = point.extremum ? 1 : 0;

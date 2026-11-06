@@ -596,9 +596,15 @@ const options = {
 - `selection.mode: 'auto'` (default): all valid points are candidates; measured
   screen-space bounds and `minGap` determine which labels fit. Zooming and resizing
   recompute layout, revealing more detail as spacing increases.
-- `selection.priority: 'uniform'` (default): process candidates from left to right.
+- `selection.priority: 'uniform'` (default, used only in `'auto'` mode): process candidates from left to right.
   `'extrema'` prioritizes the visible minimum/maximum, then local peaks/troughs,
   then remaining points. Collisions and boundaries can still suppress extrema.
+- `selection.mode: 'extrema'`: only local peaks and troughs are candidates,
+  ranked by turn strength. Never fill remaining space with ordinary points or
+  add source/viewport endpoints just because they are minimum/maximum values.
+  Collision and boundary rules still apply. Flat or monotonic series, and zoomed
+  stretches with no qualifying turns, can have no labels. `selection.priority`
+  is ignored in this mode.
 - `selection.mode: 'all'`: every valid visible point is a candidate. Combine with
   `collision: 'allow'` to render all labels regardless of overlap.
 - `selection.mode: 'everyNth'`, `selection.every: 3`: select original source
@@ -610,17 +616,26 @@ const options = {
   the first valid source point; repeated requests for that point produce one label.
   Labels anchor to the sampled point's actual x/y, not to an interpolated value.
 
+Use the selection mode to restrict labels, or the automatic priority to prefer
+extrema while still filling available space:
+
+```js
+selection: { mode: 'extrema' }
+// Alternatively: selection: { mode: 'auto', priority: 'extrema' }
+```
+
 Extrema detection follows source/render order, considers neighbors outside the
 viewport, and never crosses missing/invalid-value gaps. A flat local peak/trough
 uses the middle source point (the earlier middle for even-length plateaus).
 Local turns rank by the smaller vertical screen-space excursion to adjacent
 turns or segment endpoints. This is a deterministic noise-ranking heuristic,
 not smoothing or a full statistical prominence calculation. It does not modify
-the underlying data. Flat non-turning runs use a stable first point for global
-minimum/maximum priority.
+the underlying data. In automatic extrema-priority mode, flat non-turning runs
+use a stable first point for global minimum/maximum priority. Extrema-only mode
+has no global-minimum/maximum fallback.
 
 All groups share one collision layout. Manual annotations and requested-x
-selections precede automatic candidates. Equal priorities use turn strength,
+selections precede automatic candidates and extrema-only labels. Equal priorities use turn strength,
 then screen x, source index, and configuration order. Layout is deterministic
 for unchanged data/options/viewport but does not promise identical selections
 while panning or resizing.

@@ -106,6 +106,24 @@ describe('text plot demo', () => {
       chart().data.every((datum) => Number.isFinite(datum.temperature)),
     ).toBe(true);
   });
+  test('selects extrema-only mode without changing annotations or automatic-priority settings', () => {
+    const originalData = chart().data;
+    const originalAnnotation = chart().options.textPlots[1];
+    select('text-mode', 'extrema');
+    expect(
+      container.querySelector('#text-mode').selectedOptions[0].textContent,
+    ).toBe('Extrema Only');
+    expect(chart().options.textPlots[0].selection.mode).toBe('extrema');
+    expect(chart().data).toBe(originalData);
+    expect(chart().options.textPlots[1]).toEqual(originalAnnotation);
+    expect(container.querySelector('#text-priority').disabled).toBe(true);
+    select('text-mode', 'auto');
+    expect(chart().options.textPlots[0].selection).toMatchObject({
+      mode: 'auto',
+      priority: 'extrema',
+    });
+    expect(container.querySelector('#text-priority').disabled).toBe(false);
+  });
   test('removes manual annotations and offers a programmatic Date-based zoom', () => {
     act(() => container.querySelector('#text-manual').click());
     expect(chart().options.textPlots).toHaveLength(1);

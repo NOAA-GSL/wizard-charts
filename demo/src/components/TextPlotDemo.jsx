@@ -168,6 +168,7 @@ export default function TextPlotDemo() {
             onChange={(event) => setMode(event.target.value)}
           >
             <option value="auto">Automatic</option>
+            <option value="extrema">Extrema Only</option>
             <option value="all">Every Point</option>
             <option value="everyNth">Every Third Point</option>
             <option value="xValues">Requested Times</option>

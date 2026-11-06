@@ -47,6 +47,52 @@ describe('text plot candidates', () => {
       points.filter((point) => point.extremum).map((point) => point.dataIndex),
     ).toEqual([2]);
   });
+  test('extrema mode selects only local peaks and troughs, independently of priority', () => {
+    const points = candidates([10, 20, 50, 20, 0, 10, 30, 20], {
+      selection: { mode: 'extrema', priority: 'uniform' },
+    });
+    expect(points.map((point) => point.dataIndex)).toEqual([2, 4, 6]);
+    expect(points.map((point) => point.value)).toEqual([50, 0, 30]);
+  });
+  test('extrema mode uses one point per plateau without joining missing-data segments', () => {
+    const points = candidates(
+      [0, 30, 30, 0, null, 0, 50, 50, 50, 0, undefined, 20, 10],
+      { selection: { mode: 'extrema' } },
+    );
+    expect(points.map((point) => point.dataIndex)).toEqual([1, 7]);
+  });
+  test.each([
+    [],
+    [10],
+    [10, 20],
+    [20, 10],
+    [30, 30, 30],
+    [0, 10, 20, 30],
+    [30, 20, 10, 0],
+  ])(
+    'extrema mode has no endpoint or global-extreme fallback for %j',
+    (...values) => {
+      expect(candidates(values, { selection: { mode: 'extrema' } })).toEqual(
+        [],
+      );
+    },
+  );
+  test('extrema mode supports Date x values and reversed scales', () => {
+    const data = [10, 50, 20, 0, 10].map((y, index) => ({
+      x: new Date(index * 1000),
+      y,
+    }));
+    const points = buildSeriesTextCandidates({
+      data,
+      accessors,
+      xScale: scaleTime().domain([data[0].x, data[4].x]).range([190, 10]),
+      yScale: scaleLinear().domain([0, 100]).range([30, 110]),
+      options: { selection: { mode: 'extrema' } },
+    });
+    expect(points.map((point) => point.dataIndex)).toEqual([1, 3]);
+    expect(points[0].xValue).toBe(data[1].x);
+    expect(layout(points)).toHaveLength(2);
+  });
   test('ranks substantial turns above small fluctuations using neighboring turns', () => {
     const points = candidates([0, 50, 0, 2, 1, 3, 0]);
     expect(points.find((point) => point.dataIndex === 1).strength).toBeCloseTo(
@@ -115,6 +161,43 @@ describe('text plot candidates', () => {
 });
 
 describe('text plot layout', () => {
+  test('extrema mode leaves zoomed monotonic stretches empty and retains genuine edge turns', () => {
+    const values = [0, 100, 90, 80, 70, 60];
+    const options = { selection: { mode: 'extrema', priority: 'extrema' } };
+    const cropped = candidates(
+      values,
+      options,
+      scaleLinear().domain([1.5, 4.5]).range([10, 190]),
+    );
+    expect(layout(cropped)).toEqual([]);
+    const visiblePeak = candidates(
+      values,
+      options,
+      scaleLinear().domain([0.75, 4]).range([10, 190]),
+    );
+    expect(layout(visiblePeak).map((point) => point.dataIndex)).toEqual([1]);
+  });
+  test('extrema mode ranks strong turns first and never fills collision space with ordinary points', () => {
+    const points = candidates([40, 41, 43, 41, 40, 41, 50, 41, 40], {
+      selection: { mode: 'extrema' },
+      overflow: 'allow',
+    });
+    const crowded = layoutTextCandidates({
+      candidates: points,
+      bounds,
+      measureText: () => ({ width: 200, height: 20 }),
+    });
+    expect(crowded.map((point) => point.dataIndex)).toEqual([6]);
+    const all = points.map((point) => ({
+      ...point,
+      options: { ...point.options, collision: 'allow' },
+    }));
+    expect(
+      layout(all)
+        .map((point) => point.dataIndex)
+        .sort((first, second) => first - second),
+    ).toEqual([2, 4, 6]);
+  });
   test('keeps an extremum instead of the leftmost label when only one label fits', () => {
     const values = [40, 41, 43, 41, 40, 41, 42, 41, 40];
     const render = (priority) =>
