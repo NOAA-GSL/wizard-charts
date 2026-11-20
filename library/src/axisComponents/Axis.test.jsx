@@ -86,6 +86,26 @@ describe('axis SVG tick rendering', () => {
     },
   );
 
+  test.each(['x', 'x2'])(
+    'keeps a regular label cadence on %s without dropping marks or grid lines',
+    (axisKey) => {
+      const document = renderAxis(axisKey, {
+        values: [],
+        amount: 5,
+        formatter: (value) => (value < 60 ? String(value) : `Tick ${value}`),
+      });
+
+      expect(document.querySelectorAll('.gsl-chart-tick-line')).toHaveLength(6);
+      expect(document.querySelectorAll('.gsl-chart-grid-line')).toHaveLength(6);
+      expect(
+        Array.from(
+          document.querySelectorAll('.gsl-chart-tick-label'),
+          (label) => label.textContent,
+        ),
+      ).toEqual(['0', '40', 'Tick 80']);
+    },
+  );
+
   test.each([
     ['x', -45, 'end'],
     ['x', 45, 'start'],

@@ -227,14 +227,43 @@ describe('axis tick generation', () => {
 describe('axis label visibility and geometry', () => {
   test('preserves every mark and uses screen space for irregular labels', () => {
     const layout = layoutFor({
-      values: [0, 1, 2, 100],
-      labels: ['A', 'B', 'C', 'D'],
+      values: [0, 1, 30, 60, 90],
+      formatter: () => 'A',
     });
-    expect(layout.ticks.map((tick) => tick.value)).toEqual([0, 1, 2, 100]);
+    expect(layout.ticks.map((tick) => tick.value)).toEqual([0, 1, 30, 60, 90]);
     expect(
       layout.ticks.filter((tick) => tick.showLabel).map((tick) => tick.value),
-    ).toEqual([0, 100]);
+    ).toEqual([0, 30, 60, 90]);
     expect(layout.tickAngle).toBe(0);
+  });
+
+  test('keeps empty label slots in the cadence on a reversed x axis', () => {
+    const layout = layoutFor(
+      {
+        values: [15, 90, 75, 0, 45, 30, 60],
+        formatter: (value) => (value === 45 || value === 90 ? '' : 'ABC'),
+      },
+      { range: [100, 0] },
+    );
+
+    expect(
+      layout.ticks.filter((tick) => tick.showLabel).map((tick) => tick.value),
+    ).toEqual([15, 75]);
+  });
+
+  test('changes the cadence as rotated multiline x2 labels run out of room', () => {
+    const values = [0, 20, 40, 60, 80, 100];
+    const visibleValues = (width) =>
+      layoutFor(
+        { values, angle: 45, formatter: () => 'AAAA\nAAAA' },
+        { axisKey: 'x2', range: [0, width] },
+      )
+        .ticks.filter((tick) => tick.showLabel)
+        .map((tick) => tick.value);
+
+    expect(visibleValues(240)).toEqual(values);
+    expect(visibleValues(120)).toEqual([0, 40, 80]);
+    expect(visibleValues(100)).toEqual([0, 60]);
   });
 
   test('can disable reduction without changing mark positions', () => {

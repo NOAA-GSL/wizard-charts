@@ -1859,6 +1859,7 @@ Tick behavior:
 - For `time` axes, JavaScript `Date` values represent instants in time. `timeFormatter(...)` displays those instants using the viewer's local calendar fields, while `utcTimeFormatter(...)` displays UTC calendar fields. Generated tick positions still come from D3 `scaleTime()` unless you provide explicit `ticks.values`.
 - `ticks.angle` sets label rotation in degrees from `-90` through `90`, defaulting to `0`. Non-numeric, non-finite, or out-of-range values fall back to `0`. Rotation is never applied automatically. On bottom x axes, negative angles pivot at the label end and positive angles at its start; zero centers the label. Top axes mirror these anchors so labels extend outward. Y axes anchor at the end on the left and start on the right, with side-aware outward placement for every angle.
 - `ticks.reduceLabels` defaults to `true`. It hides overlapping labels using their final formatted, rotated screen-space bounds, including irregular explicit positions. It never removes marks or grid lines. Selection is deterministic but does not guarantee endpoint labels. Set it to `false` to show every nonempty label, even if labels overlap.
+- On evenly spaced `x` and `x2` axes, reduction keeps a regular cadence: every label, every second label, every third label, and so on. It starts at the leftmost nonempty label and uses the smallest step that fits. Empty labels do not shift the cadence, and the final tick is not forced into the pattern. Irregularly spaced x ticks and all y ticks are still checked label by label.
 - `ticks.collisionMinGap` sets the minimum pixel gap between visible label bounds, defaulting to `5`. Hidden labels do not reserve margin space, but marks still do. Auto margins can change as visible labels change during zoom or resizing.
 - Axis `nice` still applies to base domains, but does not expand an active zoom override. Returning to the original view restores base-domain nicening.
 
@@ -1907,7 +1908,7 @@ const options = {
 
 `timeFormatter` uses the viewer's local calendar; use `utcTimeFormatter` instead for UTC. If you want one tick at each selected date, pass those dates in `ticks.values`; otherwise the scale chooses the tick positions. Explicit ticks outside the visible domain are not shown.
 
-Lines stay in reading order on the top axis, and Y-axis labels are vertically centered on their tick at the default angle. `ticks.angle` rotates the whole block. Auto margins and label collision detection account for the full block; fixed margins may need more space. Try **Tick data** with **Multiline ticks (Tick data)** in the Testing Playground.
+Lines stay in reading order on the top axis, and Y-axis labels are vertically centered on their tick at the default angle. `ticks.angle` rotates the whole block. Auto margins and label collision detection account for the full block; fixed margins may need more space. In the Testing Playground, select **Tick data** and **Multiline ticks (Tick data)**, then resize the chart to see the x-axis label cadence change while all marks stay visible.
 
 Line marker behavior:
 
