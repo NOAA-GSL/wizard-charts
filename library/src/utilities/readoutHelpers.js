@@ -2,6 +2,19 @@ export function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
+export function getPointSnapDistanceKey(snapTo) {
+  switch (snapTo) {
+    case 'nearestPoint':
+      return 'distancePx';
+    case 'nearestXPoint':
+      return 'xDistancePx';
+    case 'nearestYPoint':
+      return 'yDistancePx';
+    default:
+      return null;
+  }
+}
+
 export function resolveReadoutFontOptions(input, fallback) {
   const next = input && typeof input === 'object' ? input : {};
 

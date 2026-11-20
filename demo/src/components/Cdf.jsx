@@ -85,6 +85,8 @@ export default function Cdf() {
           onChange={(event) => setSnapTo(event.target.value)}
         >
           <option value="nearestPoint">Nearest Point</option>
+          <option value="nearestXPoint">Nearest X Point</option>
+          <option value="nearestYPoint">Nearest Y Point</option>
           <option value="none">Pointer</option>
         </select>
       </div>

@@ -18,6 +18,7 @@ import {
   sampleStructuredGridValue,
 } from '../utilities/contourGrid';
 import {
+  getPointSnapDistanceKey,
   resolveSeriesReadoutEntries,
   resolveSeriesValue,
 } from '../utilities/readoutHelpers';
@@ -1231,7 +1232,7 @@ export function useHoverReadoutDebug({
     });
 
     const seriesList = chartValues.options?.series || [];
-    const snapToNearestPoint = readoutOptions.snapTo === 'nearestPoint';
+    const snapDistanceKey = getPointSnapDistanceKey(readoutOptions.snapTo);
     const plotBounds = getPlotBoundsFromChartValues(chartValues);
 
     const bySeries = seriesList
@@ -1239,7 +1240,7 @@ export function useHoverReadoutDebug({
         if (
           series?.showInReadout === false ||
           !SUPPORTED_SERIES_TYPES.has(series?.type) ||
-          (snapToNearestPoint &&
+          (snapDistanceKey &&
             (series.isVisible === false ||
               (series.type !== 'line' && series.type !== 'circle')))
         ) {
@@ -1267,7 +1268,7 @@ export function useHoverReadoutDebug({
           seriesData,
           xScale,
         });
-        const resolvedHoverXValue = snapToNearestPoint
+        const resolvedHoverXValue = snapDistanceKey
           ? resolveHoverXValue({ hoverX: localX, xScale })
           : (hoverXValue ??
             resolveHoverXValue({ hoverEvent, hoverX: localX, xScale }));
@@ -1359,7 +1360,7 @@ export function useHoverReadoutDebug({
 
           if (!summary) return;
           if (
-            snapToNearestPoint &&
+            snapDistanceKey &&
             (summary.values.y == null ||
               !Number.isFinite(Number(summary.values.y)) ||
               !Number.isFinite(summary.yPixel) ||
@@ -1372,8 +1373,8 @@ export function useHoverReadoutDebug({
           }
 
           if (
-            snapToNearestPoint
-              ? !nearest || summary.distancePx < nearest.distancePx
+            snapDistanceKey
+              ? !nearest || summary[snapDistanceKey] < nearest[snapDistanceKey]
               : isBetterByXThenDistance(summary, nearest)
           ) {
             nearest = summary;
@@ -1397,7 +1398,7 @@ export function useHoverReadoutDebug({
             localX <= boxBounds.right,
           hoverXValue: resolvedHoverXValue,
           nearest,
-          policy: snapToNearestPoint
+          policy: snapDistanceKey
             ? 'anyDistance'
             : resolveReadoutXEligibility(series, readoutOptions),
           tolerance: resolveReadoutXTolerance(series, readoutOptions),
@@ -1423,8 +1424,10 @@ export function useHoverReadoutDebug({
 
         return nearest;
       })
-      .filter(Boolean)
-      .sort((a, b) => a.distancePx - b.distancePx);
+      .filter(Boolean);
+
+    const distanceKey = snapDistanceKey ?? 'distancePx';
+    bySeries.sort((a, b) => a[distanceKey] - b[distanceKey]);
 
     if (bySeries.length === 0) return null;
 

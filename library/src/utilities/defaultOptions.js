@@ -129,7 +129,7 @@ export const defaultOptions = {
   },
   readout: {
     hoverMode: 'local',
-    snapTo: 'none',
+    snapTo: 'none', // 'none' | 'nearestPoint' | 'nearestXPoint' | 'nearestYPoint'
     showVerticalLine: true,
     showTooltip: true,
     className: '',

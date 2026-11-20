@@ -278,7 +278,7 @@ All column arrays must be the same length.
   },
   readout: {
     hoverMode: 'local',
-    snapTo: 'none', // 'none' | 'nearestPoint'
+    snapTo: 'none', // 'none' | 'nearestPoint' | 'nearestXPoint' | 'nearestYPoint'
     showVerticalLine: true,
     showTooltip: true,
     className: '',
@@ -724,16 +724,22 @@ For example, keep a reference curve visible without including it in the readout:
 - `'none'` (default): retain existing per-series sampling and rows. The title,
   vertical guide, and tooltip anchor follow the pointer's x/y position. This does
   not enable interpolation; each plot retains its existing sampling behavior.
-- `'nearestPoint'`: select one visible source point across participating `line`
-  and `circle` series by Euclidean distance in plot pixels. Only that point's
-  series appears in the readout. The title uses its actual x-value and mapped
-  x-axis; the guide, marker, and tooltip anchor snap to its plotted coordinates.
+- `'nearestPoint'`: select the closest point by Euclidean distance in plot pixels.
+- `'nearestXPoint'`: select the closest point by horizontal distance in plot
+  pixels, ignoring pointer y-position.
+- `'nearestYPoint'`: select the closest point by vertical distance in plot
+  pixels, ignoring pointer x-position.
 - Omitting the option or providing an unrecognized value behaves as `'none'`.
-- Duplicate x-values remain distinct points: pointer y-position affects which
-  point wins. Exact distance ties use series order, then source-data order.
+- All three snap modes select one visible source point across participating
+  `line` and `circle` series. Only that point's series appears in the readout.
+  The title uses its actual x-value and mapped x-axis, and the vertical guide,
+  marker, and tooltip anchor snap to the point, even when snapping by y.
+- Exact ties on the active distance use series order, then source-data order.
+  For example, with `'nearestXPoint'`, moving vertically won't change which
+  point wins among duplicate x-values while the pointer stays inside the plot.
 - Only valid points within the current inner plot bounds can be selected,
   including while zoomed. Hidden series and `showInReadout: false` are excluded.
-  Other plot types do not participate in this first version of point snapping.
+  Other plot types do not participate in point snapping.
   With no eligible points, the readout is inactive rather than a placeholder.
 - Snapping selects the nearest visible point even when the pointer lies outside
   that series' own x extent; `xEligibility`, `xTolerance`, and missing-row policies
@@ -743,16 +749,14 @@ For example, keep a reference curve visible without including it in the readout:
   select the same x-value. Snapped positions are not republished to other charts.
 - `showTooltip`, `showVerticalLine`, and `showPointMarkers` remain independent.
 
-For example, opt in for a CDF or scatterplot:
+For example, pick a point based only on the pointer's x-position:
 
 ```js
-readout: {
-  snapTo: 'nearestPoint';
-}
+readout: { snapTo: 'nearestXPoint' }
 ```
 
 Use `readout: { snapTo: 'none' }` or omit `snapTo` to preserve pointer following.
-The CDF demo provides both modes under **Readout Position**.
+The CDF demo provides all four modes under **Readout Position**.
 
 `options.readout.showVerticalLine` controls whether a dashed vertical guide line renders at the hovered x position.
 
@@ -1110,6 +1114,9 @@ Each row contains:
 | `text`, `detailLines`                            | Formatted summary and `{ key, label, text }` detail lines, honoring existing formatters, units, precision and field selection.                                                                                |
 | `sampleX`, `xDistanceValue`, `xExtent`           | Domain-space sampling metadata for x eligibility and custom out-of-range displays.                                                                                                                            |
 | `distancePx`, `xPixel`, `yPixel`, `markerPoints` | Sample distance and SVG marker geometry; not HTML positioning coordinates. Placeholder rows have no marker geometry.                                                                                          |
+
+Axis-only snapping changes point selection, not the row's `distancePx`, which
+still measures the full point-to-pointer distance in plot pixels.
 
 Consumers may ignore all formatted fields and use `values`, `entries`, or `datum`
 to build their own presentation. The public model is separate from debug payloads.

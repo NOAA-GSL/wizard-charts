@@ -1,6 +1,7 @@
 import {
   formatReadoutXValue,
   formatSeriesReadoutText,
+  getPointSnapDistanceKey,
   resolveSeriesReadoutDetailLines,
   resolveSeriesReadoutEntries,
 } from '../utilities/readoutHelpers.js';
@@ -16,26 +17,26 @@ export function buildReadoutModel({
   if (!hoverEvent || !readoutData?.isInsidePlot) return null;
 
   const summaries = readoutData.nearest?.bySeries || [];
-  const snapToNearestPoint = options.snapTo === 'nearestPoint';
-  const nearestPoint = snapToNearestPoint
+  const snapDistanceKey = getPointSnapDistanceKey(options.snapTo);
+  const nearestPoint = snapDistanceKey
     ? summaries.reduce((nearest, summary) => {
         if (
           (summary.seriesType !== 'line' && summary.seriesType !== 'circle') ||
           (summary.status && summary.status !== 'available') ||
           summary.dataIndex == null ||
           summary.values?.x == null ||
-          !Number.isFinite(summary.distancePx) ||
+          !Number.isFinite(summary[snapDistanceKey]) ||
           !Number.isFinite(summary.xPixel) ||
           !Number.isFinite(summary.yPixel)
         ) {
           return nearest;
         }
-        return !nearest || summary.distancePx < nearest.distancePx
+        return !nearest || summary[snapDistanceKey] < nearest[snapDistanceKey]
           ? summary
           : nearest;
       }, null)
     : null;
-  const selectedSummaries = snapToNearestPoint
+  const selectedSummaries = snapDistanceKey
     ? nearestPoint
       ? [nearestPoint]
       : []
