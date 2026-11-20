@@ -2,6 +2,12 @@
 
 All notable user-facing changes to this package are documented in this file.
 
+## 1.3.1
+
+### Added
+
+- Tick labels on all four axes (`x`, `x2`, `y`, `y2`) support newline-separated strings in `ticks.formatter` and `ticks.labels`. The entire label rotates as a block and is measured for automatic margins and collision detection.
+
 ## 1.3.0
 
 ### Added

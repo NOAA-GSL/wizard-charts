@@ -1871,6 +1871,44 @@ Tick migration for 1.3.0 (intentional breaking changes):
 
 The Testing Playground includes **Tick data** plus **Generated ticks (Tick data)** and **Explicit ticks (Tick data)** option presets for checking all-axis rotation, label reduction, resizing, and zoom.
 
+#### Multiline tick labels
+
+Put a newline (`\n`) in a string returned by `ticks.formatter` or in a string in `ticks.labels`. Each line is rendered as SVG text on all four axes (`x`, `x2`, `y`, `y2`). No extra option is needed. This applies to tick labels, not axis titles. HTML such as `<br>` is displayed literally, and JSX is not supported as a label value.
+
+For example, to put the date and weekday on separate lines (`11/3` above `Sat`) and supply two explicit labels on the Y axis:
+
+```jsx
+import { ChartContainer, timeFormatter } from '@noaa-gsl/wizard-charts';
+
+const data = [
+  { date: new Date(2018, 10, 3), temperature: 0 },
+  { date: new Date(2018, 10, 10), temperature: 100 },
+];
+
+const options = {
+  series: [{ type: 'line', xKey: 'date', yKey: 'temperature' }],
+  axes: {
+    x: {
+      type: 'time',
+      ticks: { amount: 7, formatter: timeFormatter('%-m/%-d\n%a') },
+    },
+    y: {
+      type: 'linear',
+      ticks: {
+        values: [0, 100],
+        labels: ['Freezing\n0 °C', 'Boiling\n100 °C'],
+      },
+    },
+  },
+};
+
+<ChartContainer data={data} options={options} height={300} />;
+```
+
+`timeFormatter` uses the viewer's local calendar; use `utcTimeFormatter` instead for UTC. If you want one tick at each selected date, pass those dates in `ticks.values`; otherwise the scale chooses the tick positions. Explicit ticks outside the visible domain are not shown.
+
+Lines stay in reading order on the top axis, and Y-axis labels are vertically centered on their tick at the default angle. `ticks.angle` rotates the whole block. Auto margins and label collision detection account for the full block; fixed margins may need more space. Try **Tick data** with **Multiline ticks (Tick data)** in the Testing Playground.
+
 Line marker behavior:
 
 - Add axis-level marker lines with `axes.*.lineMarkers`.

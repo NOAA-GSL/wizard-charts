@@ -199,6 +199,37 @@ const explicitTicksSource = `{
   }
 }`;
 
+const multilineTicksSource = `{
+  series: [
+    { type: 'line', name: 'Primary', xKey: 'x', yKey: 'y', stroke: '#147AF3' },
+    {
+      type: 'circle', name: 'Secondary', xKey: 'x', yKey: 'y',
+      isSecondaryXAxis: true, isSecondaryYAxis: true,
+      fill: '#008F5D', radius: 2
+    }
+  ],
+  axes: {
+    x: {
+      hasGridLines: true,
+      ticks: { amount: 20, formatter: (value) => 'Sample ' + value + '\\nPrimary' }
+    },
+    x2: {
+      ticks: { amount: 10, angle: 35, formatter: (value) => value + '\\nSecondary' }
+    },
+    y: {
+      nice: true,
+      ticks: {
+        values: [10, 20, 30],
+        labels: ['Low\\n10', 'Middle\\n20', 'High\\n30']
+      }
+    },
+    y2: {
+      nice: true,
+      ticks: { amount: 5, formatter: (value) => value + '\\nunits' }
+    }
+  }
+}`;
+
 export const testingDataPresets = {
   data: [
     {
@@ -270,6 +301,11 @@ export const testingDataPresets = {
       id: 'explicit-ticks',
       label: 'Explicit ticks (Tick data)',
       source: explicitTicksSource,
+    }),
+    createOptionsPreset({
+      id: 'multiline-ticks',
+      label: 'Multiline ticks (Tick data)',
+      source: multilineTicksSource,
     }),
     ...Object.entries(demoOptions).map(createDemoOptionsPreset),
   ],

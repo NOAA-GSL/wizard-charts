@@ -208,6 +208,28 @@ function getAxisEdgeOverflow({
   return overflow;
 }
 
+function getTickLabelBlock(label, tickFont) {
+  const lineTexts = label.split(/\r\n?|\n/);
+  if (lineTexts.length === 1) return getTextDimensions(label, tickFont);
+
+  const { width, height: lineHeight } = getMaxTextDimensions(
+    lineTexts,
+    tickFont,
+  );
+  const lineStep = lineHeight * 1.2;
+  const halfSpan = ((lineTexts.length - 1) * lineStep) / 2;
+
+  // Center the line positions around the same local origin used for rotation.
+  return {
+    width,
+    height: lineHeight + 2 * halfSpan,
+    lines: lineTexts.map((text, index) => ({
+      text,
+      y: index * lineStep - halfSpan,
+    })),
+  };
+}
+
 function getTickLabelGeometry({ axisKey, angle, label, tickFont }) {
   const isXAxis = isXValueAxis(axisKey);
   const isSecondaryAxis = axisKey === 'x2' || axisKey === 'y2';
@@ -220,7 +242,7 @@ function getTickLabelGeometry({ axisKey, angle, label, tickFont }) {
     : isSecondaryAxis
       ? 'start'
       : 'end';
-  const { width, height } = getTextDimensions(label, tickFont);
+  const { width, height, lines } = getTickLabelBlock(label, tickFont);
   const left =
     textAnchor === 'end' ? -width : textAnchor === 'start' ? 0 : -width / 2;
   const radians = (angle * Math.PI) / 180;
@@ -247,6 +269,7 @@ function getTickLabelGeometry({ axisKey, angle, label, tickFont }) {
     textAnchor,
     offsetX,
     offsetY,
+    lines,
     bounds: {
       left: minX + offsetX,
       right: maxX + offsetX,
@@ -269,7 +292,7 @@ function resolveAxisTickLabels({
   const gap = toNonNegativeNumber(minGap, DEFAULT_TICK_COLLISION_MIN_GAP);
   const resolvedTicks = ticks.map((tick) => ({
     ...tick,
-    showLabel: tick.label !== '',
+    showLabel: /[^\r\n]/.test(tick.label),
     labelGeometry: getTickLabelGeometry({
       axisKey,
       angle,

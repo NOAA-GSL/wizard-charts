@@ -101,6 +101,53 @@ describe('axis SVG tick rendering', () => {
     expect(label.getAttribute('dominant-baseline')).toBe('central');
   });
 
+  test.each([
+    ['x', 0, 'middle'],
+    ['x2', 45, 'end'],
+    ['y', 0, 'end'],
+    ['y2', 0, 'start'],
+  ])(
+    'renders multiline %s tick labels in reading order',
+    (axisKey, angle, anchor) => {
+      const document = renderAxis(axisKey, {
+        values: [0, 100],
+        labels: ['11/3\r\nSat', 'Single<br>line'],
+        angle,
+      });
+      const [multiline, single] = document.querySelectorAll(
+        '.gsl-chart-tick-label',
+      );
+      const [first, second] = multiline.querySelectorAll('tspan');
+      expect([first.textContent, second.textContent]).toEqual(['11/3', 'Sat']);
+      expect(first.getAttribute('x')).toBe('0');
+      expect(second.getAttribute('x')).toBe('0');
+      expect(Number(first.getAttribute('y'))).toBeLessThan(0);
+      expect(Number(second.getAttribute('y'))).toBe(
+        -Number(first.getAttribute('y')),
+      );
+      expect(multiline.getAttribute('text-anchor')).toBe(anchor);
+      expect(multiline.getAttribute('transform')).toContain(`rotate(${angle})`);
+      expect(single.querySelector('tspan')).toBeNull();
+      expect(single.textContent).toBe('Single<br>line');
+    },
+  );
+
+  test('uses formatter line breaks for generated ticks', () => {
+    const document = renderAxis('x', {
+      values: [],
+      amount: 1,
+      formatter: (value) => (value === 0 ? '\n' : `${value}\nSample`),
+    });
+    expect(document.querySelectorAll('.gsl-chart-tick-line')).toHaveLength(2);
+    expect(document.querySelectorAll('.gsl-chart-tick-label')).toHaveLength(1);
+    expect(
+      Array.from(
+        document.querySelectorAll('tspan'),
+        (line) => line.textContent,
+      ),
+    ).toEqual(['100', 'Sample']);
+  });
+
   test('keeps marks when all labels are intentionally empty', () => {
     const document = renderAxis('y', { labels: ['', '', '', ''] });
     expect(document.querySelectorAll('.gsl-chart-tick-label')).toHaveLength(0);
