@@ -3,6 +3,7 @@ import { scaleBand, scaleLinear, scaleLog, scaleTime } from 'd3';
 import {
   buildAxisLayout,
   buildAxisTicks,
+  getAutoMarginFromAxisLayout,
   getTickValueKey,
 } from './measurements';
 import { defaultAxisOptions } from './defaultOptions';
@@ -226,14 +227,43 @@ describe('axis tick generation', () => {
 describe('axis label visibility and geometry', () => {
   test('preserves every mark and uses screen space for irregular labels', () => {
     const layout = layoutFor({
-      values: [0, 1, 2, 100],
-      labels: ['A', 'B', 'C', 'D'],
+      values: [0, 1, 30, 60, 90],
+      formatter: () => 'A',
     });
-    expect(layout.ticks.map((tick) => tick.value)).toEqual([0, 1, 2, 100]);
+    expect(layout.ticks.map((tick) => tick.value)).toEqual([0, 1, 30, 60, 90]);
     expect(
       layout.ticks.filter((tick) => tick.showLabel).map((tick) => tick.value),
-    ).toEqual([0, 100]);
+    ).toEqual([0, 30, 60, 90]);
     expect(layout.tickAngle).toBe(0);
+  });
+
+  test('keeps empty label slots in the cadence on a reversed x axis', () => {
+    const layout = layoutFor(
+      {
+        values: [15, 90, 75, 0, 45, 30, 60],
+        formatter: (value) => (value === 45 || value === 90 ? '' : 'ABC'),
+      },
+      { range: [100, 0] },
+    );
+
+    expect(
+      layout.ticks.filter((tick) => tick.showLabel).map((tick) => tick.value),
+    ).toEqual([15, 75]);
+  });
+
+  test('changes the cadence as rotated multiline x2 labels run out of room', () => {
+    const values = [0, 20, 40, 60, 80, 100];
+    const visibleValues = (width) =>
+      layoutFor(
+        { values, angle: 45, formatter: () => 'AAAA\nAAAA' },
+        { axisKey: 'x2', range: [0, width] },
+      )
+        .ticks.filter((tick) => tick.showLabel)
+        .map((tick) => tick.value);
+
+    expect(visibleValues(240)).toEqual(values);
+    expect(visibleValues(120)).toEqual([0, 40, 80]);
+    expect(visibleValues(100)).toEqual([0, 60]);
   });
 
   test('can disable reduction without changing mark positions', () => {
@@ -275,6 +305,47 @@ describe('axis label visibility and geometry', () => {
     ).toHaveLength(1);
   });
 
+  test.each([
+    ['x', 'bottom'],
+    ['x2', 'top'],
+  ])(
+    'uses the widest line for %s collisions and the full height for auto margins',
+    (axisKey, side) => {
+      const ticks = { values: [0, 36, 72], formatter: () => 'AAAA' };
+      const single = layoutFor(ticks, { axisKey });
+      const multiline = layoutFor(
+        { ...ticks, formatter: () => 'AAAA\nAAAA' },
+        { axisKey },
+      );
+
+      expect(multiline.ticks.every((tick) => tick.showLabel)).toBe(true);
+      expect(
+        getAutoMarginFromAxisLayout({ [axisKey]: multiline })[side],
+      ).toBeGreaterThan(
+        getAutoMarginFromAxisLayout({ [axisKey]: single })[side],
+      );
+    },
+  );
+
+  test.each(['y', 'y2'])(
+    'uses the full multiline height for %s collisions',
+    (axisKey) => {
+      const ticks = { values: [0, 22, 44], formatter: () => 'A' };
+      const single = layoutFor(ticks, { axisKey });
+      const multiline = layoutFor(
+        { ...ticks, formatter: () => 'A\nA' },
+        { axisKey },
+      );
+
+      expect(single.ticks.every((tick) => tick.showLabel)).toBe(true);
+      expect(multiline.ticks.map((tick) => tick.showLabel)).toEqual([
+        true,
+        false,
+        true,
+      ]);
+    },
+  );
+
   test('does not reserve space for intentionally hidden labels', () => {
     const layout = layoutFor({ values: [0, 50, 100], formatter: () => '' });
     expect(layout.ticks).toHaveLength(3);
@@ -299,18 +370,20 @@ describe('axis label visibility and geometry', () => {
   test.each(['x', 'x2', 'y', 'y2'])(
     'keeps rotated labels outside the %s axis for every supported angle',
     (axisKey) => {
-      for (const angle of [-90, -45, 0, 45, 90]) {
-        const layout = layoutFor(
-          { values: [50], labels: ['Sample label'], angle },
-          { axisKey },
-        );
-        const geometry = layout.ticks[0].labelGeometry;
-        expect(geometry.angle).toBe(angle);
-        if (axisKey === 'x') expect(geometry.bounds.top).toBeCloseTo(0);
-        if (axisKey === 'x2') expect(geometry.bounds.bottom).toBeCloseTo(0);
-        if (axisKey === 'y') expect(geometry.bounds.right).toBeCloseTo(0);
-        if (axisKey === 'y2') expect(geometry.bounds.left).toBeCloseTo(0);
-        expect(layout.tickTextOutsideSize).toBeGreaterThan(0);
+      for (const label of ['Sample label', 'Sample label\nSecond line']) {
+        for (const angle of [-90, -45, 0, 45, 90]) {
+          const layout = layoutFor(
+            { values: [50], labels: [label], angle },
+            { axisKey },
+          );
+          const geometry = layout.ticks[0].labelGeometry;
+          expect(geometry.angle).toBe(angle);
+          if (axisKey === 'x') expect(geometry.bounds.top).toBeCloseTo(0);
+          if (axisKey === 'x2') expect(geometry.bounds.bottom).toBeCloseTo(0);
+          if (axisKey === 'y') expect(geometry.bounds.right).toBeCloseTo(0);
+          if (axisKey === 'y2') expect(geometry.bounds.left).toBeCloseTo(0);
+          expect(layout.tickTextOutsideSize).toBeGreaterThan(0);
+        }
       }
     },
   );

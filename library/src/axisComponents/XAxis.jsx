@@ -4,6 +4,7 @@ import useAnimation from '../hooks/useAnimation';
 import { mergeDeep } from '../utilities/dataUtilities';
 import { defaultAxisOptions } from '../utilities/defaultOptions';
 import { getTickValueKey } from '../utilities/measurements';
+import AxisTickLabel from './AxisTickLabel';
 
 function XAxis({ options = {}, axisKey = 'x' }) {
   const ticksGroupRef = useRef(null);
@@ -144,18 +145,7 @@ function XAxis({ options = {}, axisKey = 'x' }) {
                 strokeWidth={strokeWidth}
               />
             )}
-            {/* Tick Label */}
-            {tick.showLabel && (
-              <text
-                className="gsl-chart-tick-label"
-                style={textStyle}
-                dominantBaseline="central"
-                textAnchor={tick.labelGeometry.textAnchor}
-                transform={`translate(${tick.labelGeometry.offsetX}, ${labelPivotY + tick.labelGeometry.offsetY}) rotate(${tick.labelGeometry.angle})`}
-              >
-                {tick.label}
-              </text>
-            )}
+            <AxisTickLabel tick={tick} style={textStyle} y={labelPivotY} />
           </g>
         );
       })}

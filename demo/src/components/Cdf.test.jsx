@@ -75,7 +75,12 @@ describe('CDF demo', () => {
   test('switches between snapped and pointer-following readouts without changing data', () => {
     const originalData = ChartContainer.mock.lastCall[0].data;
     const selector = container.querySelector('#cdf-snap-to');
-    for (const mode of ['none', 'nearestPoint']) {
+    for (const mode of [
+      'none',
+      'nearestXPoint',
+      'nearestYPoint',
+      'nearestPoint',
+    ]) {
       act(() => {
         selector.value = mode;
         selector.dispatchEvent(new Event('change', { bubbles: true }));

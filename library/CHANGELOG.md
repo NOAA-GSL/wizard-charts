@@ -2,6 +2,17 @@
 
 All notable user-facing changes to this package are documented in this file.
 
+## 1.3.1
+
+### Added
+
+- Tick labels on all four axes (`x`, `x2`, `y`, `y2`) support newline-separated strings in `ticks.formatter` and `ticks.labels`. The entire label rotates as a block and is measured for automatic margins and collision detection.
+- Added `readout.snapTo` modes `'nearestXPoint'` and `'nearestYPoint'` to select one visible line or circle point by horizontal or vertical pixel distance alone. Both modes are available in the CDF demo.
+
+### Fixed
+
+- On evenly spaced `x` and `x2` axes, overlapping labels are now thinned at a regular cadence without hiding tick marks or grid lines. Irregular x-axis ticks and y-axis label selection are unchanged.
+
 ## 1.3.0
 
 ### Added

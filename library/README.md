@@ -278,7 +278,7 @@ All column arrays must be the same length.
   },
   readout: {
     hoverMode: 'local',
-    snapTo: 'none', // 'none' | 'nearestPoint'
+    snapTo: 'none', // 'none' | 'nearestPoint' | 'nearestXPoint' | 'nearestYPoint'
     showVerticalLine: true,
     showTooltip: true,
     className: '',
@@ -724,16 +724,22 @@ For example, keep a reference curve visible without including it in the readout:
 - `'none'` (default): retain existing per-series sampling and rows. The title,
   vertical guide, and tooltip anchor follow the pointer's x/y position. This does
   not enable interpolation; each plot retains its existing sampling behavior.
-- `'nearestPoint'`: select one visible source point across participating `line`
-  and `circle` series by Euclidean distance in plot pixels. Only that point's
-  series appears in the readout. The title uses its actual x-value and mapped
-  x-axis; the guide, marker, and tooltip anchor snap to its plotted coordinates.
+- `'nearestPoint'`: select the closest point by Euclidean distance in plot pixels.
+- `'nearestXPoint'`: select the closest point by horizontal distance in plot
+  pixels, ignoring pointer y-position.
+- `'nearestYPoint'`: select the closest point by vertical distance in plot
+  pixels, ignoring pointer x-position.
 - Omitting the option or providing an unrecognized value behaves as `'none'`.
-- Duplicate x-values remain distinct points: pointer y-position affects which
-  point wins. Exact distance ties use series order, then source-data order.
+- All three snap modes select one visible source point across participating
+  `line` and `circle` series. Only that point's series appears in the readout.
+  The title uses its actual x-value and mapped x-axis, and the vertical guide,
+  marker, and tooltip anchor snap to the point, even when snapping by y.
+- Exact ties on the active distance use series order, then source-data order.
+  For example, with `'nearestXPoint'`, moving vertically won't change which
+  point wins among duplicate x-values while the pointer stays inside the plot.
 - Only valid points within the current inner plot bounds can be selected,
   including while zoomed. Hidden series and `showInReadout: false` are excluded.
-  Other plot types do not participate in this first version of point snapping.
+  Other plot types do not participate in point snapping.
   With no eligible points, the readout is inactive rather than a placeholder.
 - Snapping selects the nearest visible point even when the pointer lies outside
   that series' own x extent; `xEligibility`, `xTolerance`, and missing-row policies
@@ -743,16 +749,14 @@ For example, keep a reference curve visible without including it in the readout:
   select the same x-value. Snapped positions are not republished to other charts.
 - `showTooltip`, `showVerticalLine`, and `showPointMarkers` remain independent.
 
-For example, opt in for a CDF or scatterplot:
+For example, pick a point based only on the pointer's x-position:
 
 ```js
-readout: {
-  snapTo: 'nearestPoint';
-}
+readout: { snapTo: 'nearestXPoint' }
 ```
 
 Use `readout: { snapTo: 'none' }` or omit `snapTo` to preserve pointer following.
-The CDF demo provides both modes under **Readout Position**.
+The CDF demo provides all four modes under **Readout Position**.
 
 `options.readout.showVerticalLine` controls whether a dashed vertical guide line renders at the hovered x position.
 
@@ -1110,6 +1114,9 @@ Each row contains:
 | `text`, `detailLines`                            | Formatted summary and `{ key, label, text }` detail lines, honoring existing formatters, units, precision and field selection.                                                                                |
 | `sampleX`, `xDistanceValue`, `xExtent`           | Domain-space sampling metadata for x eligibility and custom out-of-range displays.                                                                                                                            |
 | `distancePx`, `xPixel`, `yPixel`, `markerPoints` | Sample distance and SVG marker geometry; not HTML positioning coordinates. Placeholder rows have no marker geometry.                                                                                          |
+
+Axis-only snapping changes point selection, not the row's `distancePx`, which
+still measures the full point-to-pointer distance in plot pixels.
 
 Consumers may ignore all formatted fields and use `values`, `entries`, or `datum`
 to build their own presentation. The public model is separate from debug payloads.
@@ -1859,6 +1866,7 @@ Tick behavior:
 - For `time` axes, JavaScript `Date` values represent instants in time. `timeFormatter(...)` displays those instants using the viewer's local calendar fields, while `utcTimeFormatter(...)` displays UTC calendar fields. Generated tick positions still come from D3 `scaleTime()` unless you provide explicit `ticks.values`.
 - `ticks.angle` sets label rotation in degrees from `-90` through `90`, defaulting to `0`. Non-numeric, non-finite, or out-of-range values fall back to `0`. Rotation is never applied automatically. On bottom x axes, negative angles pivot at the label end and positive angles at its start; zero centers the label. Top axes mirror these anchors so labels extend outward. Y axes anchor at the end on the left and start on the right, with side-aware outward placement for every angle.
 - `ticks.reduceLabels` defaults to `true`. It hides overlapping labels using their final formatted, rotated screen-space bounds, including irregular explicit positions. It never removes marks or grid lines. Selection is deterministic but does not guarantee endpoint labels. Set it to `false` to show every nonempty label, even if labels overlap.
+- On evenly spaced `x` and `x2` axes, reduction keeps a regular cadence: every label, every second label, every third label, and so on. It starts at the leftmost nonempty label and uses the smallest step that fits. Empty labels do not shift the cadence, and the final tick is not forced into the pattern. Irregularly spaced x ticks and all y ticks are still checked label by label.
 - `ticks.collisionMinGap` sets the minimum pixel gap between visible label bounds, defaulting to `5`. Hidden labels do not reserve margin space, but marks still do. Auto margins can change as visible labels change during zoom or resizing.
 - Axis `nice` still applies to base domains, but does not expand an active zoom override. Returning to the original view restores base-domain nicening.
 
@@ -1870,6 +1878,44 @@ Tick migration for 1.3.0 (intentional breaking changes):
 - Expect more marks/grid lines where collisions previously removed entire ticks, and scale-aware default labels where no formatter is supplied.
 
 The Testing Playground includes **Tick data** plus **Generated ticks (Tick data)** and **Explicit ticks (Tick data)** option presets for checking all-axis rotation, label reduction, resizing, and zoom.
+
+#### Multiline tick labels
+
+Put a newline (`\n`) in a string returned by `ticks.formatter` or in a string in `ticks.labels`. Each line is rendered as SVG text on all four axes (`x`, `x2`, `y`, `y2`). No extra option is needed. This applies to tick labels, not axis titles. HTML such as `<br>` is displayed literally, and JSX is not supported as a label value.
+
+For example, to put the date and weekday on separate lines (`11/3` above `Sat`) and supply two explicit labels on the Y axis:
+
+```jsx
+import { ChartContainer, timeFormatter } from '@noaa-gsl/wizard-charts';
+
+const data = [
+  { date: new Date(2018, 10, 3), temperature: 0 },
+  { date: new Date(2018, 10, 10), temperature: 100 },
+];
+
+const options = {
+  series: [{ type: 'line', xKey: 'date', yKey: 'temperature' }],
+  axes: {
+    x: {
+      type: 'time',
+      ticks: { amount: 7, formatter: timeFormatter('%-m/%-d\n%a') },
+    },
+    y: {
+      type: 'linear',
+      ticks: {
+        values: [0, 100],
+        labels: ['Freezing\n0 °C', 'Boiling\n100 °C'],
+      },
+    },
+  },
+};
+
+<ChartContainer data={data} options={options} height={300} />;
+```
+
+`timeFormatter` uses the viewer's local calendar; use `utcTimeFormatter` instead for UTC. If you want one tick at each selected date, pass those dates in `ticks.values`; otherwise the scale chooses the tick positions. Explicit ticks outside the visible domain are not shown.
+
+Lines stay in reading order on the top axis, and Y-axis labels are vertically centered on their tick at the default angle. `ticks.angle` rotates the whole block. Auto margins and label collision detection account for the full block; fixed margins may need more space. In the Testing Playground, select **Tick data** and **Multiline ticks (Tick data)**, then resize the chart to see the x-axis label cadence change while all marks stay visible.
 
 Line marker behavior:
 

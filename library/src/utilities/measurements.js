@@ -208,6 +208,28 @@ function getAxisEdgeOverflow({
   return overflow;
 }
 
+function getTickLabelBlock(label, tickFont) {
+  const lineTexts = label.split(/\r\n?|\n/);
+  if (lineTexts.length === 1) return getTextDimensions(label, tickFont);
+
+  const { width, height: lineHeight } = getMaxTextDimensions(
+    lineTexts,
+    tickFont,
+  );
+  const lineStep = lineHeight * 1.2;
+  const halfSpan = ((lineTexts.length - 1) * lineStep) / 2;
+
+  // Center the line positions around the same local origin used for rotation.
+  return {
+    width,
+    height: lineHeight + 2 * halfSpan,
+    lines: lineTexts.map((text, index) => ({
+      text,
+      y: index * lineStep - halfSpan,
+    })),
+  };
+}
+
 function getTickLabelGeometry({ axisKey, angle, label, tickFont }) {
   const isXAxis = isXValueAxis(axisKey);
   const isSecondaryAxis = axisKey === 'x2' || axisKey === 'y2';
@@ -220,7 +242,7 @@ function getTickLabelGeometry({ axisKey, angle, label, tickFont }) {
     : isSecondaryAxis
       ? 'start'
       : 'end';
-  const { width, height } = getTextDimensions(label, tickFont);
+  const { width, height, lines } = getTickLabelBlock(label, tickFont);
   const left =
     textAnchor === 'end' ? -width : textAnchor === 'start' ? 0 : -width / 2;
   const radians = (angle * Math.PI) / 180;
@@ -247,6 +269,7 @@ function getTickLabelGeometry({ axisKey, angle, label, tickFont }) {
     textAnchor,
     offsetX,
     offsetY,
+    lines,
     bounds: {
       left: minX + offsetX,
       right: maxX + offsetX,
@@ -254,6 +277,47 @@ function getTickLabelGeometry({ axisKey, angle, label, tickFont }) {
       bottom: maxY + offsetY,
     },
   };
+}
+
+function hasEvenTickSpacing(ranges) {
+  if (ranges.length < 2) return true;
+
+  const firstPosition = ranges[0].position;
+  const step = (ranges.at(-1).position - firstPosition) / (ranges.length - 1);
+  // Ignore floating-point drift in scale coordinates, not uneven spacing.
+  const tolerance = 1e-6;
+  return (
+    step > tolerance &&
+    ranges.every(
+      ({ position }, index) =>
+        Math.abs(position - (firstPosition + index * step)) <= tolerance,
+    )
+  );
+}
+
+function reduceTickLabelsAtStride(ranges, gap) {
+  const firstLabel = ranges.findIndex(({ tick }) => tick.showLabel);
+  if (firstLabel === -1) return;
+
+  const fits = (stride) => {
+    let previousEnd = -Infinity;
+    for (let index = firstLabel; index < ranges.length; index += stride) {
+      const { tick, start, end } = ranges[index];
+      // Blank labels still occupy a tick slot, but add no collision bounds.
+      if (!tick.showLabel) continue;
+      if (start < previousEnd + gap) return false;
+      previousEnd = end;
+    }
+    return true;
+  };
+
+  let stride = 1;
+  // A stride spanning the remaining ticks leaves just the first label.
+  while (stride < ranges.length - firstLabel && !fits(stride)) stride += 1;
+  for (let index = firstLabel; index < ranges.length; index += 1) {
+    if ((index - firstLabel) % stride !== 0)
+      ranges[index].tick.showLabel = false;
+  }
 }
 
 function resolveAxisTickLabels({
@@ -269,7 +333,7 @@ function resolveAxisTickLabels({
   const gap = toNonNegativeNumber(minGap, DEFAULT_TICK_COLLISION_MIN_GAP);
   const resolvedTicks = ticks.map((tick) => ({
     ...tick,
-    showLabel: tick.label !== '',
+    showLabel: /[^\r\n]/.test(tick.label),
     labelGeometry: getTickLabelGeometry({
       axisKey,
       angle,
@@ -279,17 +343,27 @@ function resolveAxisTickLabels({
   }));
   if (!reduceLabels) return resolvedTicks;
 
-  const occupiedRanges = resolvedTicks
-    .filter((tick) => tick.showLabel)
-    .map((tick) => {
-      const position = getAxisTickPosition(axisScale, tick.value);
-      const bounds = tick.labelGeometry.bounds;
-      return {
-        tick,
-        start: position + (isXAxis ? bounds.left : bounds.top),
-        end: position + (isXAxis ? bounds.right : bounds.bottom),
-      };
-    });
+  const tickRanges = resolvedTicks.map((tick) => {
+    const position = getAxisTickPosition(axisScale, tick.value);
+    const bounds = tick.labelGeometry.bounds;
+    return {
+      tick,
+      position,
+      start: position + (isXAxis ? bounds.left : bounds.top),
+      end: position + (isXAxis ? bounds.right : bounds.bottom),
+    };
+  });
+  if (isXAxis) {
+    const screenOrderedRanges = [...tickRanges].sort(
+      (first, second) => first.position - second.position,
+    );
+    if (hasEvenTickSpacing(screenOrderedRanges)) {
+      reduceTickLabelsAtStride(screenOrderedRanges, gap);
+      return resolvedTicks;
+    }
+  }
+
+  const occupiedRanges = tickRanges.filter(({ tick }) => tick.showLabel);
   occupiedRanges.sort(
     (first, second) => first.end - second.end || first.start - second.start,
   );

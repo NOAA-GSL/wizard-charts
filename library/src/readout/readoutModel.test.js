@@ -207,6 +207,88 @@ describe('series readout participation uses the shared sampler and renderer', ()
     assert.deepEqual(model.anchor, { x: 40, y: 40 });
   });
 
+  for (const mode of ['local', 'global']) {
+    test.each([
+      [
+        'nearestXPoint',
+        [
+          [31, 25],
+          [31, 90],
+        ],
+        { x: 6, y: 10 },
+        { x: 30, y: 90 },
+      ],
+      [
+        'nearestYPoint',
+        [
+          [40, 41],
+          [80, 41],
+        ],
+        { x: 16, y: 60 },
+        { x: 80, y: 40 },
+      ],
+    ])(
+      `%s ignores the other coordinate in ${mode} mode`,
+      (snapTo, positions, datum, anchor) => {
+        const series = [
+          { type: 'line', data: [{ x: 4, y: 7.5 }] },
+          {
+            type: 'circle',
+            isSecondaryXAxis: true,
+            isSecondaryYAxis: true,
+            data: [
+              { x: 6, y: 10 },
+              { x: 8, y: 75 },
+              { x: 16, y: 60 },
+            ],
+          },
+        ];
+
+        for (const [localX, localY] of positions) {
+          const { model, markup } = sample(series, {
+            mode,
+            xValue: localX / 10,
+            localX,
+            localY,
+            x2Scale: scaleLinear().domain([0, 20]).range([0, 100]),
+            y2Scale: scaleLinear().domain([0, 100]).range([100, 0]),
+            options: {
+              snapTo,
+              titleFormatter: (x, context) => `${context.axisKey}:${x}`,
+            },
+          });
+          assert.equal(model.rows.length, 1);
+          assert.equal(model.rows[0].seriesIndex, 1);
+          assert.deepEqual(model.rows[0].datum, datum);
+          assert.equal(model.title, `x2:${datum.x}`);
+          assert.deepEqual(model.local, { x: localX, y: localY });
+          assert.deepEqual(model.anchor, anchor);
+          assert.ok(markup.includes(`x1="${anchor.x}" x2="${anchor.x}"`));
+          assert.ok(markup.includes(`cx="${anchor.x}" cy="${anchor.y}"`));
+        }
+      },
+    );
+  }
+
+  test.each([
+    ['nearestXPoint', { x: 2, y: 1 }],
+    ['nearestYPoint', { x: 1, y: 6 }],
+  ])(
+    '%s uses source order to break ties on the selected axis',
+    (snapTo, first) => {
+      const closerOnIgnoredAxis = { x: 2, y: 6 };
+      const { model } = sample(
+        [
+          { type: 'line', data: [first, closerOnIgnoredAxis] },
+          { type: 'circle', data: [closerOnIgnoredAxis] },
+        ],
+        { xValue: 2, localY: 40, options: { snapTo } },
+      );
+      assert.equal(model.rows[0].seriesIndex, 0);
+      assert.deepEqual(model.rows[0].datum, first);
+    },
+  );
+
   test('nearestPoint selects one series and ignores hidden or opted-out points', () => {
     const { model } = sample(
       [
@@ -334,27 +416,30 @@ describe('series readout participation uses the shared sampler and renderer', ()
     assert.equal(model.rows[0].dataIndex, 0);
   });
 
-  test('nearestPoint returns no readout when no visible valid point exists', () => {
-    for (const points of [
-      [],
-      [{ x: 2, y: null }],
-      [{ x: 2 }],
-      [{ x: 2, y: NaN }],
-      [{ x: null, y: 3 }],
-      [{ x: Infinity, y: 3 }],
-      [{ x: 2, y: 11 }],
-      [
-        { x: -1, y: 3 },
-        { x: 11, y: 3 },
-      ],
-    ]) {
-      const { model, markup } = sample([{ type: 'line', data: points }], {
-        options: { snapTo: 'nearestPoint' },
-      });
-      assert.equal(model, null);
-      assert.equal(markup, '');
-    }
-  });
+  test.each(['nearestPoint', 'nearestXPoint', 'nearestYPoint'])(
+    '%s returns no readout when no visible valid point exists',
+    (snapTo) => {
+      for (const points of [
+        [],
+        [{ x: 2, y: null }],
+        [{ x: 2 }],
+        [{ x: 2, y: NaN }],
+        [{ x: null, y: 3 }],
+        [{ x: Infinity, y: 3 }],
+        [{ x: 2, y: 11 }],
+        [
+          { x: -1, y: 3 },
+          { x: 11, y: 3 },
+        ],
+      ]) {
+        const { model, markup } = sample([{ type: 'line', data: points }], {
+          options: { snapTo },
+        });
+        assert.equal(model, null);
+        assert.equal(markup, '');
+      }
+    },
+  );
 
   test('nearestPoint skips grid and summary series before accessing their data', () => {
     const { model } = sample(
